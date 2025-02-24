@@ -9,7 +9,7 @@ __pycache__/
 *.idea/
 
 # Ignorar configuración sensible
-/processing-layer/config/devices.yaml
+processing-layer/config/devices.yaml
 
 
 
