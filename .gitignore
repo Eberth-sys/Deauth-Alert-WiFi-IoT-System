@@ -2,6 +2,20 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyc 
+
+# Archivos de configuración específicos del sistema
+*.vscode/
+*.idea/
+
+# Ignorar configuración sensible
+/processing-layer/config/devices.yaml
+
+
+
+
+# Archivos de log
+*.log
 
 # C extensions
 *.so
