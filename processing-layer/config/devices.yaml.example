@@ -1,0 +1,15 @@
+# config/devices.yaml.example
+
+esp32_devices:
+  - address: "XX:XX:XX:XX:XX:XX"  # Reemplaza con la dirección MAC real
+    name: "ESP32_1_CH_01"
+  - address: "XX:XX:XX:XX:XX:XX"
+    name: "ESP32_2_CH_06"
+  - address: "XX:XX:XX:XX:XX:XX"
+    name: "ESP32_3_CH_11"
+  - address: "XX:XX:XX:XX:XX:XX"
+    name: "ESP32_4_SCANN"
+
+uuids:
+  service_uuid: "your-service-uuid"
+  characteristic_uuid: "your-characteristic-uuid"
