@@ -12,8 +12,6 @@ __pycache__/
 processing-layer/config/devices.yaml
 
 
-
-
 # Archivos de log
 *.log
 
