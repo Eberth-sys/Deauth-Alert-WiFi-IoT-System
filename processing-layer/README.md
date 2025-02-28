@@ -29,7 +29,34 @@ Cada **ESP32** captura los paquetes Wi-Fi en su canal y, si detecta un posible a
 
 ---
 
-## 🖥 **Instalación en Raspberry Pi**  
+## ⚙️ **Tecnologías Utilizadas**  
+
+El desarrollo de este sistema IoT se basó en **hardware y software** cuidadosamente seleccionados para garantizar la eficiencia en la captura y procesamiento de datos en tiempo real. A continuación, se detallan los componentes y tecnologías utilizadas junto con sus versiones:  
+
+### 🔹 **Hardware**  
+
+| **Componente**   | **Descripción** |
+|------------------|----------------------------------|
+| **Raspberry Pi 5 (8GB RAM)** | Unidad central de procesamiento, ejecuta la capa de procesamiento IoT en **Debian 12 (Bookworm)**. |
+| **ESP32-WROOM-32U** | Módulo IoT con conectividad Wi-Fi 2.4 GHz y BLE, equipado con antena externa para mejorar la recepción de señal. |
+
+
+### 🔹 **Software**  
+
+| **Tecnología**   | **Versión** | **Descripción** |
+|------------------|------------|----------------------------------|
+| **Python** | `3.11.2` | Lenguaje de programación utilizado para la lógica del sistema. |
+| **Git** | `2.39.5` | Sistema de control de versiones para la gestión del código fuente. |
+| **BlueZ** | Última versión estable | Stack Bluetooth para manejar conexiones BLE en Raspberry Pi. |
+| **Bleak** | Última versión estable | Librería de Python para la comunicación con dispositivos BLE. |
+| **PyYAML** | Última versión estable | Manejo de archivos de configuración en formato YAML. |
+| **Asyncio** | Incluido en Python 3 | Permite la ejecución de tareas asíncronas para el procesamiento en tiempo real. |
+
+✅ **Nota:** Las versiones indicadas corresponden a las utilizadas en el desarrollo del proyecto. Se recomienda verificar la compatibilidad con futuras actualizaciones de cada tecnología.  
+
+---
+
+## 🖥️ **Instalación en Raspberry Pi**  
 
 ### 1️⃣ **Instalar el sistema operativo**  
 
