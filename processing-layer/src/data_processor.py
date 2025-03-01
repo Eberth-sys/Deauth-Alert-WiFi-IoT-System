@@ -2,6 +2,7 @@
 
 import psycopg2
 import os
+from datetime import datetime, timedelta
 
 # Función para conectar con PostgreSQL
 def conectar_db():
@@ -25,11 +26,27 @@ def guardar_alerta(origen_mac, destino_mac, bssid, canal, nodo_iot):
 
     try:
         cursor = conn.cursor() # Crea un cursor para ejecutar consultas SQL
+
+        #Verificamos si ya existe un ataque similar en los últimos 5 segundos
+        tiempo_limite = datetime.now() - timedelta(seconds=5)  #valor del tiempo 
+
         cursor.execute("""
-            INSERT INTO alerts (origen_mac, destino_mac, bssid, canal, nodo_iot)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (origen_mac, destino_mac, bssid, canal, nodo_iot)) #(%s) para evitar SQL Injection
-        conn.commit()  # Guarda los cambios en la base de datos
+            SELECT COUNT(*) FROM alerts
+            WHERE origen_mac = %s AND destino_mac = %s AND bssid = %s 
+            AND canal = %s AND nodo_iot = %s AND timestamp >= %s;
+        """, (origen_mac, destino_mac, bssid, canal, nodo_iot, tiempo_limite))
+        
+        cantidad = cursor.fetchone()[0]
+    
+        if cantidad == 0:
+            # Si no hay registros recientes, insertamos el nuevo ataque
+
+            cursor.execute("""
+                INSERT INTO alerts (origen_mac, destino_mac, bssid, canal, nodo_iot)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (origen_mac, destino_mac, bssid, canal, nodo_iot)) #(%s) para evitar SQL Injection
+            conn.commit()  # Guarda los cambios en la base de datos
+
         cursor.close() # Cierra el cursor para liberar recursos
         conn.close() # Cierra la conexión con la base de datos para evitar fugas de memoria
     except Exception as e:
