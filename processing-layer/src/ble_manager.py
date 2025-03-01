@@ -47,9 +47,10 @@ class BLEManager:
                                     destino_mac = partes[2].split(": ")[1].strip()
                                     bssid = partes[3].split(": ")[1].strip()
                                     canal = int(partes[4].split(": ")[1].strip())
+                                    nodo_iot = device['name']
 
                                     # Guardar en la base de datos
-                                    guardar_alerta(origen_mac, destino_mac, bssid, canal)
+                                    guardar_alerta(origen_mac, destino_mac, bssid, canal, nodo_iot)
                                    # print(f" Alerta guardada en la base de datos desde {device['name']}")
 
                                 else:

@@ -18,7 +18,7 @@ def conectar_db():
         return None
 
 # Función para guardar eventos de ataque en la base de datos
-def guardar_alerta(origen_mac, destino_mac, bssid, canal):
+def guardar_alerta(origen_mac, destino_mac, bssid, canal, nodo_iot):
     conn = conectar_db()  #establecer una conexión con la base de datos
     if conn is None:
         return  # Si no hay conexión, no se hace nada.
@@ -26,9 +26,9 @@ def guardar_alerta(origen_mac, destino_mac, bssid, canal):
     try:
         cursor = conn.cursor() # Crea un cursor para ejecutar consultas SQL
         cursor.execute("""
-            INSERT INTO alerts (origen_mac, destino_mac, bssid, canal)
-            VALUES (%s, %s, %s, %s)
-        """, (origen_mac, destino_mac, bssid, canal)) #(%s) para evitar SQL Injection
+            INSERT INTO alerts (origen_mac, destino_mac, bssid, canal, nodo_iot)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (origen_mac, destino_mac, bssid, canal, nodo_iot)) #(%s) para evitar SQL Injection
         conn.commit()  # Guarda los cambios en la base de datos
         cursor.close() # Cierra el cursor para liberar recursos
         conn.close() # Cierra la conexión con la base de datos para evitar fugas de memoria
