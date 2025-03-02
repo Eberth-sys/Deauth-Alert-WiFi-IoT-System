@@ -1,0 +1,35 @@
+
+version: "3.8"                                         # Versión de Docker Compose que estamos utilizando
+
+# Definimos los servicios que correrán en los contenedores
+services:
+  postgres:                                              # Nombre del servicio (puede ser cualquier nombre, pero debe ser único en este archivo)
+    image: postgres:latest                               # última versión de la imagen oficial de PostgreSQL en Docker Hub
+    container_name: deauth_postgres                      # Nombre del contenedor
+    restart: always                                      # Configura el contenedor para que se reinicie automáticamente si se detiene inesperadamente
+    env_file:
+      - .env                                             # Carga las variables de entorno desde un archivo `.env` externo
+
+    environment:                                         # Define variables de entorno necesarias para configurar PostgreSQL
+      POSTGRES_DB: ${PG_DB}                              # Nombre de la bd (cargado desde el archivo `.env`)
+      POSTGRES_USER: ${PG_USER}                          # Usuario de la bd (cargado desde el archivo `.env`)
+      POSTGRES_PASSWORD: ${PG_PASSWORD}                  # Contraseña de la base de datos (cargado desde el archivo `.env`)
+
+    ports:
+      - "${PG_PORT:-5432}:5432"                          # Puerto del host (definido en `.env`) al puerto interno de PostgreSQL (5432)
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data           # Asigna un volumen persistente para guardar los datos de PostgreSQL
+      - ./init-scripts:/docker-entrypoint-initdb.d       # Permite ejecutar scripts SQL al iniciar
+
+    networks:
+      - deauth_network                                   # Comunicación interna entre contenedores
+
+# Definimos volúmenes para persistencia de datos
+volumes:
+  postgres_data:                                         # Volumen donde se almacenarán los datos de la bd, evitando la pérdida de información si el contenedor se elimina
+
+# Definimos una red personalizada para permitir la comunicación entre servicios dentro del mismo entorno de Docker
+networks:
+  deauth_network:
+    driver: bridge                                       # Usa el modo "bridge" para permitir la comunicación segura entre contenedores dentro de la misma red

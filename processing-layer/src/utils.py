@@ -1,19 +1,41 @@
-# src/utils.py
+#utils.py
+import asyncio
+from src.ble_manager import BLEManager
+from src.utils import load_config
+from src.database import get_db_connection  # Importamos la conexión centralizada
 
-import yaml
+async def main():
+    # Cargar configuración desde devices.yaml
+    config = load_config("config/devices.yaml")
 
-# Cargar configuración desde devices.yaml
-def load_config(path="config/devices.yaml"):
-    try:
-        with open(path, "r") as file:
-            return yaml.safe_load(file)
-    except FileNotFoundError:
-        print(f"[ERROR] Archivo de configuración no encontrado en: {path}")
-        exit(1)
-    except yaml.YAMLError as e:
-        print(f"[ERROR] Error al parsear el archivo YAML: {e}")
-        exit(1)
+    if not config:
+        print("[ALERT] - No se pudo cargar la configuración. Verifica 'devices.yaml'.")
+        return  # Evita continuar si no hay configuración
+
+    # Verificar si hay dispositivos en la configuración
+    devices = config.get('esp32_devices', [])
+    uuids = config.get('uuids', {})
+
+    if not devices or not uuids:
+        print("[ALERT] - No hay dispositivos o UUIDs en la configuración.")
+        return
+
+    # Probar conexión a PostgreSQL
+    conn = get_db_connection()
+    if conn:
+        print("[INFO] - Conexión exitosa a PostgreSQL en Docker!")
+        conn.close()
+    else:
+        print("[ALERT] - No se pudo conectar a la base de datos.")
+        return  # Evita continuar si no hay conexión a la BD
+
+    # Inicializar BLEManager
+    ble_manager = BLEManager(devices, uuids.get('service_uuid'), uuids.get('characteristic_uuid'))
     
-# Función para validar dispositivos permitidos
-def is_device_allowed(address, devices):
-    return any(device["address"] == address for device in devices)
+    try:
+        await ble_manager.run()
+    except Exception as e:
+        print(f"[ERROR] - Error en BLEManager: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
