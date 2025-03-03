@@ -1,4 +1,5 @@
 
+#docker-compose.yml
 
 # Definimos los servicios que correrán en los contenedores
 services:
@@ -13,6 +14,8 @@ services:
       POSTGRES_DB: ${PG_DB}                              # Nombre de la bd (cargado desde el archivo `.env`)
       POSTGRES_USER: ${PG_USER}                          # Usuario de la bd (cargado desde el archivo `.env`)
       POSTGRES_PASSWORD: ${PG_PASSWORD}                  # Contraseña de la base de datos (cargado desde el archivo `.env`)
+      TZ: America/Santiago                               # Configuración de la zona horaria
+      PGTZ: America/Santiago                             # Asegurar que PostgreSQL use esta zona horaria
 
     ports:
       - "${PG_PORT:-5432}:5432"                          # Puerto del host (definido en `.env`) al puerto interno de PostgreSQL (5432)
@@ -31,4 +34,4 @@ volumes:
 # Definimos una red personalizada para permitir la comunicación entre servicios dentro del mismo entorno de Docker
 networks:
   deauth_network:
-    driver: bridge                                       # Usa el modo "bridge" para permitir la comunicación segura entre contenedores dentro de la misma red
+    driver: bridge                                       # Usa el modo "bridge" para permitir la comunicación segura entre contenedores dentro de la misma red.
