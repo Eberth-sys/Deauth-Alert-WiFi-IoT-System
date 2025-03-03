@@ -22,7 +22,7 @@ def guardar_alerta(nodo_iot, spoofed_bssid, bssid, destino_mac, canal):
 
         conn.commit()  # Guarda los cambios en la base de datos
 
-        print(f"[INFO] - Alerta guardada en la base de datos desde {nodo_iot}")
+        #print(f"[INFO] - Alerta guardada en la base de datos desde {nodo_iot}")
 
         cursor.close()  # Cierra el cursor para liberar recursos
         conn.close()  # Cierra la conexión con la base de datos para evitar fugas de memoria
