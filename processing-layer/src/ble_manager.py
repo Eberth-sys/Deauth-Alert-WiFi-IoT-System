@@ -50,7 +50,7 @@ class BLEManager:
                                     nodo_iot = device['name']
 
                                     # Guardar en la base de datos
-                                    guardar_alerta(spoofed_bssid, destino_mac, bssid, canal, nodo_iot)
+                                    guardar_alerta(nodo_iot, spoofed_bssid, destino_mac, bssid, canal )
                                    # print(f" Alerta guardada en la base de datos desde {device['name']}")
 
                                 else:
