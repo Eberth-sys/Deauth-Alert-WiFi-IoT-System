@@ -4,7 +4,7 @@ from datetime import datetime
 from src.database import get_db_connection  # Importamos la conexión centralizada
 
 # Función para guardar eventos de ataque en la base de datos
-def guardar_alerta(nodo_iot, spoofed_bssid, bssid, destino_mac, canal):
+def guardar_alerta(nodo_iot, spoofed_bssid, bssid, target_mac, canal):
 
     conn = get_db_connection()  # Obtener la conexión a la base de datos
     if conn is None:
@@ -16,9 +16,9 @@ def guardar_alerta(nodo_iot, spoofed_bssid, bssid, destino_mac, canal):
 
         # Insertar el evento sin verificar duplicados
         cursor.execute("""
-            INSERT INTO alerts (nodo_iot, spoofed_bssid, bssid, destino_mac, canal)
+            INSERT INTO alerts (nodo_iot, spoofed_bssid, bssid, target_mac, canal) 
             VALUES (%s, %s, %s, %s, %s)
-        """, (nodo_iot, spoofed_bssid, bssid, destino_mac, int(canal)))  # - Convierte canal a int antes de insertar
+        """, (nodo_iot, spoofed_bssid, bssid, target_mac, int(canal)))  # - Convierte canal a int antes de insertar
 
         conn.commit()  # Guarda los cambios en la base de datos
 

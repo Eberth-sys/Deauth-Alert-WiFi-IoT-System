@@ -44,13 +44,13 @@ class BLEManager:
 
                                     # Extraer los valores clave del mensaje recibido
                                     spoofed_bssid = partes[1].split(": ")[1].strip()
-                                    destino_mac = partes[2].split(": ")[1].strip()
+                                    target_mac = partes[2].split(": ")[1].strip()  # Modifique el nombre por target_mac
                                     bssid = partes[3].split(": ")[1].strip()
                                     canal = int(partes[4].split(": ")[1].strip())
                                     nodo_iot = device['name']
 
                                     # Guardar en la base de datos
-                                    guardar_alerta(nodo_iot, spoofed_bssid, destino_mac, bssid, canal )
+                                    guardar_alerta(nodo_iot, spoofed_bssid, target_mac, bssid, canal ) # Modifique el nombre por target_mac
                                    # print(f" Alerta guardada en la base de datos desde {device['name']}")
 
                                 else:
