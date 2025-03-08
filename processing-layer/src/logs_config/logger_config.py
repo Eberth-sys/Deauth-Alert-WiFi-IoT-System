@@ -1,4 +1,4 @@
-#/src/logs/logger_config.py
+#/src/logs_config/logger_config.py
 
 import logging
 from logging.handlers import RotatingFileHandler
