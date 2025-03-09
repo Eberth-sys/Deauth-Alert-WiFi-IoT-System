@@ -36,12 +36,17 @@ def actualizar_estado_esp32(device_name, mac_address, status):
         return
 
     try:
-        cursor = conn.cursor()
+        cursor = conn.cursor() #Consulta para el last_update de cada ESP32.
         cursor.execute("""
             INSERT INTO esp32_status (device_name, mac_address, status, last_update) 
             VALUES (%s, %s, %s, NOW())
             ON CONFLICT (device_name) 
-            DO UPDATE SET status = EXCLUDED.status, last_update = NOW();
+            DO UPDATE SET 
+                status = EXCLUDED.status, 
+                last_update = CASE 
+                    WHEN esp32_status.status <> EXCLUDED.status THEN NOW() 
+                    ELSE esp32_status.last_update 
+                END;
         """, (device_name, mac_address, status))
 
         conn.commit()
