@@ -18,3 +18,13 @@ class AlertResponse(AlertCreate):
 
     class Config:
         from_attributes = True          # Convierto de modelo SQLAlchemy a Pydantic automáticamente
+
+# Esquema para respuestas sobre el estado de los ESP32
+class ESP32StatusResponse(BaseModel):
+    device_name: str
+    mac_address: str
+    status: str
+    last_update: datetime
+
+    class Config:
+        from_attributes = True

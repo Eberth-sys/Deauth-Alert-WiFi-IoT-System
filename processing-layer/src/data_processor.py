@@ -1,38 +1,14 @@
-# data_processor.py
-
+import os
+import asyncio
+import requests  # Importamos requests para hacer peticiones HTTP al backend
 from datetime import datetime
 from src.database import get_db_connection  # Importamos la conexión centralizada
 
+# Cargar la URL del backend desde las variables de entorno
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")  
+
 # Función para guardar eventos de ataque en la base de datos
 def guardar_alerta(nodo_iot, spoofed_bssid, bssid, target_mac, canal):
-
-    conn = get_db_connection()  # Obtener la conexión a la base de datos
-    if conn is None:
-        print("[ALERT] - No se pudo conectar a la base de datos.")
-        return  # Si no hay conexión, no se hace nada.
-
-    try:
-        cursor = conn.cursor()  # Crea un cursor para ejecutar consultas SQL
-
-        # Insertar el evento sin verificar duplicados
-        cursor.execute("""
-            INSERT INTO alerts (nodo_iot, spoofed_bssid, bssid, target_mac, canal, timestamp) 
-            VALUES (%s, %s, %s, %s, %s, NOW())
-        """, (nodo_iot, spoofed_bssid, bssid, target_mac, int(canal)))  # Convierte canal a int antes de insertar
-
-        conn.commit()  # Guarda los cambios en la base de datos
-        cursor.close()  # Cierra el cursor para liberar recursos
-        conn.close()  # Cierra la conexión con la base de datos para evitar fugas de memoria
-
-    except Exception as e:
-        print(f"[ERROR] ❌ Error al guardar la alerta en la base de datos: {e}")
-
-# Función para actualizar el estado de los ESP32 en la base de datos
-def actualizar_estado_esp32(device_name, mac_address, status):
-    """
-    Actualiza el estado del ESP32 en la base de datos.
-    Si no existe, lo crea.
-    """
     conn = get_db_connection()
     if conn is None:
         print("[ALERT] - No se pudo conectar a la base de datos.")
@@ -40,8 +16,27 @@ def actualizar_estado_esp32(device_name, mac_address, status):
 
     try:
         cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO alerts (nodo_iot, spoofed_bssid, bssid, target_mac, canal, timestamp) 
+            VALUES (%s, %s, %s, %s, %s, NOW())
+        """, (nodo_iot, spoofed_bssid, bssid, target_mac, int(canal)))  # Convierte canal a int
 
-        # Inserta o actualiza el estado del ESP32 en la base de datos
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    except Exception as e:
+        print(f"[ERROR] ❌ Error al guardar la alerta en la base de datos: {e}")
+
+# Función para actualizar el estado de los ESP32 en la base de datos y notificar al backend
+def actualizar_estado_esp32(device_name, mac_address, status):
+    conn = get_db_connection()
+    if conn is None:
+        print("[ALERT] - No se pudo conectar a la base de datos.")
+        return
+
+    try:
+        cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO esp32_status (device_name, mac_address, status, last_update) 
             VALUES (%s, %s, %s, NOW())
@@ -53,14 +48,28 @@ def actualizar_estado_esp32(device_name, mac_address, status):
         cursor.close()
         conn.close()
 
+        # Enviar actualización al backend vía HTTP
+        status_data = {
+            "device_name": device_name,
+            "mac_address": mac_address,
+            "status": status,
+            "last_update": datetime.now().isoformat()
+        }
+
+        try:
+            response = requests.post(f"{BACKEND_URL}/esp32-nodes/update", json=status_data, timeout=3)
+            if response.status_code == 200:
+                print(f"[INFO] 🔄 Estado de {device_name} actualizado y enviado al backend.")
+            else:
+                print(f"[WARNING] ⚠️ No se pudo enviar la actualización del ESP32 al backend: {response.text}")
+        except requests.exceptions.RequestException as e:
+            print(f"[ERROR] ❌ No se pudo conectar al backend: {e}")
+
     except Exception as e:
         print(f"[ERROR] ❌ Error al actualizar el estado del ESP32 en la base de datos: {e}")
 
 # Función para obtener el estado actual de los ESP32 desde la base de datos
 def obtener_estado_esp32():
-    """
-    Devolverá un diccionario con el estado actual de todos los ESP32 registrados en la base de datos.
-    """
     conn = get_db_connection()
     if conn is None:
         print("[ALERT] - No se pudo conectar a la base de datos.")
@@ -74,7 +83,7 @@ def obtener_estado_esp32():
         conn.close()
 
         # Convertimos los resultados en un diccionario
-        estado_esp32 = {
+        return {
             device[0]: {
                 "mac_address": device[1],
                 "status": device[2],
@@ -82,8 +91,6 @@ def obtener_estado_esp32():
             }
             for device in dispositivos
         }
-
-        return estado_esp32
 
     except Exception as e:
         print(f"[ERROR] ❌ Error al obtener el estado de los ESP32 desde la base de datos: {e}")

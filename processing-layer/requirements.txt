@@ -4,4 +4,5 @@ bleak                 # Para la comunicación BLE con ESP32
 pyyaml                # Para manejar archivos YAML (configuración de dispositivos)
 python-dotenv         # Para manejar variables de entorno desde .env
 psycopg2-binary       # Para conectarse a PostgreSQL desde Python
+requests              # Librería para hacer peticiones HTTP al backend
 
