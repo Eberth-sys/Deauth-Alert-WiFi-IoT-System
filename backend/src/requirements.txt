@@ -4,3 +4,5 @@ fastapi[all]   # FastAPI + WebSockets + CORS + Uvicorn
 uvicorn        # Servidor ASGI para correr FastAPI
 psycopg2       # Cliente PostgreSQL para Python
 python-dotenv  # Manejo de variables de entorno desde .env
+sqlalchemy     # Manejo de la base de datos
+pydantic       # Validación de datos en FastAPI
