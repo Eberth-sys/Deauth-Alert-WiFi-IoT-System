@@ -1,16 +1,16 @@
-#src/ble_manager.py
+# src/ble_manager.py
 
-from bleak import BleakClient, BleakScanner  # Librería para gestionar conexiones BLE
-import asyncio  # Para manejar tareas asíncronas
-from src.data_processor import guardar_alerta  # Importa la función para guardar alertas en la base de datos
-from src.logs_config.logger_config import logger  # ✅ Importamos el logger
-from src.Esp32_status_manager import update_device_status  # Importamos el servicio JSON para estado de los ESP32
+from bleak import BleakClient, BleakScanner                              # Librería para gestionar conexiones BLE
+import asyncio                                                           # Para manejar tareas asíncronas
+from src.data_processor import guardar_alerta, actualizar_estado_esp32   # Ahora usamos la BD para guardar estados
+from src.logs_config.logger_config import logger                         # Importamos el logger
+
 
 class BLEManager:
     def __init__(self, devices, service_uuid, characteristic_uuid):
-        self.devices = devices  # Lista de ESP32 que queremos conectar
-        self.service_uuid = service_uuid  # UUID del servicio BLE que transmite datos
-        self.characteristic_uuid = characteristic_uuid  # UUID de la característica que envía los datos
+        self.devices = devices                                                 # Lista de ESP32 que queremos conectar
+        self.service_uuid = service_uuid                                       # UUID del servicio BLE que transmite datos
+        self.characteristic_uuid = characteristic_uuid                         # UUID de la característica que envía los datos
         self.device_status = {device["address"]: False for device in devices}  # Estado de conexión
 
     async def handle_device(self, device):  # Manejo de cada ESP32
@@ -28,7 +28,7 @@ class BLEManager:
                         print(msg)
                         logger.critical(msg.replace("[DISCONNECTED] ", ""))  
                         self.device_status[device["address"]] = False  
-                        update_device_status(device["name"], "disconnected") # Actualizar  estado en el archivo JSON
+                        actualizar_estado_esp32(device["name"], device["address"], "disconnected")  # Guardamos en PostgreSQL
 
                     msg = f"[WARNING] {device['name']} no encontrado. Reintentando en 10 segundos..."
                     print(msg)
@@ -46,7 +46,7 @@ class BLEManager:
                         msg = f"[CONNECTED] ✅ Conectado a {device['name']}"
                         print(msg)
                         logger.info(msg.replace("[CONNECTED] ✅ ", ""))
-                        update_device_status(device["name"], "connected")  # Actualizar  estado en el archivo JSON
+                        actualizar_estado_esp32(device["name"], device["address"], "connected")  # Guardamos en PostgreSQL
 
                         try:
                             await client.pair(protection_level=2)  
@@ -108,7 +108,7 @@ class BLEManager:
                 msg = f"[DISCONNECTED] Reintentando conexión con {device['name']} en 10 segundos..."
                 print(msg)
                 logger.info(msg.replace("[DISCONNECTED] ", ""))
-                update_device_status(device["name"], "disconnected")  #  Actualizar  estado en el archivo JSON
+                actualizar_estado_esp32(device["name"], device["address"], "disconnected")  # Guardamos en PostgreSQL
                 await asyncio.sleep(10)
 
     async def run(self):
