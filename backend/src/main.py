@@ -1,10 +1,12 @@
 #backend/src/main.py
 
 from fastapi import FastAPI                      # Importa FastAPI para crear la aplicación web
+from sqlalchemy.exc import OperationalError      # Maneja errores de conexión a la base de datos
+
+# Importaciones internas
 from src.database import engine                  # Importa el motor de la base de datos PostgreSQL
 from src.models import Base                      # Importa los modelos de la base de datos
-from sqlalchemy.exc import OperationalError      # Maneja errores de conexión a la base de datos
-from src.routes import alerts                    # Importamos el módulo alerts.py
+from src.routes import alerts, websocket         # Importamos rutas de la API y WebSockets
 
 # Instancia de FastAPI
 app = FastAPI()
@@ -23,6 +25,9 @@ def startup():
 
 # Incluir las rutas de alertas en FastAPI
 app.include_router(alerts.router)
+
+# Incluir WebSockets en FastAPI
+app.include_router(websocket.router)
 
 # Ruta de prueba para verificar que FastAPI funciona
 @app.get("/")
