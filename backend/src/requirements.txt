@@ -1,0 +1,6 @@
+#backend/requirements.txt
+
+fastapi[all]   # FastAPI + WebSockets + CORS + Uvicorn
+uvicorn        # Servidor ASGI para correr FastAPI
+psycopg2       # Cliente PostgreSQL para Python
+python-dotenv  # Manejo de variables de entorno desde .env
