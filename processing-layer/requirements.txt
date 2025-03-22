@@ -1,4 +1,4 @@
-# requirements.txt
+#processing-layer\requirements.txt
 
 bleak                 # Para la comunicación BLE con ESP32
 pyyaml                # Para manejar archivos YAML (configuración de dispositivos)

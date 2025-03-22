@@ -1,4 +1,4 @@
-const tailwindcss = require('@tailwindcss/postcss') // nuevo plugin
+const tailwindcss = require('@tailwindcss/postcss') 
 
 module.exports = {
   plugins: [

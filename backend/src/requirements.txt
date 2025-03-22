@@ -1,4 +1,4 @@
-#backend/requirements.txt
+#backend\src\requirements.txt
 
 fastapi[all]   # FastAPI + WebSockets + CORS + Uvicorn
 uvicorn        # Servidor ASGI para correr FastAPI
