@@ -1,13 +1,16 @@
-// frontend/src/components/AlertHeatmapTable.tsx
+import { useEffect, useState } from 'react'
 
-type AlertEvent = {
-  nodo_iot: string
-  spoofed_bssid: string
-  target_mac: string
-  bssid: string
+type AlertSummary = {
   canal: number
-  id: number
-  timestamp: string
+  count: number
+  nodo_iot: string
+}
+
+type NodeStatus = {
+  device_name: string
+  mac_address: string
+  status: 'connected' | 'disconnected'
+  last_update: string
 }
 
 type AggregatedAlert = {
@@ -18,90 +21,96 @@ type AggregatedAlert = {
   spoofed_bssid: string
   target_mac: string
   isConnected: boolean
+  lastConnection: string
 }
 
-const mockData: AlertEvent[] = [
-  {
-    nodo_iot: 'ESP32_2_CH_06',
-    spoofed_bssid: 'REDACTED_BSSID',
-    target_mac: 'REDACTED_BSSID',
-    bssid: 'FF:FF:FF:FF:FF:FF',
-    canal: 6,
-    id: 9,
-    timestamp: '2025-03-09T21:56:40.101760',
-  },
-  {
-    nodo_iot: 'ESP32_2_CH_06',
-    spoofed_bssid: 'REDACTED_BSSID',
-    target_mac: 'REDACTED_BSSID',
-    bssid: 'FF:FF:FF:FF:FF:FF',
-    canal: 6,
-    id: 8,
-    timestamp: '2025-03-09T21:56:38.101760',
-  },
-  {
-    nodo_iot: 'ESP32_4_SCANN',
-    spoofed_bssid: 'AA:BB:CC:DD:EE:FF',
-    target_mac: 'AA:BB:CC:DD:EE:FF',
-    bssid: 'FF:FF:FF:FF:FF:FF',
-    canal: 7,
-    id: 7,
-    timestamp: '2025-03-09T21:56:39.101760',
-  },
+const NODOS_ESPERADOS = [
+  { nodo_iot: 'ESP32_1_CH_01', canal: 1 },
+  { nodo_iot: 'ESP32_4_SCANN', canal: 2 },
+  { nodo_iot: 'ESP32_4_SCANN', canal: 3 },
+  { nodo_iot: 'ESP32_4_SCANN', canal: 4 },
+  { nodo_iot: 'ESP32_4_SCANN', canal: 5 },
+  { nodo_iot: 'ESP32_2_CH_06', canal: 6 },
+  { nodo_iot: 'ESP32_4_SCANN', canal: 7 },
+  { nodo_iot: 'ESP32_4_SCANN', canal: 8 },
+  { nodo_iot: 'ESP32_4_SCANN', canal: 9 },
+  { nodo_iot: 'ESP32_4_SCANN', canal: 10 },
+  { nodo_iot: 'ESP32_3_CH_11', canal: 11 },
+  { nodo_iot: 'ESP32_4_SCANN', canal: 12 },
+  { nodo_iot: 'ESP32_4_SCANN', canal: 13 },
+  { nodo_iot: 'ESP32_4_SCANN', canal: 14 },
 ]
 
-const aggregateAlerts = (data: AlertEvent[]): AggregatedAlert[] => {
-  const grouped: Record<string, AggregatedAlert> = {}
-  let i = 0
+const AlertHeatmapTable = () => {
+  const [alertSummary, setAlertSummary] = useState<AlertSummary[]>([])
+  const [nodeStatus, setNodeStatus] = useState<NodeStatus[]>([])
 
-  for (const event of data) {
-    const key = `${event.nodo_iot}_${event.canal}`
-    if (!grouped[key]) {
-      grouped[key] = {
-        nodo_iot: event.nodo_iot,
-        canal: event.canal,
-        count: 1,
-        lastSeen: event.timestamp,
-        spoofed_bssid: event.spoofed_bssid,
-        target_mac: event.target_mac,
-        // Simulación de estado de conexión
-        isConnected: i % 2 === 0,
-      }
-    } else {
-      grouped[key].count += 1
-      if (event.timestamp > grouped[key].lastSeen) {
-        grouped[key].lastSeen = event.timestamp
+  useEffect(() => {
+    const fetchResumen = async () => {
+      try {
+        const res = await fetch('http://192.168.255.128:8000/alerts-summary')
+        const data = await res.json()
+        setAlertSummary(data)
+      } catch (err) {
+        console.error('Error al obtener resumen de alertas:', err)
       }
     }
-    i++
+
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch('http://192.168.255.128:8000/esp32-nodes')
+        const data = await res.json()
+        setNodeStatus(data)
+      } catch (err) {
+        console.error('Error al obtener estado de nodos:', err)
+      }
+    }
+
+    fetchResumen()
+    fetchStatus()
+    const interval = setInterval(() => {
+      fetchResumen()
+      fetchStatus()
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const aggregateAlerts = (): AggregatedAlert[] => {
+    return NODOS_ESPERADOS.map(({ nodo_iot, canal }) => {
+      const summary = alertSummary.find((s) => s.canal === canal)
+      const status = nodeStatus.find((s) => s.device_name === nodo_iot)
+
+      return {
+        nodo_iot,
+        canal,
+        count: summary?.count || 0,
+        lastSeen: '-', // 
+        spoofed_bssid: '-',
+        target_mac: '-',
+        isConnected: status?.status === 'connected',
+        lastConnection: status?.last_update || '-',
+      }
+    })
   }
 
-  return Object.values(grouped)
-}
+  const getHeatColor = (count: number) => {
+    if (count >= 100) return 'bg-red-600 text-white'
+    if (count >= 50) return 'bg-orange-500 text-white'
+    if (count >= 10) return 'bg-yellow-400 text-black'
+    return 'bg-green-400 text-black'
+  }
 
-const getHeatColor = (count: number) => {
-  if (count >= 100) return 'bg-red-600 text-white'
-  if (count >= 50) return 'bg-orange-500 text-white'
-  if (count >= 10) return 'bg-yellow-400 text-black'
-  return 'bg-green-400 text-black'
-}
+  const getConnectionStatusStyle = (isConnected: boolean) =>
+    isConnected ? 'text-green-400' : 'text-red-400'
+  const getConnectionStatusText = (isConnected: boolean) =>
+    isConnected ? 'Conectado' : 'Desconectado'
+  const getAlertIndicatorColor = (count: number) =>
+    count > 0 ? 'bg-red-500' : 'bg-green-500'
+  const getAlertIndicatorText = (count: number) =>
+    count > 0 ? 'Alerta' : 'Ok'
 
-const getConnectionStatusStyle = (isConnected: boolean) => {
-  return isConnected ? 'text-green-400' : 'text-red-400'
-}
-const getConnectionStatusText = (isConnected: boolean) => {
-  return isConnected ? 'Conectado' : 'Desconectado'
-}
-
-const getAlertIndicatorColor = (count: number) => {
-  return count > 0 ? 'bg-red-500' : 'bg-green-500'
-}
-const getAlertIndicatorText = (count: number) => {
-  return count > 0 ? 'Alerta' : 'Ok'
-}
-
-const AlertHeatmapTable = () => {
-  const data = aggregateAlerts(mockData)
+  const data = aggregateAlerts()
 
   return (
     <div className="w-full px-4">
@@ -110,61 +119,57 @@ const AlertHeatmapTable = () => {
       </h2>
 
       <div className="overflow-x-auto shadow-2xl rounded-lg">
-        {/* 
-          text-sm => fuente más pequeña
-          leading-tight => reduce el interlineado
-        */}
-        <table className="w-full table-auto text-xs text-gray-100 leading-snug bg-gray-800 shadow-md rounded-md">
+        <table className="w-full table-auto bg-gray-800 text-gray-100 text-sm leading-tight">
           <thead className="bg-gradient-to-r from-blue-600 to-blue-400 text-white uppercase tracking-wider">
             <tr>
-              <th className="px-3 py-2 text-left">Nodo IoT</th>
-              <th className="px-3 py-2 text-left">Canal</th>
-              <th className="px-3 py-2 text-center">Nº Alertas</th>
-              <th className="px-3 py-2 text-left">Última Alerta</th>
-              <th className="px-3 py-2 text-left">BSSID Suplantado</th>
-              <th className="px-3 py-2 text-left">MAC Objetivo</th>
-              <th className="px-3 py-2 text-left">Estado del Nodo</th>
-              <th className="px-3 py-2 text-left">Indicador de Alerta</th>
+              <th className="px-2 py-1 text-left">Nodo IoT</th>
+              <th className="px-2 py-1 text-left">Canal</th>
+              <th className="px-2 py-1 text-center">Nº Alertas</th>
+              <th className="px-2 py-1 text-left">Última Alerta</th>
+              <th className="px-2 py-1 text-left">BSSID Suplantado</th>
+              <th className="px-2 py-1 text-left">MAC Objetivo</th>
+              <th className="px-2 py-1 text-left">Estado del Nodo</th>
+              <th className="px-2 py-1 text-left">Última conexión</th>
+              <th className="px-2 py-1 text-left">Indicador</th>
             </tr>
           </thead>
           <tbody>
             {data.map((row, idx) => (
               <tr
                 key={idx}
-                className={`
-                  ${idx % 2 === 0 ? 'bg-gray-600' : 'bg-gray-800'}
-                  hover:bg-gray-600 transition-colors duration-200
-                `}
+                className={`${
+                  idx % 2 === 0 ? 'bg-gray-700' : 'bg-gray-800'
+                } hover:bg-gray-600 transition-all`}
               >
-                <td className="px-3 py-2 border-b border-gray-700">
+                <td className="px-2 py-1 border-b border-gray-700">
                   {row.nodo_iot}
                 </td>
-                <td className="px-3 py-2 border-b border-gray-700">
+                <td className="px-2 py-1 border-b border-gray-700">
                   {row.canal}
                 </td>
                 <td
-                  className={`
-                    px-3 py-2 border-b border-gray-700 font-bold text-center
-                    ${getHeatColor(row.count)}
-                  `}
+                  className={`px-2 py-1 border-b border-gray-700 font-bold text-center ${getHeatColor(row.count)}`}
                 >
                   {row.count}
                 </td>
-                <td className="px-3 py-2 border-b border-gray-700">
-                  {new Date(row.lastSeen).toLocaleString()}
+                <td className="px-2 py-1 border-b border-gray-700">
+                  {row.lastSeen}
                 </td>
-                <td className="px-3 py-2 border-b border-gray-700">
+                <td className="px-2 py-1 border-b border-gray-700">
                   {row.spoofed_bssid}
                 </td>
-                <td className="px-3 py-2 border-b border-gray-700">
+                <td className="px-2 py-1 border-b border-gray-700">
                   {row.target_mac}
                 </td>
-                <td className="px-3 py-2 border-b border-gray-700">
+                <td className="px-2 py-1 border-b border-gray-700">
                   <span className={getConnectionStatusStyle(row.isConnected)}>
                     {getConnectionStatusText(row.isConnected)}
                   </span>
                 </td>
-                <td className="px-3 py-2 border-b border-gray-700">
+                <td className="px-2 py-1 border-b border-gray-700">
+                  {row.lastConnection !== '-' ? new Date(row.lastConnection).toLocaleString() : '-'}
+                </td>
+                <td className="px-2 py-1 border-b border-gray-700">
                   <div className="flex items-center">
                     <div
                       className={`w-3 h-3 rounded-full mr-2 ${getAlertIndicatorColor(
