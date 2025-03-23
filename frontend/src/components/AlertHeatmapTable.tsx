@@ -1,37 +1,21 @@
+//frontend\src\components\AlertHeatmapTable.tsx
+
 import { useEffect, useState } from 'react'
-import dayjs from 'dayjs'                                    //Importo nuevo formato de hora! 
-import 'dayjs/locale/es'                                    // Idioma español
-import localizedFormat from 'dayjs/plugin/localizedFormat'
 
-dayjs.extend(localizedFormat)
-dayjs.locale('es')                      // Establecer español como idioma
+// Componentes
+import TableHeader from './TableHeader'
+import AlertRow from './AlertRow'
 
-type AlertSummary = {
-  canal: number
-  count: number
-  last_seen: string | null
-  nodo_iot: string
-  spoofed_bssid: string
-  target_mac: string
-}
-
-type NodeStatus = {
-  device_name: string
-  mac_address: string
-  status: 'connected' | 'disconnected'
-  last_update: string
-}
-
-type AggregatedAlert = {
-  nodo_iot: string
-  canal: number
-  count: number
-  lastSeen: string
-  spoofed_bssid: string
-  target_mac: string
-  isConnected: boolean
-  lastConnection: string
-}
+// Tipos y utilidades
+import { AlertSummary, NodeStatus, AggregatedAlert } from './types'
+import {
+  getAlertIndicatorColor,
+  getAlertIndicatorText,
+  getConnectionStatusStyle,
+  getConnectionStatusText,
+  getHeatColor,
+  formatDate,
+} from './utils/formatters'
 
 const NODOS_ESPERADOS = [
   { nodo_iot: 'ESP32_1_CH_01', canal: 1 },
@@ -94,7 +78,7 @@ const AlertHeatmapTable = () => {
         nodo_iot,
         canal,
         count: summary?.count || 0,
-        lastSeen:  summary?.last_seen || '-', // 
+        lastSeen: summary?.last_seen || '-',
         spoofed_bssid: summary?.spoofed_bssid || '-',
         target_mac: summary?.target_mac || '-',
         isConnected: status?.status === 'connected',
@@ -102,22 +86,6 @@ const AlertHeatmapTable = () => {
       }
     })
   }
-
-  const getHeatColor = (count: number) => {
-    if (count >= 100) return 'bg-red-600 text-white'
-    if (count >= 50) return 'bg-orange-500 text-white'
-    if (count >= 10) return 'bg-yellow-400 text-black'
-    return 'bg-green-400 text-black'
-  }
-
-  const getConnectionStatusStyle = (isConnected: boolean) =>
-    isConnected ? 'text-green-400' : 'text-red-400'
-  const getConnectionStatusText = (isConnected: boolean) =>
-    isConnected ? 'Conectado' : 'Desconectado'
-  const getAlertIndicatorColor = (count: number) =>
-    count > 0 ? 'bg-red-500' : 'bg-green-500'
-  const getAlertIndicatorText = (count: number) =>
-    count > 0 ? 'Alerta' : 'Ok'
 
   const data = aggregateAlerts()
 
@@ -129,63 +97,14 @@ const AlertHeatmapTable = () => {
 
       <div className="overflow-x-auto shadow-2xl rounded-lg">
         <table className="w-full table-auto bg-gray-800 text-gray-100 text-sm leading-tight">
-          <thead className="bg-gradient-to-r from-blue-600 to-blue-400 text-white uppercase tracking-wider">
-            <tr>
-              <th className="px-2 py-1 text-left">Nodo IoT</th>
-              <th className="px-2 py-1 text-left">Canal</th>
-              <th className="px-2 py-1 text-center">Nº Alertas</th>
-              <th className="px-2 py-1 text-left">Última Alerta</th>
-              <th className="px-2 py-1 text-left">BSSID Suplantado</th>
-              <th className="px-2 py-1 text-left">MAC Objetivo</th>
-              <th className="px-2 py-1 text-left">Estado del Nodo</th>
-              <th className="px-2 py-1 text-left">Indicador</th>
-            </tr>
-          </thead>
+          <TableHeader />
           <tbody>
             {data.map((row, idx) => (
-              <tr
+              <AlertRow
                 key={idx}
-                className={`${
-                  idx % 2 === 0 ? 'bg-gray-700' : 'bg-gray-800'
-                } hover:bg-gray-600 transition-all`}
-              >
-                <td className="px-2 py-1 border-b border-gray-700">
-                  {row.nodo_iot}
-                </td>
-                <td className="px-2 py-1 border-b border-gray-700">
-                  {row.canal}
-                </td>
-                <td
-                  className={`px-2 py-1 border-b border-gray-700 font-bold text-center ${getHeatColor(row.count)}`}
-                >
-                  {row.count}
-                </td>
-                <td className="px-2 py-1 border-b border-gray-700">
-                  {/* Formateo legible de fecha y hora larga para la columna "Última Alerta" */}
-                  {row.lastSeen !== '-' ? dayjs(row.lastSeen).format('D [de] MMMM [de] YYYY, h:mm:ss A') : '-'}
-                </td>
-                <td className="px-2 py-1 border-b border-gray-700">
-                  {row.spoofed_bssid}
-                </td>
-                <td className="px-2 py-1 border-b border-gray-700">
-                  {row.target_mac}
-                </td>
-                <td className="px-2 py-1 border-b border-gray-700">
-                  <span className={getConnectionStatusStyle(row.isConnected)}>
-                    {getConnectionStatusText(row.isConnected)}
-                  </span>
-                </td>
-                <td className="px-2 py-1 border-b border-gray-700">
-                  <div className="flex items-center">
-                    <div
-                      className={`w-3 h-3 rounded-full mr-2 ${getAlertIndicatorColor(
-                        row.count
-                      )}`}
-                    />
-                    <span>{getAlertIndicatorText(row.count)}</span>
-                  </div>
-                </td>
-              </tr>
+                index={idx}
+                {...row}
+              />
             ))}
           </tbody>
         </table>
