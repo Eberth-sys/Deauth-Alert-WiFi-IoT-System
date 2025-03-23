@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
+import dayjs from 'dayjs' //Importo nuevo formato de hora! 
+
 
 type AlertSummary = {
   canal: number
   count: number
+  last_seen: string | null
   nodo_iot: string
 }
 
@@ -85,7 +88,7 @@ const AlertHeatmapTable = () => {
         nodo_iot,
         canal,
         count: summary?.count || 0,
-        lastSeen: '-', // 
+        lastSeen:  summary?.last_seen || '-', // opcional: puedes traerlo luego
         spoofed_bssid: '-',
         target_mac: '-',
         isConnected: status?.status === 'connected',
@@ -153,7 +156,8 @@ const AlertHeatmapTable = () => {
                   {row.count}
                 </td>
                 <td className="px-2 py-1 border-b border-gray-700">
-                  {row.lastSeen}
+                  {/* Formateo legible de fecha y hora para la columna "Última Alerta" */}
+                  {row.lastSeen !== '-' ? new Date(row.lastSeen).toLocaleString() : '-'} 
                 </td>
                 <td className="px-2 py-1 border-b border-gray-700">
                   {row.spoofed_bssid}
@@ -167,7 +171,7 @@ const AlertHeatmapTable = () => {
                   </span>
                 </td>
                 <td className="px-2 py-1 border-b border-gray-700">
-                  {row.lastConnection !== '-' ? new Date(row.lastConnection).toLocaleString() : '-'}
+                  {row.lastConnection !== '-' ? new Date(row.lastConnection).toLocaleString() : '-'} 
                 </td>
                 <td className="px-2 py-1 border-b border-gray-700">
                   <div className="flex items-center">

@@ -13,6 +13,8 @@ from src.models import Base                                      # Importa los m
 from src.routes import alerts, websocket, esp32_nodes, logs      # Importamos rutas de la API y WebSockets
 from src.routes import alerts_summary                            #Importo mi archivo de alerta resumen! 
 
+
+
 # Instancia de FastAPI
 app = FastAPI()
 
@@ -53,4 +55,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(alerts_summary.router)
+app.include_router(alerts_summary.router) # resumen de alertas reportada spor canal
+
+
