@@ -20,7 +20,6 @@ type Props = {
     spoofed_bssid,
     target_mac,
     isConnected,
-    lastConnection,
     index
   }: Props) => {
     const getHeatColor = (count: number) => {
@@ -59,9 +58,6 @@ type Props = {
           <span className={getConnectionStatusStyle(isConnected)}>
             {getConnectionStatusText(isConnected)}
           </span>
-        </td>
-        <td className="px-2 py-1 border-b border-gray-700">
-          {lastConnection !== '-' ? new Date(lastConnection).toLocaleString() : '-'}
         </td>
         <td className="px-2 py-1 border-b border-gray-700">
           <div className="flex items-center">

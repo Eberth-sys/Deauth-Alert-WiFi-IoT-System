@@ -1,6 +1,6 @@
 //frontend\src\components\AlertHeatmapTable.tsx
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // Componentes
 import TableHeader from './TableHeader'
@@ -8,6 +8,7 @@ import AlertRow from './AlertRow'
 
 // Tipos y utilidades
 import { AlertSummary, NodeStatus, AggregatedAlert } from './types'
+import { connectToWebSocket } from '../services/socket'
 import {
   getAlertIndicatorColor,
   getAlertIndicatorText,
@@ -37,36 +38,54 @@ const NODOS_ESPERADOS = [
 const AlertHeatmapTable = () => {
   const [alertSummary, setAlertSummary] = useState<AlertSummary[]>([])
   const [nodeStatus, setNodeStatus] = useState<NodeStatus[]>([])
+  const socketRef = useRef<WebSocket | null>(null)
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'reconnecting'>('disconnected')
 
   useEffect(() => {
+    let isMounted = true
+  
     const fetchResumen = async () => {
       try {
         const res = await fetch('http://192.168.255.128:8000/alerts-summary')
         const data = await res.json()
-        setAlertSummary(data)
+        if (isMounted) setAlertSummary(data)
       } catch (err) {
         console.error('Error al obtener resumen de alertas:', err)
       }
     }
-
+  
     const fetchStatus = async () => {
       try {
         const res = await fetch('http://192.168.255.128:8000/esp32-nodes')
         const data = await res.json()
-        setNodeStatus(data)
+        if (isMounted) setNodeStatus(data)
       } catch (err) {
         console.error('Error al obtener estado de nodos:', err)
       }
     }
-
+  
     fetchResumen()
     fetchStatus()
-    const interval = setInterval(() => {
-      fetchResumen()
-      fetchStatus()
-    }, 5000)
-
-    return () => clearInterval(interval)
+  
+    // Conectamos WebSocket una sola vez
+    const socket = connectToWebSocket(
+      () => {
+        fetchResumen()
+        fetchStatus()
+      },
+      (err) => {
+        setConnectionStatus('disconnected')
+      },
+      setConnectionStatus
+    )
+  
+    socketRef.current = socket
+  
+    return () => {
+      isMounted = false
+      console.log('👋 Cleanup: cerrando WebSocket...')
+      socketRef.current?.close()
+    }
   }, [])
 
   const aggregateAlerts = (): AggregatedAlert[] => {
@@ -89,11 +108,29 @@ const AlertHeatmapTable = () => {
 
   const data = aggregateAlerts()
 
+  // ✅ Mostrar estado WebSocket en texto y color
+  const getConnectionIndicator = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return <span className="text-green-400 font-semibold">🟢 Conectado</span>
+      case 'reconnecting':
+        return <span className="text-yellow-400 font-semibold">🟡 Reconectando...</span>
+      case 'disconnected':
+      default:
+        return <span className="text-red-400 font-semibold">🔴 Desconectado</span>
+    }
+  }
+
   return (
     <div className="w-full px-4">
-      <h2 className="text-xl font-bold text-center text-gray-100 mb-4 leading-tight">
+      <h2 className="text-xl font-bold text-center text-gray-100 mb-2 leading-tight">
         Alertas por Nodo IoT
       </h2>
+
+      {/* 🔌 Indicador de conexión */}
+      <div className="text-center mb-4">
+        {getConnectionIndicator()}
+      </div>
 
       <div className="overflow-x-auto shadow-2xl rounded-lg">
         <table className="w-full table-auto bg-gray-800 text-gray-100 text-sm leading-tight">

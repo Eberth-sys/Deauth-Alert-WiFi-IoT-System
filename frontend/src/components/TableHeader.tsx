@@ -10,7 +10,6 @@ const TableHeader = () => (
         <th className="px-2 py-1 text-left">BSSID Suplantado</th>
         <th className="px-2 py-1 text-left">MAC Objetivo</th>
         <th className="px-2 py-1 text-left">Estado del Nodo</th>
-        <th className="px-2 py-1 text-left">Última conexión</th>
         <th className="px-2 py-1 text-left">Indicador</th>
       </tr>
     </thead>
