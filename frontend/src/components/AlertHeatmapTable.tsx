@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react'
-import dayjs from 'dayjs' //Importo nuevo formato de hora! 
+import dayjs from 'dayjs'                                    //Importo nuevo formato de hora! 
+import 'dayjs/locale/es'                                    // Idioma español
+import localizedFormat from 'dayjs/plugin/localizedFormat'
 
+dayjs.extend(localizedFormat)
+dayjs.locale('es')                      // Establecer español como idioma
 
 type AlertSummary = {
   canal: number
   count: number
   last_seen: string | null
   nodo_iot: string
+  spoofed_bssid: string
+  target_mac: string
 }
 
 type NodeStatus = {
@@ -88,9 +94,9 @@ const AlertHeatmapTable = () => {
         nodo_iot,
         canal,
         count: summary?.count || 0,
-        lastSeen:  summary?.last_seen || '-', // opcional: puedes traerlo luego
-        spoofed_bssid: '-',
-        target_mac: '-',
+        lastSeen:  summary?.last_seen || '-', // 
+        spoofed_bssid: summary?.spoofed_bssid || '-',
+        target_mac: summary?.target_mac || '-',
         isConnected: status?.status === 'connected',
         lastConnection: status?.last_update || '-',
       }
@@ -132,7 +138,6 @@ const AlertHeatmapTable = () => {
               <th className="px-2 py-1 text-left">BSSID Suplantado</th>
               <th className="px-2 py-1 text-left">MAC Objetivo</th>
               <th className="px-2 py-1 text-left">Estado del Nodo</th>
-              <th className="px-2 py-1 text-left">Última conexión</th>
               <th className="px-2 py-1 text-left">Indicador</th>
             </tr>
           </thead>
@@ -156,8 +161,8 @@ const AlertHeatmapTable = () => {
                   {row.count}
                 </td>
                 <td className="px-2 py-1 border-b border-gray-700">
-                  {/* Formateo legible de fecha y hora para la columna "Última Alerta" */}
-                  {row.lastSeen !== '-' ? new Date(row.lastSeen).toLocaleString() : '-'} 
+                  {/* Formateo legible de fecha y hora larga para la columna "Última Alerta" */}
+                  {row.lastSeen !== '-' ? dayjs(row.lastSeen).format('D [de] MMMM [de] YYYY, h:mm:ss A') : '-'}
                 </td>
                 <td className="px-2 py-1 border-b border-gray-700">
                   {row.spoofed_bssid}
@@ -169,9 +174,6 @@ const AlertHeatmapTable = () => {
                   <span className={getConnectionStatusStyle(row.isConnected)}>
                     {getConnectionStatusText(row.isConnected)}
                   </span>
-                </td>
-                <td className="px-2 py-1 border-b border-gray-700">
-                  {row.lastConnection !== '-' ? new Date(row.lastConnection).toLocaleString() : '-'} 
                 </td>
                 <td className="px-2 py-1 border-b border-gray-700">
                   <div className="flex items-center">

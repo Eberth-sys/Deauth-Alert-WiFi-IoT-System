@@ -74,13 +74,14 @@ class BLEManager:
 
                                 try:
                                     partes = decoded_data.split(" | ")
-                                    spoofed_bssid = partes[1].split(": ")[1].strip()
-                                    target_mac = partes[2].split(": ")[1].strip()
-                                    bssid = partes[3].split(": ")[1].strip()
-                                    canal = int(partes[4].split(": ")[1].strip())
-                                    nodo_iot = device['name']
 
-                                    guardar_alerta(nodo_iot, spoofed_bssid, target_mac, bssid, canal)
+                                    spoofed_bssid = partes[1].split(": ")[1].strip()    # Origen
+                                    target_mac     = partes[2].split(": ")[1].strip()    # Destino
+                                    bssid          = partes[3].split(": ")[1].strip()    # BSSID real
+                                    canal          = int(partes[4].split(": ")[1].strip())
+                                    nodo_iot       = device['name']
+
+                                    guardar_alerta(nodo_iot, spoofed_bssid, bssid, target_mac, canal)
 
                                 except Exception as e:
                                     msg = f"[ERROR] Error al procesar los datos BLE: {e}"
