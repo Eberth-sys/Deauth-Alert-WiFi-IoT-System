@@ -7,7 +7,7 @@ export const connectToWebSocket = (
   onError?: (err: any) => void,
   setConnectionStatus?: (status: 'connected' | 'disconnected' | 'reconnecting') => void
 ): WebSocket => {
-  const socket = new WebSocket('ws://192.168.255.128:8000/ws/alerts')
+  const socket = new WebSocket('ws://192.168.255.132:8000/ws/alerts')
 
   socket.onopen = () => {
     console.log('🟢 WebSocket conectado')

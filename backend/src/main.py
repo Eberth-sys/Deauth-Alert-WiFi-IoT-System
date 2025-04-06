@@ -44,7 +44,7 @@ def read_root():
 #Habilitación del cors
 origins = [
     "http://localhost:5173",  # Frontend local
-    "http://192.168.255.128:5173",  # desde otra ip
+    "http://192.168.255.132:5173",  # desde otra ip
 ]
 
 app.add_middleware(

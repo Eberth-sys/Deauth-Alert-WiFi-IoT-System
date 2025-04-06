@@ -46,7 +46,7 @@ const AlertHeatmapTable = () => {
   
     const fetchResumen = async () => {
       try {
-        const res = await fetch('http://192.168.255.128:8000/alerts-summary')
+        const res = await fetch('http://192.168.255.132:8000/alerts-summary')
         const data = await res.json()
         if (isMounted) setAlertSummary(data)
       } catch (err) {
@@ -56,7 +56,7 @@ const AlertHeatmapTable = () => {
   
     const fetchStatus = async () => {
       try {
-        const res = await fetch('http://192.168.255.128:8000/esp32-nodes')
+        const res = await fetch('http://192.168.255.132:8000/esp32-nodes')
         const data = await res.json()
         if (isMounted) setNodeStatus(data)
       } catch (err) {
