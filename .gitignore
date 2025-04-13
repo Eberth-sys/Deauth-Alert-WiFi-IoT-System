@@ -16,6 +16,7 @@ processing-layer/config/devices.yaml
 *.pem
 *.key
 *.crt
+perception-layer/config/config.h
 
 # Carpeta de certificados (segura)
 src/certs/
