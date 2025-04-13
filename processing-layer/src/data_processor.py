@@ -1,15 +1,15 @@
 #processing-layer\src\data_processor.py
-
 import os
 import asyncio
 import requests  # Importamos requests para hacer peticiones HTTP al backend
 from datetime import datetime
 from src.database import get_db_connection  # Importamos la conexión centralizada
+from src.mqtt_client import publish_alert  # Importamos la función de publicación MQTT
 
 # Cargar la URL del backend desde las variables de entorno
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")  
 
-# Función para guardar eventos de ataque en la base de datos
+# Función para guardar eventos de ataque en la base de datos y enviar alerta MQTT
 def guardar_alerta(nodo_iot, spoofed_bssid, bssid, target_mac, canal):
     conn = get_db_connection()
     if conn is None:
@@ -26,6 +26,19 @@ def guardar_alerta(nodo_iot, spoofed_bssid, bssid, target_mac, canal):
         conn.commit()
         cursor.close()
         conn.close()
+
+        # Crear alerta en formato JSON para MQTT
+        alert_data = {
+            "nodo_iot": nodo_iot,
+            "spoofed_bssid": spoofed_bssid,
+            "bssid": bssid,
+            "target_mac": target_mac,
+            "canal": canal,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+        # Enviar alerta a AWS IoT Core
+        publish_alert(alert_data)
 
     except Exception as e:
         print(f"[ERROR] ❌ Error al guardar la alerta en la base de datos: {e}")

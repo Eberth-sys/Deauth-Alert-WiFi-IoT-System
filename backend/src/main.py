@@ -45,6 +45,7 @@ def read_root():
 origins = [
     "http://localhost:5173",  # Frontend local
     "http://192.168.255.132:5173",  # desde otra ip
+    "http://192.168.255.100:5173"   # ip pc
 ]
 
 app.add_middleware(

@@ -5,4 +5,4 @@ pyyaml                # Para manejar archivos YAML (configuración de dispositiv
 python-dotenv         # Para manejar variables de entorno desde .env
 psycopg2-binary       # Para conectarse a PostgreSQL desde Python
 requests              # Librería para hacer peticiones HTTP al backend
-
+paho-mqtt             # Librería para comunicación MQTT con AWS IoT Core

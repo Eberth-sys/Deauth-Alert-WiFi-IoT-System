@@ -11,6 +11,14 @@ __pycache__/
 # Ignorar configuración sensible
 processing-layer/config/devices.yaml
 
+# Ignorar configuración sensible
+.env
+*.pem
+*.key
+*.crt
+
+# Carpeta de certificados (segura)
+src/certs/
 
 # Archivos de log
 *.log
