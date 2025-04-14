@@ -1,4 +1,4 @@
-//perception-layer\ESP32_01_Deauth_Detector_CH_01\main\main.c
+//perception-layer\ESP32_02_Deauth_Detector_CH_06\main\main.c
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -17,8 +17,8 @@
 #include "../../config/config.h" 
 
 
-#define TAG "ESP32_01_CH01"
-#define DEVICE_NAME "ESP32_01_Deauth_Detector_CH_01"
+#define TAG "ESP32_02_CH06"
+#define DEVICE_NAME "ESP32_02_Deauth_Detector_CH_06"
 
 static uint8_t current_channel = 1;
 static bool device_connected = false;
