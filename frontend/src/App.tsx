@@ -3,6 +3,10 @@ import AlertHeatmapTable from './components/AlertHeatmapTable'
 
 function App() {
   return (
+      /* 
+      h-screen w-screen => ocupa todo el alto y ancho de la ventana
+      flex flex-col => para poder ubicar el header arriba y el contenido en main
+    */
     <div className="bg-gray-900 h-screen w-screen flex flex-col">
       {/* Cabecera */}
       <header className="py-6">
