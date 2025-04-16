@@ -52,3 +52,7 @@ export default tseslint.config({
   },
 })
 ```
+Instalar librerias!
+npm install
+npm install react-router-dom
+npm install @melloware/react-logviewer
