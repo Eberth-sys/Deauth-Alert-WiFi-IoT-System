@@ -1,3 +1,6 @@
+//frontend\src\components\AlertSummaryTable.tsx
+
+// Importamos tipos y utilidades necesarias
 import { AggregatedAlert } from './types'
 import {
   formatDate,
@@ -6,15 +9,18 @@ import {
   getHeatColor
 } from './utils/formatters'
 
+// Props esperadas: un array de alertas agregadas
 type Props = {
   data: AggregatedAlert[]
 }
 
+// Componente principal de la tabla de resumen de alertas
 const AlertSummaryTable = ({ data }: Props) => {
   return (
     <div className="mb-10 flex justify-center font-inter">
       <div className="w-full max-w-7xl">
-        {/* Desktop TABLE */}
+        
+        {/* TABLA PARA PANTALLAS DESKTOP */}
         <div className="hidden md:block overflow-x-auto rounded-2xl shadow-2xl ring-1 ring-gray-700 bg-gray-900">
           <table className="min-w-full table-auto text-sm text-gray-100">
             <thead className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white">
@@ -64,7 +70,7 @@ const AlertSummaryTable = ({ data }: Props) => {
           </table>
         </div>
 
-        {/* Mobile CARDS */}
+        {/* TARJETAS PARA MÓVIL */}
         <div className="block md:hidden space-y-4 mt-4">
           {data.map((row, idx) => (
             <div
