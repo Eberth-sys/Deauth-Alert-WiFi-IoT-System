@@ -10,6 +10,7 @@ type Props = {
 // Componente de botón reutilizable para descargar el archivo
 const DownloadButton = ({ onClick }: Props) => {
   return (
+    // Contenedor centrado para el botón
     <div className="flex justify-center mb-6">
       <button
         onClick={onClick}
