@@ -1,0 +1,9 @@
+#perception-layer\ESP32_02_Deauth_Detector_CH_06\main\CMakeLists.txt
+idf_component_register(SRCS "main.c"
+                    INCLUDE_DIRS "."
+                    REQUIRES bt esp_wifi nvs_flash)
+
+target_include_directories(${COMPONENT_LIB} PRIVATE
+    "${IDF_PATH}/components/bt/include/esp32/include"
+    "${IDF_PATH}/components/bt/host/bluedroid/api/include/api"
+)
