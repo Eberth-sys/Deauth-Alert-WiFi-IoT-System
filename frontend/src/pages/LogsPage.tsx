@@ -41,37 +41,31 @@ const LogsPage = () => {
 
   return (
     <div className="bg-gray-900 h-screen w-screen flex flex-col">
-      {/* Header completamente expandido con botón alineado a la derecha */}
-      <header className="bg-gray-800 shadow-md py-4 px-6 w-full flex justify-end">
-       <BackToHomeButton />
-      </header>
-
-      {/* Área principal de la página */}
       <main className="flex-1 overflow-y-auto px-4 py-8 flex flex-col items-center">
 
-        {/* Título de la sección */}
-        <div className="border-b border-blue-500 mb-6 pb-2 w-full max-w-4xl text-center">
-          <h2 className="text-3xl font-extrabold text-blue-400">Visualizador de Logs BLE</h2>
+      <div className="relative w-full mb-6">
+        {/* Título centrado */}
+        <h2 className="text-5xl font-extrabold text-blue-400 text-center animate-pulse drop-shadow-[0_0_10px_rgba(59,130,246,0.7)]">
+          Visualizador de Logs BLE
+        </h2>
+
+        {/* Botón completamente a la derecha */}
+          <div className="absolute top-0 right-0">
+            <BackToHomeButton />
+          </div>
         </div>
 
-        {/* Filtros para mostrar logs por nivel de severidad */}
-        <LogFilters
-          selectedLevel={selectedLevel}
-          onSelectLevel={setSelectedLevel}
-        />
+        {/* Filtro por nivel */}
+        <LogFilters selectedLevel={selectedLevel} onSelectLevel={setSelectedLevel} />
 
-        {/* Botones para descargar o recargar los logs */}
+        {/* Botones de acción */}
         <div className="flex gap-4 mb-6">
           <DownloadButton onClick={() => downloadLogFile(LOG_FILE, logLines)} />
           <ReloadButton onClick={handleReload} />
         </div>
 
-        {/* Componente que muestra las líneas del archivo */}
-        <LogViewer
-          lines={logLines}
-          error={error}
-          selectedLevel={selectedLevel}
-        />
+        {/* Visor de logs */}
+        <LogViewer lines={logLines} error={error} selectedLevel={selectedLevel} />
       </main>
     </div>
   )
