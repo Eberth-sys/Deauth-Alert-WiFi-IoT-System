@@ -1,22 +1,10 @@
-//frontend\src\components\AlertHeatmapTable.tsx
+// frontend/src/components/AlertHeatmapTable.tsx
 
 import { useEffect, useRef, useState } from 'react'
-
-// Componentes
-import TableHeader from './TableHeader'
-import AlertRow from './AlertRow'
-
-// Tipos y utilidades
+import AlertSummaryTable from './AlertSummaryTable'
+import NodeStatusTable from './NodeStatusTable'
 import { AlertSummary, NodeStatus, AggregatedAlert } from './types'
 import { connectToWebSocket } from '../services/socket'
-import {
-  getAlertIndicatorColor,
-  getAlertIndicatorText,
-  getConnectionStatusStyle,
-  getConnectionStatusText,
-  getHeatColor,
-  formatDate,
-} from './utils/formatters'
 
 const NODOS_ESPERADOS = [
   { nodo_iot: 'ESP32_1_CH_01', canal: 1 },
@@ -43,7 +31,7 @@ const AlertHeatmapTable = () => {
 
   useEffect(() => {
     let isMounted = true
-  
+
     const fetchResumen = async () => {
       try {
         const res = await fetch('http://192.168.255.132:8000/alerts-summary')
@@ -53,7 +41,7 @@ const AlertHeatmapTable = () => {
         console.error('Error al obtener resumen de alertas:', err)
       }
     }
-  
+
     const fetchStatus = async () => {
       try {
         const res = await fetch('http://192.168.255.132:8000/esp32-nodes')
@@ -63,11 +51,10 @@ const AlertHeatmapTable = () => {
         console.error('Error al obtener estado de nodos:', err)
       }
     }
-  
+
     fetchResumen()
     fetchStatus()
-  
-    // Conectamos WebSocket una sola vez
+
     const socket = connectToWebSocket(
       () => {
         fetchResumen()
@@ -78,9 +65,9 @@ const AlertHeatmapTable = () => {
       },
       setConnectionStatus
     )
-  
+
     socketRef.current = socket
-  
+
     return () => {
       isMounted = false
       console.log('👋 Cleanup: cerrando WebSocket...')
@@ -108,7 +95,6 @@ const AlertHeatmapTable = () => {
 
   const data = aggregateAlerts()
 
-  // ✅ Mostrar estado WebSocket en texto y color
   const getConnectionIndicator = () => {
     switch (connectionStatus) {
       case 'connected':
@@ -123,29 +109,18 @@ const AlertHeatmapTable = () => {
 
   return (
     <div className="w-full px-4">
-      <h2 className="text-xl font-bold text-center text-gray-100 mb-2 leading-tight">
-        Alertas por Nodo IoT
-      </h2>
+      <h2 className="text-2xl font-bold text-center text-blue-400 mb-4">Dashboard IoT – Alertas</h2>
 
       {/* 🔌 Indicador de conexión */}
-      <div className="text-center mb-4">
+      <div className="text-center mb-6">
         {getConnectionIndicator()}
       </div>
 
-      <div className="overflow-x-auto shadow-2xl rounded-lg">
-        <table className="w-full table-auto bg-gray-800 text-gray-100 text-sm leading-tight">
-          <TableHeader />
-          <tbody>
-            {data.map((row, idx) => (
-              <AlertRow
-                key={idx}
-                index={idx}
-                {...row}
-              />
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* 🟦 Tabla de resumen de alertas */}
+      <AlertSummaryTable data={data} />
+
+      {/* 🟩 Tabla de estado de nodos */}
+      <NodeStatusTable status={nodeStatus} />
     </div>
   )
 }
