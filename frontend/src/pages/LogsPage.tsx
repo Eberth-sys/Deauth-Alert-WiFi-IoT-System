@@ -4,9 +4,9 @@
 import { useEffect, useState } from 'react'
 
 // Importamos funciones utilitarias y componentes personalizados
-import { fetchLogFile, downloadLogFile, getLineColor } from '../components/utils/logs'
+import { fetchLogFile, downloadLogFile } from '../components/utils/logs'
 import LogViewer from '../components/LogViewer'
-import DownloadButton from '../components/DownloadButton'
+
 
 // Definimos el nombre del archivo de logs a visualizar
 const LOG_FILE = 'ble_events.log'
@@ -19,44 +19,65 @@ const LogsPage = () => {
   // Estado para capturar posibles errores
   const [error, setError] = useState<string | null>(null)
 
-  // Efecto que se ejecuta al montar el componente (una sola vez)
+  // Carga inicial de logs al montar
   useEffect(() => {
-    // Cargamos el archivo usando la función utilitaria
-    fetchLogFile(LOG_FILE)
-      .then(setLogLines)                      // Guardamos las líneas si todo va bien
-      .catch(() => setError('❌ Error al cargar el archivo de logs')) // En caso de error, lo registramos
+    handleReload()
   }, [])
 
-  // Render del componente
+  // Función para recargar logs manualmente
+  const handleReload = () => {
+    fetchLogFile(LOG_FILE)
+      .then(setLogLines)
+      .catch(() => setError('❌ Error al cargar el archivo de logs'))
+  }
+
   return (
     <div className="bg-gray-900 h-screen w-screen flex flex-col">
       
-      {/* Cabecera con botón de regreso a la página principal */}
-      <header className="bg-gray-800 shadow-md py-4 px-6 flex items-center justify-start">
-        <a href="/" className="text-white font-bold text-lg flex items-center gap-2 hover:text-blue-400 transition">
-          <span>🏠</span> Inicio
-        </a>
+     {/* Header superior con botón alineado a la derecha */}
+      <header className="bg-gray-800 shadow-md py-4 px-6 w-full">
+        <div className="flex justify-end items-center w-full max-w-screen-xl mx-auto">
+          <a
+            href="/"
+            className="text-white font-bold text-lg flex items-center gap-2 hover:text-blue-400 transition"
+          >
+            <span className="text-xl">🏠</span>
+            <span className="text-sm sm:text-base">Volver al Inicio</span>
+          </a>
+        </div>
       </header>
 
-      {/* Contenido principal */}
+      {/* Main content */}
       <main className="flex-1 overflow-y-auto px-4 py-8 flex flex-col items-center">
-
-        {/* Título con línea inferior decorativa */}
+        
+        {/* Título */}
         <div className="border-b border-blue-500 mb-6 pb-2 w-full max-w-4xl text-center">
           <h2 className="text-3xl font-extrabold text-blue-400">
             Visualizador de Logs BLE
           </h2>
         </div>
 
-        {/* Botón para descargar los logs, usando componente externo */}
-        <DownloadButton onClick={() => downloadLogFile(LOG_FILE, logLines)} />
+        {/* Botones de acción */}
+        <div className="flex flex-wrap justify-center gap-4 mb-6">
+          <button
+            onClick={() => downloadLogFile(LOG_FILE, logLines)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-all duration-200"
+          >
+            📥 Descargar archivo Logs
+          </button>
 
-        {/* Componente que muestra las líneas del log o el error */}
+          <button
+            onClick={handleReload}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-all duration-200"
+          >
+            🔄 Recargar logs
+          </button>
+        </div>
+
+        {/* Log Viewer */}
         <LogViewer lines={logLines} error={error} />
       </main>
     </div>
   )
 }
-
-// Exportamos el componente para poder usarlo en la app
 export default LogsPage
