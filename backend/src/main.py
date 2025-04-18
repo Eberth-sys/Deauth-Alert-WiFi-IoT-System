@@ -1,8 +1,8 @@
 #backend/src/main.py
 
-from fastapi import FastAPI                                     # Importa FastAPI para crear la aplicación web
+from fastapi import FastAPI                                      # Importa FastAPI para crear la aplicación web
 from sqlalchemy.exc import OperationalError                      # Maneja errores de conexión a la base de datos
-from fastapi.middleware.cors import CORSMiddleware               #Importo Cors para solicitudes externas
+from fastapi.middleware.cors import CORSMiddleware               # Importo Cors para solicitudes externas
 
 
 
@@ -11,7 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware               #Importo Cors p
 from src.database import engine                                  # Importa el motor de la base de datos PostgreSQL
 from src.models import Base                                      # Importa los modelos de la base de datos
 from src.routes import alerts, websocket, esp32_nodes, logs      # Importamos rutas de la API y WebSockets
-from src.routes import alerts_summary                            #Importo mi archivo de alerta resumen! 
+from src.routes import alerts_summary                            # Importo mi archivo de alerta resumen! 
+from src.routes import custom_queries                            # Importo MI ARCHIVO DE CONSULTAS
 
 
 
@@ -57,5 +58,7 @@ app.add_middleware(
 )
 
 app.include_router(alerts_summary.router) # resumen de alertas reportada spor canal
+app.include_router(custom_queries.router)  # Consultas personalizadas
+
 
 

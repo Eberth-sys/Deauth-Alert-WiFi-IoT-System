@@ -35,6 +35,19 @@ function App() {
         </a>
       </div>
 
+      {/* Botón flotante para acceder a los reportes */}
+      <div className="fixed top-36 right-6 z-50">
+        <a
+          href="/reportes"
+          className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg font-semibold hover:bg-blue-600 transition-all duration-300"
+          title="Ver reportes personalizados"
+          aria-label="Ver Reportes"
+        >
+          <span className="text-lg">📅</span>
+          <span>Ver Reportes</span>
+        </a>
+      </div>
+
       {/* 📄 Footer descriptivo al final de la página */}
       <footer className="text-center text-xs text-gray-500 py-4 border-t border-gray-800">
         © {new Date().getFullYear()} Sistema IoT para el monitoreo y detección de ataques de desautenticación en redes Wi-Fi – Eberth Alarcón
