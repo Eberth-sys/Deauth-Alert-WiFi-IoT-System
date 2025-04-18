@@ -1,8 +1,7 @@
-//frontend\src\pages\ReportsPage.tsx
-
 import { useState } from 'react'
 import { fetchAlertsByDate, fetchAlertsToday } from '../services/reports'
 import ReportsTable from '../components/ReportsTable'
+import BackToHomeButton from '../components/BackToHomeButton'
 
 type AlertData = {
   id: number
@@ -21,12 +20,19 @@ const ReportsPage = () => {
   const [error, setError] = useState('')
 
   const handleDateQuery = async () => {
+    if (!startDate || !endDate) {
+      setError('⚠️ Por favor selecciona una fecha de inicio y una de fin.')
+      setTimeout(() => setError(''), 4000)
+      return
+    }
+
     try {
       const data = await fetchAlertsByDate(startDate, endDate)
       setAlerts(data)
       setError('')
     } catch {
       setError('❌ Error al consultar el rango de fechas')
+      setTimeout(() => setError(''), 4000)
     }
   }
 
@@ -37,6 +43,7 @@ const ReportsPage = () => {
       setError('')
     } catch {
       setError('❌ Error al consultar alertas de hoy')
+      setTimeout(() => setError(''), 4000)
     }
   }
 
@@ -44,11 +51,11 @@ const ReportsPage = () => {
     <div className="bg-gray-900 h-screen w-screen flex flex-col">
       <main className="flex-1 overflow-y-auto px-4 py-8 flex flex-col items-center">
         <div className="relative w-full max-w-screen-xl">
+          <BackToHomeButton />
           <h2 className="text-5xl font-extrabold text-blue-400 text-center mb-6 animate-pulse drop-shadow-[0_0_10px_rgba(59,130,246,0.7)]">
             📅 Reportes Personalizados
           </h2>
 
-          {/* Filtros */}
           <div className="flex flex-col md:flex-row justify-center gap-4 mb-6">
             <input
               type="date"
@@ -76,11 +83,23 @@ const ReportsPage = () => {
             </button>
           </div>
 
-          {/* Error */}
-          {error && <p className="text-red-400 text-center mb-4">{error}</p>}
+          {/* Mensaje de error */}
+          {error && (
+            <div className="text-center mb-4 animate-pulse">
+              <div className="inline-block px-4 py-2 rounded bg-red-800 text-white shadow-lg border border-red-500 text-sm sm:text-base">
+                {error}
+              </div>
+            </div>
+          )}
 
-          {/* Tabla */}
-          <ReportsTable alerts={alerts} />
+          {/* Tabla o mensaje vacío */}
+          {alerts.length > 0 ? (
+            <ReportsTable alerts={alerts} />
+          ) : (
+            <div className="text-center mt-6 text-gray-400 text-sm sm:text-base animate-fade-in">
+              📭 No se encontraron alertas para el rango seleccionado.
+            </div>
+          )}
         </div>
       </main>
     </div>
