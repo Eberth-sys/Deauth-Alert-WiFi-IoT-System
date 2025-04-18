@@ -11,6 +11,7 @@ import LogViewer from '../components/LogViewer'
 import DownloadButton from '../components/DownloadButton'
 import LogFilters from '../components/LogFilters'
 import ReloadButton from '../components/ReloadButton'
+import BackToHomeButton from '../components/BackToHomeButton'
 
 // Nombre del archivo de log a mostrar
 const LOG_FILE = 'ble_events.log'
@@ -42,13 +43,7 @@ const LogsPage = () => {
     <div className="bg-gray-900 h-screen w-screen flex flex-col">
       {/* Header completamente expandido con botón alineado a la derecha */}
       <header className="bg-gray-800 shadow-md py-4 px-6 w-full flex justify-end">
-        <a
-          href="/"
-          className="text-white font-bold text-lg flex items-center gap-2 hover:text-blue-400 transition"
-        >
-          <span className="text-xl">🏠</span>
-          <span className="text-sm sm:text-base">Volver al Inicio</span>
-        </a>
+       <BackToHomeButton />
       </header>
 
       {/* Área principal de la página */}
