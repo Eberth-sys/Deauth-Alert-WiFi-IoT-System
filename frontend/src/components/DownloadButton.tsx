@@ -14,9 +14,8 @@ const DownloadButton = ({ onClick }: Props) => {
     <div className="flex justify-center mb-6">
       <button
         onClick={onClick}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-5 rounded shadow transition-all duration-200"
-      >
-        📥 Descargar archivo
+        className="bg-transparent border-2 border-blue-400 text-blue-300 hover:bg-blue-500 hover:text-white font-semibold py-2 px-5 rounded transition duration-300 shadow-md">
+        📥 Descargar archivo Logs
       </button>
     </div>
   )
