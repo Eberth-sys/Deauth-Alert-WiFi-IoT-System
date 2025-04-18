@@ -34,18 +34,17 @@ const LogsPage = () => {
   return (
     <div className="bg-gray-900 h-screen w-screen flex flex-col">
       
-     {/* Header superior con botón alineado a la derecha */}
-      <header className="bg-gray-800 shadow-md py-4 px-6 w-full">
-        <div className="flex justify-end items-center w-full max-w-screen-xl mx-auto">
-          <a
-            href="/"
-            className="text-white font-bold text-lg flex items-center gap-2 hover:text-blue-400 transition"
-          >
-            <span className="text-xl">🏠</span>
-            <span className="text-sm sm:text-base">Volver al Inicio</span>
-          </a>
-        </div>
+     {/* Header completamente expandido con botón alineado a la derecha */}
+      <header className="bg-gray-800 shadow-md py-4 px-6 w-full flex justify-end">
+        <a
+          href="/"
+          className="text-white font-bold text-lg flex items-center gap-2 hover:text-blue-400 transition"
+        >
+          <span className="text-xl">🏠</span>
+          <span className="text-sm sm:text-base">Volver al Inicio</span>
+        </a>
       </header>
+
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto px-4 py-8 flex flex-col items-center">
