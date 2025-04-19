@@ -1,13 +1,14 @@
-// frontend/src/pages/DashboardPage.tsx
-
 import { useEffect, useRef, useState } from 'react'
 import AlertSummaryTable from '../components/AlertSummaryTable'
 import NodeStatusTable from '../components/NodeStatusTable'
 import AlertNotification from '../components/AlertNotification'
+import ConnectionNotification from '../components/ConnectionNotification'
 import { AlertSummary, AggregatedAlert, NodeStatus } from '../components/types'
 import { connectToWebSocket } from '../services/socket'
+import { useAlertWatcher } from '../hooks/useAlertWatcher'
+import { useNodeConnectionWatcher } from '../hooks/useNodeConnectionWatcher'
 
-// ✅ Declaración explícita de los nodos esperados
+// ✅ Declaración explícita de nodos esperados
 const NODOS_ESPERADOS: { nodo_iot: string; canal: number }[] = [
   { nodo_iot: 'ESP32_1_CH_01', canal: 1 },
   { nodo_iot: 'ESP32_4_SCANN', canal: 2 },
@@ -22,19 +23,22 @@ const NODOS_ESPERADOS: { nodo_iot: string; canal: number }[] = [
   { nodo_iot: 'ESP32_3_CH_11', canal: 11 },
   { nodo_iot: 'ESP32_4_SCANN', canal: 12 },
   { nodo_iot: 'ESP32_4_SCANN', canal: 13 },
-  { nodo_iot: 'ESP32_4_SCANN', canal: 14 }
+  { nodo_iot: 'ESP32_4_SCANN', canal: 14 },
 ]
 
 const DashboardPage = () => {
   const [alertSummary, setAlertSummary] = useState<AlertSummary[]>([])
   const [nodeStatus, setNodeStatus] = useState<NodeStatus[]>([])
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'reconnecting'>('disconnected')
-  const [alertMessage, setAlertMessage] = useState<string | null>(null)
 
+  // 🔁 WebSocket
   const socketRef = useRef<WebSocket | null>(null)
-  const prevSummaryRef = useRef<AlertSummary[]>([])
 
-  // 🧠 Combina nodos esperados con su estado y resumen de alertas
+  // 🧠 Hooks de monitoreo
+  const { alertMessage, checkAlertThreshold } = useAlertWatcher()
+  const { connectionAlert, checkConnectionChanges, setConnectionAlert } = useNodeConnectionWatcher()
+
+  // 🔧 Agrega resumen de nodos y estado de conexión
   const aggregateAlerts = (): AggregatedAlert[] => {
     return NODOS_ESPERADOS.map(({ nodo_iot, canal }) => {
       const summary = alertSummary.find((s) => s.canal === canal)
@@ -53,39 +57,19 @@ const DashboardPage = () => {
     })
   }
 
-  // 🔁 Detecta cambios de alertas entre actual y anterior
-  const checkAlertThreshold = (newSummary: AlertSummary[]) => {
-    const prevSummary = prevSummaryRef.current
-    const UMBRAL = 3
-
-    if (prevSummary.length === 0) {
-      prevSummaryRef.current = newSummary
-      return
+  // 🛰️ Indicador visual del estado de WebSocket
+  const getConnectionIndicator = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return <span className="text-green-400 font-semibold animate-pulse">🟢 Conectado en Tiempo Real</span>
+      case 'reconnecting':
+        return <span className="text-yellow-400 font-semibold animate-pulse">🟡 Reconectando...</span>
+      default:
+        return <span className="text-red-400 font-semibold">🔴 Sin Conexión</span>
     }
-
-    const todosEnCero = newSummary.every((n) => n.count === 0)
-    if (todosEnCero) {
-      prevSummaryRef.current = []
-      return
-    }
-
-    newSummary.forEach((nuevoNodo) => {
-      const anterior = prevSummary.find((n) => n.canal === nuevoNodo.canal)
-      const anteriorCount = anterior?.count ?? 0
-
-      if (nuevoNodo.count > anteriorCount && nuevoNodo.count > UMBRAL) {
-        setAlertMessage(`El nodo ${nuevoNodo.nodo_iot} ha recibido ${nuevoNodo.count} alertas.`)
-
-        setTimeout(() => {
-          setAlertMessage(null)
-        }, 10000)
-      }
-    })
-
-    prevSummaryRef.current = newSummary
   }
 
-  // 📡 Inicializa fetch + WebSocket en tiempo real
+  // 📡 Inicialización del monitoreo
   useEffect(() => {
     let isMounted = true
 
@@ -106,7 +90,10 @@ const DashboardPage = () => {
       try {
         const res = await fetch('http://192.168.255.132:8000/esp32-nodes')
         const data = await res.json()
-        if (isMounted) setNodeStatus(data)
+        if (isMounted) {
+          setNodeStatus(data)
+          checkConnectionChanges(data)
+        }
       } catch (err) {
         console.error('Error al obtener estado de nodos:', err)
       }
@@ -134,35 +121,41 @@ const DashboardPage = () => {
 
   const data = aggregateAlerts()
 
-  const getConnectionIndicator = () => {
-    switch (connectionStatus) {
-      case 'connected':
-        return <span className="text-green-400 font-semibold animate-pulse">🟢 Conectado en Tiempo Real</span>
-      case 'reconnecting':
-        return <span className="text-yellow-400 font-semibold animate-pulse">🟡 Reconectando...</span>
-      default:
-        return <span className="text-red-400 font-semibold">🔴 Sin Conexión</span>
-    }
-  }
-
   return (
     <div className="w-full px-4 md:px-8 py-6 space-y-10 font-inter">
+
+      {/* 🔔 Alerta de Seguridad por ataque */}
       {alertMessage && (
-        <AlertNotification message={alertMessage} onClose={() => setAlertMessage(null)} />
+        <AlertNotification
+          message={alertMessage}
+          onClose={() => {}} // El hook ya gestiona el cierre
+          sound="/sounds/warning.mp3"
+        />
       )}
 
+      {/* 🔔 Alerta por conexión o desconexión */}
+      {connectionAlert && (
+        <ConnectionNotification
+          message={connectionAlert}
+          onClose={() => setConnectionAlert(null)}
+        />
+      )}
+
+      {/* 🔷 Introducción */}
       <div className="text-center">
         <p className="text-gray-400 mt-1 text-sm sm:text-base">
           Sistema en tiempo real para detección de ataques de desautenticación sobre redes WiFi.
         </p>
       </div>
 
+      {/* 🔌 Estado de WebSocket */}
       <div className="text-center">
         <div className="inline-block px-4 py-2 rounded-full bg-gray-800 border border-gray-600 shadow text-sm">
           {getConnectionIndicator()}
         </div>
       </div>
 
+      {/* 📊 Tablas de datos */}
       <section className="space-y-2">
         <h2 className="text-lg sm:text-xl font-semibold text-purple-400">📊 Resumen de Actividad por Canal</h2>
         <AlertSummaryTable data={data} />
