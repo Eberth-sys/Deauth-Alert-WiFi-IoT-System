@@ -5,6 +5,8 @@ import { useState } from 'react'
 import { fetchAlertsByDate, fetchAlertsToday } from '../services/reports'
 import ReportsTable from '../components/ReportsTable'
 import BackToHomeButton from '../components/BackToHomeButton'
+import { downloadCSV } from '../components/utils/download'
+import DownloadButton from '../components/DownloadButton' // reutilizamos el del LogsPage
 
 // Definición del tipo de datos que representa una alerta
 type AlertData = {
@@ -18,17 +20,11 @@ type AlertData = {
 }
 
 const ReportsPage = () => {
-  // Estado que almacena las alertas obtenidas
   const [alerts, setAlerts] = useState<AlertData[]>([])
-
-  // Estados para fechas de inicio y fin
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-
-  // Estado para manejar errores en la UI
   const [error, setError] = useState('')
 
-  // Función para consultar alertas dentro de un rango de fechas
   const handleDateQuery = async () => {
     if (!startDate || !endDate) {
       setError('⚠️ Por favor selecciona una fecha de inicio y una de fin.')
@@ -46,7 +42,6 @@ const ReportsPage = () => {
     }
   }
 
-  // Función para consultar alertas del día actual
   const handleTodayQuery = async () => {
     try {
       const data = await fetchAlertsToday()
@@ -61,16 +56,13 @@ const ReportsPage = () => {
   return (
     <div className="bg-gray-900 h-screen w-screen flex flex-col">
       <main className="flex-1 overflow-y-auto px-4 py-8 flex flex-col items-center">
-
         <div className="relative w-full max-w-screen-xl">
-          
-          {/* Botón de regreso e interfaz de título */}
           <BackToHomeButton />
           <h2 className="text-5xl font-extrabold text-blue-400 text-center mb-6 animate-pulse drop-shadow-[0_0_10px_rgba(59,130,246,0.7)]">
             📅 Reportes Personalizados
           </h2>
 
-          {/* Inputs de fechas + botones de acción */}
+          {/* Sección de filtros por fecha */}
           <div className="flex flex-col md:flex-row justify-center gap-4 mb-6">
             <input
               type="date"
@@ -98,7 +90,14 @@ const ReportsPage = () => {
             </button>
           </div>
 
-          {/* Mensaje de error si ocurre algún problema */}
+          {/* Botón para exportar resultados a CSV */}
+          {alerts.length > 0 && (
+            <div className="flex justify-end mb-4">
+              <DownloadButton onClick={() => downloadCSV(alerts, 'reporte_alertas')} />
+            </div>
+          )}
+
+          {/* Mensaje de error */}
           {error && (
             <div className="text-center mb-4 animate-pulse">
               <div className="inline-block px-4 py-2 rounded bg-red-800 text-white shadow-lg border border-red-500 text-sm sm:text-base">
@@ -107,7 +106,7 @@ const ReportsPage = () => {
             </div>
           )}
 
-          {/* Tabla con alertas o mensaje si no hay resultados */}
+          {/* Resultados de la consulta */}
           {alerts.length > 0 ? (
             <ReportsTable alerts={alerts} />
           ) : (
@@ -122,3 +121,4 @@ const ReportsPage = () => {
 }
 
 export default ReportsPage
+

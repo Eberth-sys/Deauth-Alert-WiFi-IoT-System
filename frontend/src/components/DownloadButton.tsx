@@ -15,7 +15,7 @@ const DownloadButton = ({ onClick }: Props) => {
       <button
         onClick={onClick}
         className="bg-transparent border-2 border-blue-400 text-blue-300 hover:bg-blue-500 hover:text-white font-semibold py-2 px-5 rounded transition duration-300 shadow-md">
-        📥 Descargar archivo Logs
+        📥 Descargar archivo
       </button>
     </div>
   )
