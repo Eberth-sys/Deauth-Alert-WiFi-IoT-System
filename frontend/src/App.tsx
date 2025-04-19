@@ -46,6 +46,19 @@ function App() {
         </a>
       </div>
 
+      {/* Botón flotante para acceder a las estadísticas */}
+      <div className="fixed top-52 right-6 z-50">
+        <a
+          href="/estadisticas"
+          className="flex items-center gap-2 bg-white text-gray-800 px-4 py-2 rounded-full shadow-lg font-semibold hover:bg-gray-200 transition-all duration-300"
+          title="Ver estadísticas generales"
+          aria-label="Ver Estadísticas"
+        >
+          <span className="text-lg">📈</span>
+          <span>Estadísticas</span>
+        </a>
+      </div>
+
       {/* 📄 Footer */}
       <footer className="text-center text-xs text-gray-500 py-4 border-t border-gray-800">
         © {new Date().getFullYear()} Sistema IoT para el monitoreo y detección de ataques de desautenticación en redes Wi-Fi – Eberth Alarcón
