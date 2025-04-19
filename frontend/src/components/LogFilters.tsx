@@ -16,26 +16,39 @@ const levels: LogLevel[] = ['ALL', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
 
 // Colores asociados a cada nivel de log para los botones
 const levelColors: Record<LogLevel, string> = {
-  ALL: 'bg-gray-500',
-  INFO: 'bg-green-500',
-  WARNING: 'bg-yellow-500',
-  ERROR: 'bg-red-500',
-  CRITICAL: 'bg-pink-500',
+  ALL: 'from-gray-600 to-gray-700',
+  INFO: 'from-green-500 to-emerald-600',
+  WARNING: 'from-yellow-400 to-yellow-600',
+  ERROR: 'from-red-500 to-red-700',
+  CRITICAL: 'from-pink-500 to-fuchsia-600',
+}
+
+// Íconos por nivel para mayor visualización
+const levelIcons: Record<LogLevel, string> = {
+  ALL: '📋',
+  INFO: 'ℹ️',
+  WARNING: '⚠️',
+  ERROR: '❌',
+  CRITICAL: '🚨',
 }
 
 // Componente de filtro de logs por nivel
 const LogFilters: React.FC<LogFiltersProps> = ({ selectedLevel, onSelectLevel }) => {
   return (
     // Contenedor flexible que centra los botones con separación entre ellos
-    <div className="flex flex-wrap gap-2 justify-center mb-6">
+    <div className="flex flex-wrap gap-3 justify-center mb-6">
       {levels.map((level) => (
         <button
           key={level}
           onClick={() => onSelectLevel(level)} // Al hacer clic cambia el nivel seleccionado
-          className={`text-white font-semibold py-1 px-3 rounded shadow transition-all duration-200 ${
-            levelColors[level]
-          } ${selectedLevel === level ? 'ring-2 ring-white' : 'opacity-80 hover:opacity-100'}`}
+          className={`
+            flex items-center gap-2 px-4 py-1.5 rounded-full shadow-md text-sm font-semibold text-white 
+            bg-gradient-to-br ${levelColors[level]} 
+            transition-all duration-200 
+            ${selectedLevel === level ? 'ring-2 ring-offset-2 ring-white scale-105' : 'opacity-80 hover:opacity-100'}
+          `}
         >
+          <span>{levelIcons[level]}</span>
           {level}
         </button>
       ))}

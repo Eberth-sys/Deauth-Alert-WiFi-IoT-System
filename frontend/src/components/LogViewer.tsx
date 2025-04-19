@@ -1,4 +1,4 @@
-// frontend/src/components/LogViewer.tsx
+//frontend\src\components\LogViewer.tsx
 
 import React from 'react'
 
@@ -28,13 +28,16 @@ const LogViewer: React.FC<LogViewerProps> = ({ lines, error, selectedLevel }) =>
 
   return (
     // Contenedor visual con scroll, estilo de terminal y diseño responsivo
-    <div className="bg-gray-800 border border-blue-600 p-6 rounded-lg shadow-xl max-h-[70vh] overflow-y-auto font-mono text-sm whitespace-pre-wrap w-full max-w-3xl tracking-tight">
+    <div className="bg-gray-950/90 border border-blue-700 p-6 rounded-xl shadow-2xl max-h-[70vh] overflow-y-auto font-mono text-sm whitespace-pre-wrap w-full max-w-4xl tracking-tight backdrop-blur-sm">
       {/* Si hay un error, lo muestra; si no, renderiza las líneas filtradas */}
       {error ? (
         <p className="text-red-500 text-center font-semibold">{error}</p>
       ) : (
         filteredLines.map((line, i) => (
-          <p key={i} className={getLineColor(line)}>
+          <p
+            key={i}
+            className={`transition-all duration-150 ease-in-out hover:bg-gray-800/40 px-2 py-1 rounded-md ${getLineColor(line)}`}
+          >
             {line}
           </p>
         ))
