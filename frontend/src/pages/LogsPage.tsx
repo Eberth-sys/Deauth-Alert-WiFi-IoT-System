@@ -5,6 +5,7 @@ import DownloadButton from '../components/DownloadButton'
 import LogFilters from '../components/LogFilters'
 import ReloadButton from '../components/ReloadButton'
 import BackToHomeButton from '../components/BackToHomeButton'
+import Footer from '../components/Footer'
 
 const LOG_FILE = 'ble_events.log'
 
@@ -57,7 +58,8 @@ const LogsPage = () => {
             <LogViewer lines={logLines} error={error} selectedLevel={selectedLevel} />
           </div>
         </section>
-
+        {/* 📄 Footer - Pie de página*/}
+        <Footer />
       </main>
     </div>
   )

@@ -7,6 +7,7 @@ import ReportsTable from '../components/ReportsTable'
 import BackToHomeButton from '../components/BackToHomeButton'
 import { downloadCSV } from '../components/utils/download'
 import DownloadButton from '../components/DownloadButton' // reutilizamos el del LogsPage
+import Footer from '../components/Footer'
 
 // Definición del tipo de datos que representa una alerta
 type AlertData = {
@@ -115,6 +116,8 @@ const ReportsPage = () => {
             </div>
           )}
         </div>
+        {/* 📄 Footer - Pie de página*/}
+        <Footer />
       </main>
     </div>
   )

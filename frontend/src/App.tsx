@@ -2,6 +2,7 @@
 
 // Importamos el componente principal que muestra el resumen de alertas y estados de nodos
 import DashboardPage from './pages/DashboardPage'
+import Footer from './components/Footer'
 
 function App() {
   return (
@@ -59,10 +60,8 @@ function App() {
         </a>
       </div>
 
-      {/* 📄 Footer */}
-      <footer className="text-center text-xs text-gray-500 py-4 border-t border-gray-800">
-        © {new Date().getFullYear()} Sistema IoT para el monitoreo y detección de ataques de desautenticación en redes Wi-Fi – Eberth Alarcón
-      </footer>
+      {/* 📄 Footer - Pie de página*/}
+      <Footer />
     </div>
   )
 }

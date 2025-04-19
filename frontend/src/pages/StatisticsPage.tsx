@@ -17,6 +17,7 @@ import StatsTable from '../components/StatsTable'
 import LatestAlertsTable from '../components/LatestAlertsTable'
 import BackToHomeButton from '../components/BackToHomeButton'
 import { connectToWebSocket } from '../services/socket'
+import Footer from '../components/Footer'
 
 // Componente principal del panel de estadísticas
 const StatisticsPage = () => {
@@ -124,6 +125,8 @@ const StatisticsPage = () => {
             <LatestAlertsTable alerts={ultimas} />
           </section>
         </div>
+        {/* 📄 Footer - Pie de página*/}
+        <Footer />
       </main>
     </div>
   )
