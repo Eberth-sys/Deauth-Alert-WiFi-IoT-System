@@ -1,16 +1,14 @@
-//frontend\src\pages\DashboardPage.tsx
+// frontend/src/pages/DashboardPage.tsx
 
-// Importa las tablas de resumen y estado
+import { useEffect, useRef, useState } from 'react'
 import AlertSummaryTable from '../components/AlertSummaryTable'
 import NodeStatusTable from '../components/NodeStatusTable'
-
-// Hooks y tipos necesarios
-import { useEffect, useRef, useState } from 'react'
-import { AlertSummary, NodeStatus, AggregatedAlert } from '../components/types'
+import AlertNotification from '../components/AlertNotification'
+import { AlertSummary, AggregatedAlert, NodeStatus } from '../components/types'
 import { connectToWebSocket } from '../services/socket'
 
-// Lista fija de nodos y canales esperados en el sistema
-const NODOS_ESPERADOS = [
+// ✅ Declaración explícita de los nodos esperados
+const NODOS_ESPERADOS: { nodo_iot: string; canal: number }[] = [
   { nodo_iot: 'ESP32_1_CH_01', canal: 1 },
   { nodo_iot: 'ESP32_4_SCANN', canal: 2 },
   { nodo_iot: 'ESP32_4_SCANN', canal: 3 },
@@ -24,70 +22,19 @@ const NODOS_ESPERADOS = [
   { nodo_iot: 'ESP32_3_CH_11', canal: 11 },
   { nodo_iot: 'ESP32_4_SCANN', canal: 12 },
   { nodo_iot: 'ESP32_4_SCANN', canal: 13 },
-  { nodo_iot: 'ESP32_4_SCANN', canal: 14 },
+  { nodo_iot: 'ESP32_4_SCANN', canal: 14 }
 ]
 
 const DashboardPage = () => {
-  // Estados para guardar datos de resumen y nodos
   const [alertSummary, setAlertSummary] = useState<AlertSummary[]>([])
   const [nodeStatus, setNodeStatus] = useState<NodeStatus[]>([])
-
-  // Referencia al WebSocket para manejo de reconexiones
-  const socketRef = useRef<WebSocket | null>(null)
-
-  // Estado para saber si el WebSocket está activo
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'reconnecting'>('disconnected')
+  const [alertMessage, setAlertMessage] = useState<string | null>(null)
 
-  // Hook que se ejecuta al montar el componente
-  useEffect(() => {
-    let isMounted = true
+  const socketRef = useRef<WebSocket | null>(null)
+  const prevSummaryRef = useRef<AlertSummary[]>([])
 
-    // Carga resumen de alertas desde el backend
-    const fetchResumen = async () => {
-      try {
-        const res = await fetch('http://192.168.255.132:8000/alerts-summary')
-        const data = await res.json()
-        if (isMounted) setAlertSummary(data)
-      } catch (err) {
-        console.error('Error al obtener resumen de alertas:', err)
-      }
-    }
-
-    // Carga estado de los nodos desde el backend
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch('http://192.168.255.132:8000/esp32-nodes')
-        const data = await res.json()
-        if (isMounted) setNodeStatus(data)
-      } catch (err) {
-        console.error('Error al obtener estado de nodos:', err)
-      }
-    }
-
-    // Ejecuta las dos consultas al iniciar
-    fetchResumen()
-    fetchStatus()
-
-    // Conecta al WebSocket y actualiza datos en tiempo real
-    const socket = connectToWebSocket(
-      () => {
-        fetchResumen()
-        fetchStatus()
-      },
-      () => setConnectionStatus('disconnected'),
-      setConnectionStatus
-    )
-
-    socketRef.current = socket
-
-    // Cleanup: cierra conexión si el componente se desmonta
-    return () => {
-      isMounted = false
-      socketRef.current?.close()
-    }
-  }, [])
-
-  // Combina datos de resumen y estado con la lista esperada de nodos
+  // 🧠 Combina nodos esperados con su estado y resumen de alertas
   const aggregateAlerts = (): AggregatedAlert[] => {
     return NODOS_ESPERADOS.map(({ nodo_iot, canal }) => {
       const summary = alertSummary.find((s) => s.canal === canal)
@@ -106,10 +53,87 @@ const DashboardPage = () => {
     })
   }
 
-  // Resultado final con los datos combinados
+  // 🔁 Detecta cambios de alertas entre actual y anterior
+  const checkAlertThreshold = (newSummary: AlertSummary[]) => {
+    const prevSummary = prevSummaryRef.current
+    const UMBRAL = 3
+
+    if (prevSummary.length === 0) {
+      prevSummaryRef.current = newSummary
+      return
+    }
+
+    const todosEnCero = newSummary.every((n) => n.count === 0)
+    if (todosEnCero) {
+      prevSummaryRef.current = []
+      return
+    }
+
+    newSummary.forEach((nuevoNodo) => {
+      const anterior = prevSummary.find((n) => n.canal === nuevoNodo.canal)
+      const anteriorCount = anterior?.count ?? 0
+
+      if (nuevoNodo.count > anteriorCount && nuevoNodo.count > UMBRAL) {
+        setAlertMessage(`El nodo ${nuevoNodo.nodo_iot} ha recibido ${nuevoNodo.count} alertas.`)
+
+        setTimeout(() => {
+          setAlertMessage(null)
+        }, 10000)
+      }
+    })
+
+    prevSummaryRef.current = newSummary
+  }
+
+  // 📡 Inicializa fetch + WebSocket en tiempo real
+  useEffect(() => {
+    let isMounted = true
+
+    const fetchResumen = async () => {
+      try {
+        const res = await fetch('http://192.168.255.132:8000/alerts-summary')
+        const data = await res.json()
+        if (isMounted) {
+          setAlertSummary(data)
+          checkAlertThreshold(data)
+        }
+      } catch (err) {
+        console.error('Error al obtener resumen de alertas:', err)
+      }
+    }
+
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch('http://192.168.255.132:8000/esp32-nodes')
+        const data = await res.json()
+        if (isMounted) setNodeStatus(data)
+      } catch (err) {
+        console.error('Error al obtener estado de nodos:', err)
+      }
+    }
+
+    fetchResumen()
+    fetchStatus()
+
+    const socket = connectToWebSocket(
+      () => {
+        fetchResumen()
+        fetchStatus()
+      },
+      () => setConnectionStatus('disconnected'),
+      setConnectionStatus
+    )
+
+    socketRef.current = socket
+
+    return () => {
+      isMounted = false
+      socketRef.current?.close()
+    }
+  }, [])
+
   const data = aggregateAlerts()
 
-  // Indicador visual del estado de conexión WebSocket
   const getConnectionIndicator = () => {
     switch (connectionStatus) {
       case 'connected':
@@ -123,28 +147,27 @@ const DashboardPage = () => {
 
   return (
     <div className="w-full px-4 md:px-8 py-6 space-y-10 font-inter">
-      
-      {/* Descripción inicial */}
+      {alertMessage && (
+        <AlertNotification message={alertMessage} onClose={() => setAlertMessage(null)} />
+      )}
+
       <div className="text-center">
         <p className="text-gray-400 mt-1 text-sm sm:text-base">
           Sistema en tiempo real para detección de ataques de desautenticación sobre redes WiFi.
         </p>
       </div>
 
-      {/* Indicador de conexión */}
       <div className="text-center">
         <div className="inline-block px-4 py-2 rounded-full bg-gray-800 border border-gray-600 shadow text-sm">
           {getConnectionIndicator()}
         </div>
       </div>
 
-      {/* Sección de resumen de actividad */}
       <section className="space-y-2">
         <h2 className="text-lg sm:text-xl font-semibold text-purple-400">📊 Resumen de Actividad por Canal</h2>
         <AlertSummaryTable data={data} />
       </section>
 
-      {/* Sección de estado de nodos */}
       <section className="space-y-2">
         <h2 className="text-lg sm:text-xl font-semibold text-emerald-400">💡 Estado Actual de Nodos IoT</h2>
         <NodeStatusTable status={nodeStatus} />
