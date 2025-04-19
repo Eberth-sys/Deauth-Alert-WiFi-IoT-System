@@ -1,19 +1,11 @@
-//frontend\src\components\AlertHeatmapTable.tsx
+//frontend\src\pages\DashboardPage.tsx
 
-// Importación de hooks y dependencias de React
+import AlertSummaryTable from '../components/AlertSummaryTable'
+import NodeStatusTable from '../components/NodeStatusTable'
 import { useEffect, useRef, useState } from 'react'
-
-// Componentes hijos que renderizan las tablas
-import AlertSummaryTable from './AlertSummaryTable'
-import NodeStatusTable from './NodeStatusTable'
-
-// Tipos TypeScript para definir las estructuras de datos utilizadas
-import { AlertSummary, NodeStatus, AggregatedAlert } from './types'
-
-// Conexión WebSocket para recibir datos en tiempo real
+import { AlertSummary, NodeStatus, AggregatedAlert } from '../components/types'
 import { connectToWebSocket } from '../services/socket'
 
-// Lista fija de nodos esperados con su canal correspondiente
 const NODOS_ESPERADOS = [
   { nodo_iot: 'ESP32_1_CH_01', canal: 1 },
   { nodo_iot: 'ESP32_4_SCANN', canal: 2 },
@@ -31,23 +23,15 @@ const NODOS_ESPERADOS = [
   { nodo_iot: 'ESP32_4_SCANN', canal: 14 },
 ]
 
-const AlertHeatmapTable = () => {
-  // Estado para el resumen de alertas
+const DashboardPage = () => {
   const [alertSummary, setAlertSummary] = useState<AlertSummary[]>([])
-
-  // Estado para el estado de los nodos
   const [nodeStatus, setNodeStatus] = useState<NodeStatus[]>([])
-
-  // Referencia para guardar la conexión WebSocket
   const socketRef = useRef<WebSocket | null>(null)
-
-  // Estado para el estado actual de la conexión
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'reconnecting'>('disconnected')
 
   useEffect(() => {
     let isMounted = true
 
-    // Función para obtener el resumen de alertas desde el backend
     const fetchResumen = async () => {
       try {
         const res = await fetch('http://192.168.255.132:8000/alerts-summary')
@@ -58,7 +42,6 @@ const AlertHeatmapTable = () => {
       }
     }
 
-    // Función para obtener el estado de los nodos desde el backend
     const fetchStatus = async () => {
       try {
         const res = await fetch('http://192.168.255.132:8000/esp32-nodes')
@@ -69,11 +52,9 @@ const AlertHeatmapTable = () => {
       }
     }
 
-    // Llamamos las funciones por primera vez
     fetchResumen()
     fetchStatus()
 
-    // Conectamos el WebSocket para recibir actualizaciones en tiempo real
     const socket = connectToWebSocket(
       () => {
         fetchResumen()
@@ -85,14 +66,12 @@ const AlertHeatmapTable = () => {
 
     socketRef.current = socket
 
-    // Cleanup del componente
     return () => {
       isMounted = false
       socketRef.current?.close()
     }
   }, [])
 
-  // Agrega los datos combinando información de nodos esperados con alertas y estado
   const aggregateAlerts = (): AggregatedAlert[] => {
     return NODOS_ESPERADOS.map(({ nodo_iot, canal }) => {
       const summary = alertSummary.find((s) => s.canal === canal)
@@ -111,17 +90,14 @@ const AlertHeatmapTable = () => {
     })
   }
 
-  // Llamamos la función para preparar los datos agregados
   const data = aggregateAlerts()
 
-  // Retorna el mensaje visual de conexión en tiempo real
   const getConnectionIndicator = () => {
     switch (connectionStatus) {
       case 'connected':
         return <span className="text-green-400 font-semibold animate-pulse">🟢 Conectado en Tiempo Real</span>
       case 'reconnecting':
         return <span className="text-yellow-400 font-semibold animate-pulse">🟡 Reconectando...</span>
-      case 'disconnected':
       default:
         return <span className="text-red-400 font-semibold">🔴 Sin Conexión</span>
     }
@@ -129,28 +105,23 @@ const AlertHeatmapTable = () => {
 
   return (
     <div className="w-full px-4 md:px-8 py-6 space-y-10 font-inter">
-      
-      {/* Introducción breve */}
       <div className="text-center">
         <p className="text-gray-400 mt-1 text-sm sm:text-base">
           Sistema en tiempo real para detección de ataques de desautenticación sobre redes WiFi.
         </p>
       </div>
 
-      {/* Estado de conexión actual */}
       <div className="text-center">
         <div className="inline-block px-4 py-2 rounded-full bg-gray-800 border border-gray-600 shadow text-sm">
           {getConnectionIndicator()}
         </div>
       </div>
 
-      {/* Tabla principal de resumen de alertas */}
       <section className="space-y-2">
         <h2 className="text-lg sm:text-xl font-semibold text-purple-400">📊 Resumen de Actividad por Canal</h2>
         <AlertSummaryTable data={data} />
       </section>
 
-      {/* Tabla de estado actual de los nodos */}
       <section className="space-y-2">
         <h2 className="text-lg sm:text-xl font-semibold text-emerald-400">💡 Estado Actual de Nodos IoT</h2>
         <NodeStatusTable status={nodeStatus} />
@@ -159,4 +130,4 @@ const AlertHeatmapTable = () => {
   )
 }
 
-export default AlertHeatmapTable
+export default DashboardPage
