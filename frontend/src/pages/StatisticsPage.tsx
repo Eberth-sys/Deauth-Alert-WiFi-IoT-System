@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react'
+//frontend\src\pages\StatisticsPage.tsx
+
+import { useEffect, useRef, useState } from 'react'
 import {
   fetchAlertsByChannel,
   fetchAlertsByNode,
@@ -9,26 +11,54 @@ import StatsCard from '../components/StatsCard'
 import StatsTable from '../components/StatsTable'
 import LatestAlertsTable from '../components/LatestAlertsTable'
 import BackToHomeButton from '../components/BackToHomeButton'
+import { connectToWebSocket } from '../services/socket'
 
 const StatisticsPage = () => {
   const [total, setTotal] = useState(0)
   const [porNodo, setPorNodo] = useState([])
   const [porCanal, setPorCanal] = useState([])
   const [ultimas, setUltimas] = useState([])
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'reconnecting'>('disconnected')
+  const socketRef = useRef<WebSocket | null>(null)
 
-  useEffect(() => {
+  const fetchAll = () => {
     fetchTotalAlerts().then((res) => setTotal(res.total_alertas))
     fetchAlertsByNode().then(setPorNodo)
     fetchAlertsByChannel().then(setPorCanal)
     fetchLatestAlerts().then(setUltimas)
+  }
+
+  useEffect(() => {
+    fetchAll()
+
+    const socket = connectToWebSocket(
+      () => fetchAll(),
+      () => setConnectionStatus('disconnected'),
+      setConnectionStatus
+    )
+
+    socketRef.current = socket
+
+    return () => {
+      socketRef.current?.close()
+    }
   }, [])
 
+  const getConnectionIndicator = () => {
+    switch (connectionStatus) {
+      case 'connected':
+        return <span className="text-green-400 font-semibold animate-pulse">🟢 Conectado en Tiempo Real</span>
+      case 'reconnecting':
+        return <span className="text-yellow-400 font-semibold animate-pulse">🟡 Reconectando...</span>
+      default:
+        return <span className="text-red-400 font-semibold">🔴 Sin Conexión</span>
+    }
+  }
+
   return (
-    <div className="bg-gray-900 min-h-screen w-screen flex flex-col font-inter text-gray-100">
+    <div className="bg-gray-900 h-screen w-screen flex flex-col font-inter text-gray-100">
       <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-8 flex flex-col items-center">
         <div className="w-full max-w-screen-xl space-y-10">
-
-          {/* Título con botón de regreso */}
           <div className="relative text-center mb-2">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-blue-400 drop-shadow-md">
               📈 Panel de Estadísticas de Alertas
@@ -38,6 +68,13 @@ const StatisticsPage = () => {
             </p>
             <div className="absolute top-0 right-0">
               <BackToHomeButton />
+            </div>
+          </div>
+
+          {/* Estado de conexión */}
+          <div className="text-center">
+            <div className="inline-block px-4 py-2 rounded-full bg-gray-800 border border-gray-600 shadow text-sm">
+              {getConnectionIndicator()}
             </div>
           </div>
 
@@ -66,7 +103,7 @@ const StatisticsPage = () => {
             </div>
           </div>
 
-          {/* Últimas alertas en bloque separado */}
+          {/* Últimas alertas */}
           <section className="rounded-xl bg-gray-800/80 p-4 shadow-lg ring-1 ring-gray-700">
             <LatestAlertsTable alerts={ultimas} />
           </section>
