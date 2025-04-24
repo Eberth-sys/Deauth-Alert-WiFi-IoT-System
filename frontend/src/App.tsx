@@ -1,5 +1,3 @@
-//frontend\src\App.tsx
-
 // Importamos el componente principal que muestra el resumen de alertas y estados de nodos
 import DashboardPage from './pages/DashboardPage'
 import Footer from './components/Footer'
@@ -21,8 +19,8 @@ function App() {
         </div>
       </main>
 
-      {/* 📜 Botón flotante para Logs */}
-      <div className="fixed top-20 right-6 z-50">
+      {/* 🧭 Botones flotantes - Escritorio */}
+      <div className="fixed z-50 right-6 top-24 flex flex-col gap-3 sm:flex hidden">
         <a
           href="/logs"
           className="flex items-center gap-2 bg-white text-gray-800 px-4 py-2 rounded-full shadow-lg font-semibold hover:bg-gray-200 transition-all duration-300"
@@ -30,12 +28,8 @@ function App() {
           aria-label="Ver Logs"
         >
           <span className="text-lg">📜</span>
-          <span>Ver ble Logs</span>
+          <span>Ver BLE Logs</span>
         </a>
-      </div>
-
-      {/* 📅 Botón flotante para Reportes */}
-      <div className="fixed top-36 right-6 z-50">
         <a
           href="/reportes"
           className="flex items-center gap-2 bg-white text-gray-800 px-4 py-2 rounded-full shadow-lg font-semibold hover:bg-gray-200 transition-all duration-300"
@@ -45,10 +39,6 @@ function App() {
           <span className="text-lg">📅</span>
           <span>Ver Reportes</span>
         </a>
-      </div>
-
-      {/* Botón flotante para acceder a las estadísticas */}
-      <div className="fixed top-52 right-6 z-50">
         <a
           href="/estadisticas"
           className="flex items-center gap-2 bg-white text-gray-800 px-4 py-2 rounded-full shadow-lg font-semibold hover:bg-gray-200 transition-all duration-300"
@@ -57,6 +47,31 @@ function App() {
         >
           <span className="text-lg">📈</span>
           <span>Estadísticas</span>
+        </a>
+      </div>
+
+      {/* 📱 Botones móviles - Barra inferior */}
+      <div className="fixed z-50 bottom-4 left-1/2 -translate-x-1/2 w-[95%] flex justify-around sm:hidden">
+        <a
+          href="/logs"
+          title="Logs"
+          className="bg-white text-gray-800 px-3 py-2 rounded-full shadow-md text-sm font-semibold flex items-center gap-1"
+        >
+          📜
+        </a>
+        <a
+          href="/reportes"
+          title="Reportes"
+          className="bg-white text-gray-800 px-3 py-2 rounded-full shadow-md text-sm font-semibold flex items-center gap-1"
+        >
+          📅
+        </a>
+        <a
+          href="/estadisticas"
+          title="Estadísticas"
+          className="bg-white text-gray-800 px-3 py-2 rounded-full shadow-md text-sm font-semibold flex items-center gap-1"
+        >
+          📈
         </a>
       </div>
 
