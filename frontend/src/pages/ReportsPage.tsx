@@ -60,7 +60,7 @@ const ReportsPage = () => {
         <div className="relative w-full max-w-screen-xl">
           <BackToHomeButton />
           <h2 className="text-5xl font-extrabold text-blue-400 text-center mb-6 animate-pulse drop-shadow-[0_0_10px_rgba(59,130,246,0.7)]">
-            📅 Reportes Personalizados
+            📅 Reportes personalizados
           </h2>
 
           {/* Sección de filtros por fecha */}

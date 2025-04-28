@@ -31,8 +31,8 @@ const ReportsTable = ({ alerts }: Props) => {
             <th className="px-4 py-2">ID</th>
             <th className="px-4 py-2">Nodo</th>
             <th className="px-4 py-2">Canal</th>
-            <th className="px-4 py-2">MAC Objetivo</th>
-            <th className="px-4 py-2">BSSID Suplantado</th>
+            <th className="px-4 py-2">MAC objetivo</th>
+            <th className="px-4 py-2">BSSID suplantado</th>
             <th className="px-4 py-2">Fecha</th>
           </tr>
         </thead>

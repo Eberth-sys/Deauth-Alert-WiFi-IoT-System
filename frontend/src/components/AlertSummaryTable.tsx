@@ -26,10 +26,10 @@ const AlertSummaryTable = ({ data }: Props) => {
             <thead className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white">
               <tr>
                 <th className="px-4 py-3 text-left">Canal</th>
-                <th className="px-4 py-3 text-center">Nº Alertas</th>
-                <th className="px-4 py-3 text-left">Última Alerta</th>
-                <th className="px-4 py-3 text-left">BSSID Suplantado</th>
-                <th className="px-4 py-3 text-left">MAC Objetivo</th>
+                <th className="px-4 py-3 text-center">Nº alertas</th>
+                <th className="px-4 py-3 text-left">Última alerta</th>
+                <th className="px-4 py-3 text-left">BSSID suplantado</th>
+                <th className="px-4 py-3 text-left">MAC objetivo</th>
                 <th className="px-4 py-3 text-center">Indicador</th>
               </tr>
             </thead>

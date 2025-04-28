@@ -60,11 +60,11 @@ const StatisticsPage = () => {
   const getConnectionIndicator = () => {
     switch (connectionStatus) {
       case 'connected':
-        return <span className="text-green-400 font-semibold animate-pulse">🟢 Conectado en Tiempo Real</span>
+        return <span className="text-green-400 font-semibold animate-pulse">🟢 Conectado en tiempo real</span>
       case 'reconnecting':
         return <span className="text-yellow-400 font-semibold animate-pulse">🟡 Reconectando...</span>
       default:
-        return <span className="text-red-400 font-semibold">🔴 Sin Conexión</span>
+        return <span className="text-red-400 font-semibold">🔴 Sin conexión</span>
     }
   }
 
@@ -78,7 +78,7 @@ const StatisticsPage = () => {
           {/* Encabezado del panel con botón de regreso */}
           <div className="relative text-center mb-2">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-blue-400 drop-shadow-md">
-              📈 Panel de Estadísticas de Alertas
+              📈 Panel de estadísticas de alertas
             </h2>
             <p className="text-sm text-gray-400 mt-2">
               Visualiza el comportamiento reciente y acumulado de amenazas detectadas por los nodos IoT.
@@ -98,7 +98,7 @@ const StatisticsPage = () => {
           {/* Tarjeta con el total de alertas registradas */}
           <div className="flex justify-end mb-6">
             <div className="w-full sm:w-auto">
-              <StatsCard label="Total de Alertas" value={total} icon="🚨" color="bg-red-600" />
+              <StatsCard label="Total de alertas" value={total} icon="🚨" color="bg-red-600" />
             </div>
           </div>
 
@@ -106,14 +106,14 @@ const StatisticsPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="rounded-xl bg-gray-800/80 p-4 shadow-md ring-1 ring-gray-700">
               <StatsTable
-                title="📊 Alertas por Nodo IoT"
+                title="📊 Alertas por nodo IoT"
                 headers={['nodo_iot', 'total_alertas']}
                 data={porNodo}
               />
             </div>
             <div className="rounded-xl bg-gray-800/80 p-4 shadow-md ring-1 ring-gray-700">
               <StatsTable
-                title="📡 Canales más Afectados"
+                title="📡 Canales más afectados"
                 headers={['canal', 'total_alertas']}
                 data={porCanal}
               />

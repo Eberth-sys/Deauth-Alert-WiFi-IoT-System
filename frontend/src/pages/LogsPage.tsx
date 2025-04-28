@@ -31,7 +31,7 @@ const LogsPage = () => {
         {/* Título con fondo animado */}
         <div className="relative w-full">
           <h2 className="text-center text-3xl sm:text-4xl md:text-5xl font-extrabold text-cyan-400 drop-shadow-lg animate-pulse">
-            📜 Monitor de Eventos BLE (Logs)
+            📜 Monitor de eventos BLE (logs)
           </h2>
           <p className="text-center text-sm text-gray-400 mt-1">
             Visualiza, filtra y descarga los eventos recientes registrados por el sistema IoT BLE.

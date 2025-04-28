@@ -22,7 +22,7 @@ const LatestAlertsTable = ({ alerts }: Props) => {
       
       {/* Título de la sección */}
       <h3 className="text-xl font-bold text-purple-300">
-        🔟 Últimas Alertas Registradas
+        🔟 Últimas alertas registradas
       </h3>
 
       {/* Contenedor con scroll horizontal, estilo visual y efecto de desenfoque */}
@@ -38,8 +38,8 @@ const LatestAlertsTable = ({ alerts }: Props) => {
               <th className="px-4 py-3 whitespace-nowrap">Nodo IoT</th>
               <th className="px-4 py-3 whitespace-nowrap">Canal</th>
               <th className="px-4 py-3 whitespace-nowrap">Target MAC</th>
-              <th className="px-4 py-3 whitespace-nowrap">BSSID Suplantado</th>
-              <th className="px-4 py-3 whitespace-nowrap">Fecha y Hora</th>
+              <th className="px-4 py-3 whitespace-nowrap">BSSID suplantado</th>
+              <th className="px-4 py-3 whitespace-nowrap">Fecha y hora</th>
             </tr>
           </thead>
 

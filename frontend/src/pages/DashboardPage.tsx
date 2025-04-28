@@ -61,11 +61,11 @@ const DashboardPage = () => {
   const getConnectionIndicator = () => {
     switch (connectionStatus) {
       case 'connected':
-        return <span className="text-green-400 font-semibold animate-pulse">🟢 Conectado en Tiempo Real</span>
+        return <span className="text-green-400 font-semibold animate-pulse">🟢 Conectado en tiempo real</span>
       case 'reconnecting':
         return <span className="text-yellow-400 font-semibold animate-pulse">🟡 Reconectando...</span>
       default:
-        return <span className="text-red-400 font-semibold">🔴 Sin Conexión</span>
+        return <span className="text-red-400 font-semibold">🔴 Sin conexión</span>
     }
   }
 
@@ -157,12 +157,12 @@ const DashboardPage = () => {
 
       {/* 📊 Tablas de datos */}
       <section className="space-y-2">
-        <h2 className="text-lg sm:text-xl font-semibold text-purple-400">📊 Resumen de Actividad por Canal</h2>
+        <h2 className="text-lg sm:text-xl font-semibold text-purple-400">📊 Resumen de actividad por canal</h2>
         <AlertSummaryTable data={data} />
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-lg sm:text-xl font-semibold text-emerald-400">💡 Estado Actual de Nodos IoT</h2>
+        <h2 className="text-lg sm:text-xl font-semibold text-emerald-400">💡 Estado actual de nodos IoT</h2>
         <NodeStatusTable status={nodeStatus} />
       </section>
     </div>

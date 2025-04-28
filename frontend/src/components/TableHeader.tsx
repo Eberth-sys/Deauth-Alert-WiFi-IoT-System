@@ -5,11 +5,11 @@ const TableHeader = () => (
       <tr>
         <th className="px-2 py-1 text-left">Nodo IoT</th>
         <th className="px-2 py-1 text-left">Canal</th>
-        <th className="px-2 py-1 text-center">Nº Alertas</th>
-        <th className="px-2 py-1 text-left">Última Alerta</th>
-        <th className="px-2 py-1 text-left">BSSID Suplantado</th>
-        <th className="px-2 py-1 text-left">MAC Objetivo</th>
-        <th className="px-2 py-1 text-left">Estado del Nodo</th>
+        <th className="px-2 py-1 text-center">Nº alertas</th>
+        <th className="px-2 py-1 text-left">Última alerta</th>
+        <th className="px-2 py-1 text-left">BSSID suplantado</th>
+        <th className="px-2 py-1 text-left">MAC objetivo</th>
+        <th className="px-2 py-1 text-left">Estado del nodo</th>
         <th className="px-2 py-1 text-left">Indicador</th>
       </tr>
     </thead>

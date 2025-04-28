@@ -8,7 +8,7 @@ function App() {
       {/* 🧭 Header fijo en la parte superior con sombra y desenfoque */}
       <header className="sticky top-0 z-40 bg-gray-900/80 backdrop-blur border-b border-gray-800 py-4 shadow-md">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-center text-blue-400">
-          🔐 Monitor de Seguridad WiFi – IoT Nodes
+           🛜 Monitor de seguridad Wi-Fi 2,4 Ghz 🔐
         </h1>
       </header>
 
@@ -28,7 +28,7 @@ function App() {
           aria-label="Ver Logs"
         >
           <span className="text-lg">📜</span>
-          <span>Ver BLE Logs</span>
+          <span>Ver BLE logs</span>
         </a>
         <a
           href="/reportes"
@@ -37,7 +37,7 @@ function App() {
           aria-label="Ver Reportes"
         >
           <span className="text-lg">📅</span>
-          <span>Ver Reportes</span>
+          <span>Ver reportes</span>
         </a>
         <a
           href="/estadisticas"
