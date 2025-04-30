@@ -1,7 +1,9 @@
 # backend/src/schemas.py
 
-from pydantic import BaseModel          #definir esquemas de datos
-from datetime import datetime
+from pydantic import BaseModel          # Define modelos de datos con validación automática
+from datetime import datetime           # Permite manejar fechas y horas
+from pydantic import EmailStr           # Valida que un campo sea un email válido
+
 
 # Esquema para recibir datos cuando se crea una nueva alerta
 class AlertCreate(BaseModel):
@@ -28,3 +30,25 @@ class ESP32StatusResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Para registro
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+
+# Para login
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+# Para respuestas públicas (sin password)
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    is_admin: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True  # Para convertir desde SQLAlchemy directamente

@@ -3,6 +3,7 @@
 from sqlalchemy import Column, Integer, String, TIMESTAMP, CheckConstraint    # Define tipos de datos para las columnas de la tabla
 from sqlalchemy.sql import func                                               # Funciones SQL
 from src.database import Base                                                 # Importa nuestra base de datos
+from sqlalchemy import Boolean
 
 
 # Definimos el modelo de la tabla "alerts" en la base de datos
@@ -30,3 +31,14 @@ class ESP32Status(Base):
     __table_args__ = (
         CheckConstraint(status.in_(["connected", "disconnected"]), name="valid_status"),
     )
+
+# Nombre de la tabla en PostgreSQL
+class User(Base):
+    __tablename__ = "users"  
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), unique=True, nullable=False)           # Nombre de usuario único
+    email = Column(String(120), unique=True, nullable=False)             # Email único
+    hashed_password = Column(String, nullable=False)                     # Contraseña encriptada
+    is_admin = Column(Boolean, default=False)                            # Rol opcional (por si luego controlas accesos)
+    created_at = Column(TIMESTAMP, server_default=func.now())            # Registro de creación
