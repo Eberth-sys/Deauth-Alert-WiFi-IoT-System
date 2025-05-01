@@ -11,10 +11,13 @@ from fastapi.security import OAuth2PasswordBearer          # Esquema de segurida
 from fastapi.openapi.utils import get_openapi              # Permite personalizar la documentación de Swagger/OpenAPI
 
 # -------------------- Módulos internos del proyecto --------------------
-from src.database import engine                            # Motor de conexión a la base de datos PostgreSQL
-from src.models import Base                                # Base declarativa para crear las tablas de los modelos
+from src.database import engine                                        # Motor de conexión a la base de datos PostgreSQL
+from src.models import Base                                            # Base declarativa para crear las tablas de los modelos
 from src.routes import alerts, websocket, esp32_nodes, logs            # Rutas principales de la API
-from src.routes import alerts_summary, custom_queries, auth           # Rutas adicionales: resúmenes, consultas personalizadas y autenticación
+from src.routes import alerts_summary, custom_queries, auth            # Rutas adicionales: resúmenes, consultas personalizadas y autenticación
+from src.routes import admin_routes                                    # Importa las rutas exclusivas para administradores
+
+
 
 # -------------------- Instancia principal --------------------
 app = FastAPI()                                            # Crea la instancia principal de FastAPI
@@ -82,6 +85,7 @@ app.include_router(logs.router)               # Rutas para logs BLE
 app.include_router(alerts_summary.router)     # Rutas para resumen de alertas
 app.include_router(custom_queries.router)     # Rutas para consultas personalizadas
 app.include_router(auth.router)               # Rutas de autenticación (login, registro)
+app.include_router(admin_routes.router)       # Agrega esas rutas a la aplicación principal FastAPI bajo el prefijo /admin
 
 # -------------------- Ruta base --------------------
 @app.get("/")

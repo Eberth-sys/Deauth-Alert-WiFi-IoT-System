@@ -110,3 +110,12 @@ def verify_reset_token(token: str, db: Session) -> User:
 def send_recovery_email_simulado(email: str, token: str):
     reset_link = f"http://localhost:5173/reset-password?token={token}"
     print(f"📧 Simulando envío a {email} con link: {reset_link}")
+
+# Dependencia para rutas que requieren permisos de administrador
+def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso restringido solo para administradores"
+        )
+    return current_user
