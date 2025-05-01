@@ -1,40 +1,42 @@
 #processing-layer\src\data_processor.py
+
 # -------------------- Importaciones --------------------
-import os                                # Acceso al sistema operativo para interactuar con archivos y variables de entorno
-import asyncio                           # Importación para manejar tareas asíncronas (aunque no se usa en este fragmento)
-import requests                          # Para hacer peticiones HTTP (usado en el envío de actualizaciones al backend)
-from datetime import datetime, timedelta # Para manejar fechas y tiempos (usado en la creación de timestamp y validación de alertas)
-from src.database import get_db_connection # Función para obtener conexión a la base de datos
+import os                                # Para interactuar con el sistema operativo y acceder a variables de entorno
+import asyncio                           # Para manejar tareas asíncronas (aunque no se utiliza en este fragmento)
+import requests                          # Para realizar solicitudes HTTP
+from datetime import datetime, timedelta # Para trabajar con fechas y tiempos (usado para timestamps y diferencias de tiempo)
+from src.database import get_db_connection # Función para obtener la conexión con la base de datos
 from src.mqtt_client import publish_alert  # Función para publicar alertas en AWS IoT Core (MQTT)
 from src.telegram_alert import enviar_mensaje_telegram  # Función para enviar alertas a Telegram
 from dotenv import load_dotenv           # Para cargar variables de entorno desde un archivo .env
 
-# Cargar variables de entorno desde el archivo .env
+# -------------------- Cargar configuración desde .env --------------------
 load_dotenv()
 
 # -------------------- Configuración de entorno --------------------
-BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")  # URL del backend, valor por defecto es local
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")  # URL base del backend, con valor por defecto si no se configura
 
-# -------------------- Memoria temporal para alertas recientes --------------------
-alerta_reciente = {}  # Diccionario para almacenar las alertas recientes y evitar repeticiones
+# -------------------- Variables de almacenamiento temporal --------------------
+alerta_reciente = {}  # Diccionario para evitar el envío repetido de alertas en un corto período de tiempo
+estado_nodos_previos = {}  # Diccionario para almacenar el estado previo de los nodos ESP32
 
-# -------------------- Función: Guardar evento de alerta --------------------
+# -------------------- Función: Guardar alerta de desautenticación --------------------
 def guardar_alerta(nodo_iot, spoofed_bssid, bssid, target_mac, canal):
-    conn = get_db_connection()  # Obtener la conexión a la base de datos
+    conn = get_db_connection()  # Obtener conexión a la base de datos
     if conn is None:
         print("[ALERT] - No se pudo conectar a la base de datos.")
         return
 
     try:
         cursor = conn.cursor()
-        # Inserta la alerta en la base de datos
+        # Guardar la alerta en la base de datos
         cursor.execute(""" 
             INSERT INTO alerts (nodo_iot, spoofed_bssid, bssid, target_mac, canal, timestamp) 
             VALUES (%s, %s, %s, %s, %s, NOW())
         """, (nodo_iot, spoofed_bssid, bssid, target_mac, int(canal)))
-        conn.commit()  # Confirma la transacción
-        cursor.close() # Cierra el cursor
-        conn.close()   # Cierra la conexión a la base de datos
+        conn.commit()  # Confirmar la transacción
+        cursor.close() # Cerrar cursor
+        conn.close()   # Cerrar conexión
 
         # -------------------- Publicar alerta en AWS IoT --------------------
         alert_data = {
@@ -47,17 +49,16 @@ def guardar_alerta(nodo_iot, spoofed_bssid, bssid, target_mac, canal):
         }
         publish_alert(alert_data)  # Publica la alerta en AWS IoT Core (MQTT)
 
-        # -------------------- Filtro para evitar alertas duplicadas --------------------
-        clave_alerta = f"{nodo_iot}_{target_mac}_{canal}"  # Crea una clave única para cada alerta
+        # -------------------- Filtro de alertas duplicadas --------------------
+        clave_alerta = f"{nodo_iot}_{target_mac}_{canal}"  # Crea una clave única por alerta
         ahora = datetime.now()
 
         if clave_alerta in alerta_reciente:
-            ultima_vez = alerta_reciente[clave_alerta]  # Tiempo de la última alerta para el mismo nodo
-            if (ahora - ultima_vez).total_seconds() < 30:  # Ignora alertas si se repiten en menos de 30 segundos
+            ultima_vez = alerta_reciente[clave_alerta]  # Fecha de la última alerta con la misma clave
+            if (ahora - ultima_vez).total_seconds() < 30:  # Si la alerta se repite en menos de 10 segundos, se ignora
                 print("[INFO] ⏳ Alerta ignorada por repetición reciente.")
-                return  # No enviar alerta a Telegram
-
-        alerta_reciente[clave_alerta] = ahora  # Actualiza la memoria con la última alerta
+                return
+        alerta_reciente[clave_alerta] = ahora  # Actualiza la última vez que se recibió la alerta
 
         # -------------------- Enviar alerta a Telegram --------------------
         mensaje = (
@@ -68,12 +69,12 @@ def guardar_alerta(nodo_iot, spoofed_bssid, bssid, target_mac, canal):
             f"🎭 BSSID suplantado: {spoofed_bssid}"
         )
         print("📤 Enviando mensaje a Telegram...")
-        enviar_mensaje_telegram(mensaje)  # Envía el mensaje a Telegram
+        enviar_mensaje_telegram(mensaje)  # Enviar la alerta a Telegram
 
     except Exception as e:
         print(f"[ERROR] ❌ Error al guardar la alerta en la base de datos: {e}")
 
-# -------------------- Función: Actualizar estado del ESP32 --------------------
+# -------------------- Función: Actualizar el estado de los nodos ESP32 --------------------
 def actualizar_estado_esp32(device_name, mac_address, status):
     conn = get_db_connection()  # Obtener la conexión a la base de datos
     if conn is None:
@@ -82,7 +83,7 @@ def actualizar_estado_esp32(device_name, mac_address, status):
 
     try:
         cursor = conn.cursor()
-        # Actualiza el estado del dispositivo en la base de datos
+        # Actualiza o inserta el estado del dispositivo en la base de datos
         cursor.execute(""" 
             INSERT INTO esp32_status (device_name, mac_address, status, last_update) 
             VALUES (%s, %s, %s, NOW())
@@ -94,7 +95,7 @@ def actualizar_estado_esp32(device_name, mac_address, status):
                     ELSE esp32_status.last_update 
                 END;
         """, (device_name, mac_address, status))
-        conn.commit()  # Confirma la transacción
+        conn.commit()  # Confirmar transacción
         cursor.close()
         conn.close()
 
@@ -115,10 +116,26 @@ def actualizar_estado_esp32(device_name, mac_address, status):
         except requests.exceptions.RequestException as e:
             print(f"[ERROR] ❌ No se pudo conectar al backend: {e}")
 
+        # -------------------- Enviar estado del nodo a Telegram --------------------
+        if device_name not in estado_nodos_previos or estado_nodos_previos[device_name] != status:
+            estado_nodos_previos[device_name] = status  # Actualizar estado previo del nodo
+
+            estado = status.strip().lower()  # Procesar el estado
+            estado_humano = "✅ Conectado" if estado in ["online", "connected"] else "❌ Desconectado"
+
+            mensaje = (
+                f"📡 *Estado del nodo actualizado*\n"
+                f"🔹 Nodo: {device_name}\n"
+                f"🔄 Estado: {estado_humano}\n"
+                f"🕒 Hora: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+            print(f"📤 Enviando estado del nodo '{device_name}' a Telegram...")
+            enviar_mensaje_telegram(mensaje)  # Enviar estado del nodo a Telegram
+
     except Exception as e:
         print(f"[ERROR] ❌ Error al actualizar el estado del ESP32 en la base de datos: {e}")
 
-# -------------------- Función: Obtener estado de los ESP32 --------------------
+# -------------------- Función: Obtener estado de los nodos ESP32 --------------------
 def obtener_estado_esp32():
     conn = get_db_connection()  # Obtener la conexión a la base de datos
     if conn is None:
@@ -132,7 +149,7 @@ def obtener_estado_esp32():
         cursor.close()
         conn.close()
 
-        # Devuelve un diccionario con los estados de los dispositivos
+        # Devuelve un diccionario con la información de cada dispositivo
         return {
             device[0]: {  # Dispositivo (device_name) como clave
                 "mac_address": device[1],
