@@ -1,41 +1,46 @@
 //frontend\src\main.tsx
 
-// Importa modo estricto de React para detectar posibles errores en desarrollo
-import { StrictMode } from 'react'
+// -------------------- Importaciones principales --------------------
+import { StrictMode } from "react";                        // Modo estricto de React para detectar problemas
+import { createRoot } from "react-dom/client";             // Punto de entrada para React 18+
+import "./index.css";                                      // Estilos globales
 
-// Crea el punto de montaje raíz con React 18+
-import { createRoot } from 'react-dom/client'
+// -------------------- Enrutamiento --------------------
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-// Estilos globales
-import './index.css'
+// -------------------- Páginas --------------------
+import App from "./App.tsx";                               // Dashboard principal
+import LogsPage from "./pages/LogsPage.tsx";
+import ReportsPage from "./pages/ReportsPage.tsx";
+import StatisticsPage from "./pages/StatisticsPage";
+import LoginPage from "./pages/LoginPage.tsx";
+import RegisterPage from "./pages/RegisterPage.tsx";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage.tsx";
+import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
 
-// Importa enrutador y componentes de ruta
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+// -------------------- Contexto y rutas protegidas --------------------
+import { AuthProvider } from "./context/AuthContext";       // Proveedor global de autenticación
+import PrivateRoute from "./routes/PrivateRoute";           // Envoltura para proteger rutas privadas
 
-// Importación de las páginas principales del sistema
-import App from './App.tsx'
-import LogsPage from './pages/LogsPage.tsx'
-import ReportsPage from './pages/ReportsPage.tsx'
-import StatisticsPage from './pages/StatisticsPage'
-
-// Monta el componente principal en el div con id="root"
-createRoot(document.getElementById('root')!).render(
+// -------------------- Renderizado de la aplicación --------------------
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    {/* Envolvemos la aplicación con el manejador de rutas */}
-    <BrowserRouter>
-      <Routes>
-        {/* Página principal: Dashboard */}
-        <Route path="/" element={<App />} />
+    <AuthProvider>              {/* 🔐 Provee el contexto de sesión a toda la app */}
+      <BrowserRouter>
+        <Routes>
+          {/* 🔓 Rutas públicas */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-        {/* Página de visualización de logs */}
-        <Route path="/logs" element={<LogsPage />} />
-
-        {/* Página de reportes personalizados */}
-        <Route path="/reportes" element={<ReportsPage />} />
-
-        {/* Página de estadísticas generales */}
-        <Route path="/estadisticas" element={<StatisticsPage />} />
-      </Routes>
-    </BrowserRouter>
+          {/* 🔐 Rutas protegidas: requieren sesión activa */}
+          <Route path="/" element={<PrivateRoute><App /></PrivateRoute>} />
+          <Route path="/logs" element={<PrivateRoute><LogsPage /></PrivateRoute>} />
+          <Route path="/reportes" element={<PrivateRoute><ReportsPage /></PrivateRoute>} />
+          <Route path="/estadisticas" element={<PrivateRoute><StatisticsPage /></PrivateRoute>} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   </StrictMode>
-)
+);
