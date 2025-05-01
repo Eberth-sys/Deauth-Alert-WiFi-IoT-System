@@ -1,17 +1,18 @@
 //frontend\src\pages\RegisterPage.tsx
 
 // -------------------- Importaciones --------------------
-import { useState } from "react";                                  // Hook para manejar el estado local del formulario
-import { useNavigate } from "react-router-dom";                    // Para redirigir después del registro
-import PublicLayout from "./PublicLayout";                         // Layout visual reutilizable para páginas públicas
-import { useAuthContext } from "../context/AuthContext";           // Hook de autenticación global
-import { validatePasswordStrength } from "../utils/validators";    // Función que valida la fortaleza de la contraseña
-import PasswordRequirements from "../components/PasswordRequirements"; // Componente visual para requisitos de la contraseña
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";                    // Para redireccionar tras el registro
+import PublicLayout from "./PublicLayout";                         // Layout visual unificado para páginas públicas
+import { useAuthContext } from "../context/AuthContext";           // Hook del contexto de autenticación
+import { validatePasswordStrength } from "../utils/validators";    // Validador personalizado para contraseñas fuertes
+import PasswordRequirements from "../components/PasswordRequirements"; // Componente visual de requisitos
+import PasswordInput from "../components/PasswordInput";           // Input con visibilidad de contraseña
 
 // -------------------- Componente: RegisterPage --------------------
 const RegisterPage = () => {
-  const { register } = useAuthContext();                           // Función de registro desde el contexto
-  const navigate = useNavigate();                                  // Para redirigir al login tras registro
+  const { register } = useAuthContext();       // Accede a la función register del contexto
+  const navigate = useNavigate();              // Hook para navegación posterior al registro
 
   // -------------------- Estados del formulario --------------------
   const [username, setUsername] = useState("");
@@ -20,29 +21,26 @@ const RegisterPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
 
-  // -------------------- Envío del formulario --------------------
+  // -------------------- Maneja el envío del formulario --------------------
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    // Validar fortaleza de la contraseña
-    const pwdError = validatePasswordStrength(password);
+    const pwdError = validatePasswordStrength(password);       // Valida requisitos mínimos
     if (pwdError) {
       setError("⚠️ " + pwdError);
       return;
     }
 
-    // Validar coincidencia de contraseñas
     if (password !== confirmPassword) {
       setError("⚠️ Las contraseñas no coinciden");
       return;
     }
 
-    // Intentar registrar al usuario
     try {
-      await register(username, email, password);
+      await register(username, email, password);               // Intenta registrar al usuario
       alert("✅ Registro exitoso. ¡Ahora inicia sesión!");
-      navigate("/login");
+      navigate("/login");                                      // Redirige al login tras éxito
     } catch (err: any) {
       setError(err.message || "❌ Error al registrarse");
     }
@@ -77,28 +75,22 @@ const RegisterPage = () => {
           />
         </div>
 
-        {/* Campo: Contraseña + validaciones visuales */}
+        {/* Campo: Contraseña */}
         <div>
           <label className="block text-sm font-medium">Contraseña</label>
-          <input
-            type="password"
-            className="w-full px-3 py-2 mt-1 bg-gray-700 border border-gray-600 rounded text-white"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            required
           />
-          {password && <PasswordRequirements password={password} />} {/* Visualiza requisitos cumplidos */}
+          {password && <PasswordRequirements password={password} />}  {/* Visualiza requisitos si hay texto */}
         </div>
 
         {/* Campo: Confirmación de contraseña */}
         <div>
           <label className="block text-sm font-medium">Confirmar contraseña</label>
-          <input
-            type="password"
-            className="w-full px-3 py-2 mt-1 bg-gray-700 border border-gray-600 rounded text-white"
+          <PasswordInput
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            required
           />
         </div>
 
@@ -109,7 +101,7 @@ const RegisterPage = () => {
           </div>
         )}
 
-        {/* Botón de envío */}
+        {/* Botón de registro */}
         <button
           type="submit"
           className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded font-semibold transition duration-200"
@@ -117,7 +109,7 @@ const RegisterPage = () => {
           Crear cuenta
         </button>
 
-        {/* Enlace para volver al login */}
+        {/* Enlace a login */}
         <p className="text-sm text-center text-gray-400">
           ¿Ya tienes cuenta?{" "}
           <a href="/login" className="text-blue-400 hover:underline">

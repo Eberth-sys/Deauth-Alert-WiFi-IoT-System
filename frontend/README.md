@@ -60,3 +60,5 @@ npm install @melloware/react-logviewer
 Instala react-router-dom y sus tipos:
 npm install react-router-dom
 npm install --save-dev @types/react-router-dom
+npm install @heroicons/react
+

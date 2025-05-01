@@ -1,34 +1,36 @@
-//frontend\src\pages\PublicLayout.tsx
+// frontend/src/pages/PublicLayout.tsx
+
 
 // -------------------- Importaciones --------------------
-import { ReactNode } from "react";              // Tipo para prop `children`
-import Footer from "../components/Footer";       // Footer reutilizable
+import { ReactNode } from "react";                // Tipo para prop `children`
+import Footer from "../components/Footer";         // Footer reutilizable
 
 // -------------------- Componente: PublicLayout --------------------
 const PublicLayout = ({ children }: { children: ReactNode }) => {
   return (
-    <div className="min-h-screen w-screen bg-gray-900 text-white flex flex-col justify-between px-4">
-      {/* Contenedor principal: fondo oscuro y distribución vertical */}
-      
-      {/* Contenido principal centrado */}
-      <main className="flex-1 flex items-center justify-center">
-        <div className="w-full max-w-md bg-gray-800 rounded-xl shadow-xl p-6 space-y-4 border border-gray-700">
-          
-          {/* Encabezado del formulario */}
-          <header className="text-center">
-            <h1 className="text-2xl font-extrabold text-blue-400">🔐 Sistema de autenticación</h1>
-            <p className="text-sm text-gray-400">Accede al panel IoT</p>
-          </header>
+    <div className="min-h-screen w-screen bg-gradient-to-br from-gray-900 via-gray-950 to-black text-white flex flex-col justify-between px-4">
+      {/* Fondo con gradiente oscuro, texto blanco y diseño vertical: header, contenido y footer */}
 
-          {/* Área para contenido: login, registro, recuperación */}
+      {/* Contenido principal centrado vertical y horizontalmente */}
+      <main className="flex-1 flex items-center justify-center">
+        <div className="w-full max-w-md bg-gray-900/80 backdrop-blur-md rounded-2xl shadow-lg border border-gray-700 px-6 py-8 space-y-6 animate-fadeInUp">
+          
+          {/* Encabezado refinado: título e instrucciones */}
+          <header className="text-center mb-4 space-y-1">
+          <h1 className="text-[12px] sm:text-[14px] font-medium text-cyan-300 text-center leading-tight">
+            Sistema IoT – seguridad Wi-Fi 2.4 GHz
+          </h1>
+          </header>
+          {/* Área dinámica: login, registro, recuperación, etc. */}
           {children}
         </div>
       </main>
 
-      {/* Footer fijo en la parte inferior */}
+      {/* Footer persistente en la parte inferior */}
       <Footer />
     </div>
   );
 };
 
 export default PublicLayout;
+

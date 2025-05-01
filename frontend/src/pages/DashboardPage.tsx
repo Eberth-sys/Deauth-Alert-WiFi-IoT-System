@@ -1,3 +1,5 @@
+//frontend\src\pages\DashboardPage.tsx
+
 import { useEffect, useRef, useState } from 'react'
 import AlertSummaryTable from '../components/AlertSummaryTable'
 import NodeStatusTable from '../components/NodeStatusTable'
@@ -8,7 +10,7 @@ import { connectToWebSocket } from '../services/socket'
 import { useAlertWatcher } from '../hooks/useAlertWatcher'
 import { useNodeConnectionWatcher } from '../hooks/useNodeConnectionWatcher'
 
-// ✅ Declaración explícita de nodos esperados
+// Declaración explícita de nodos esperados
 const NODOS_ESPERADOS: { nodo_iot: string; canal: number }[] = [
   { nodo_iot: 'ESP32_1_CH_01', canal: 1 },
   { nodo_iot: 'ESP32_4_SCANN', canal: 2 },
