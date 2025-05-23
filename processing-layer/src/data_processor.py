@@ -1,20 +1,23 @@
 #processing-layer\src\data_processor.py
 
 # -------------------- Importaciones --------------------
-import os                                # Para interactuar con el sistema operativo y acceder a variables de entorno
-import asyncio                           # Para manejar tareas asíncronas (aunque no se utiliza en este fragmento)
-import requests                          # Para realizar solicitudes HTTP
-from datetime import datetime, timedelta # Para trabajar con fechas y tiempos (usado para timestamps y diferencias de tiempo)
-from src.database import get_db_connection # Función para obtener la conexión con la base de datos
-from src.mqtt_client import publish_alert  # Función para publicar alertas en AWS IoT Core (MQTT)
-from src.telegram_alert import enviar_mensaje_telegram  # Función para enviar alertas a Telegram
-from dotenv import load_dotenv           # Para cargar variables de entorno desde un archivo .env
+import os                                                    # Para interactuar con el sistema operativo y acceder a variables de entorno
+import asyncio                                               # Para manejar tareas asíncronas (aunque no se utiliza en este fragmento)
+import requests                                              # Para realizar solicitudes HTTP
+from datetime import datetime, timedelta                     # Para trabajar con fechas y tiempos (usado para timestamps y diferencias de tiempo)
+from src.database import get_db_connection                   # Función para obtener la conexión con la base de datos
+from src.mqtt_client import publish_alert                    # Función para publicar alertas en AWS IoT Core (MQTT)
+from src.telegram_alert import enviar_mensaje_telegram       # Función para enviar alertas a Telegram
+from dotenv import load_dotenv                               # Para cargar variables de entorno desde un archivo .env
 
 # -------------------- Cargar configuración desde .env --------------------
 load_dotenv()
 
 # -------------------- Configuración de entorno --------------------
-BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")  # URL base del backend, con valor por defecto si no se configura
+BACKEND_URL = os.getenv("BACKEND_URL")  # Cargar la URL base del backend desde el archivo .env
+if not BACKEND_URL:
+    raise ValueError("[CONFIG] ❌ Variable BACKEND_URL no definida en .env")  # Lanzar error si la variable no está definida
+
 
 # -------------------- Variables de almacenamiento temporal --------------------
 alerta_reciente = {}  # Diccionario para evitar el envío repetido de alertas en un corto período de tiempo

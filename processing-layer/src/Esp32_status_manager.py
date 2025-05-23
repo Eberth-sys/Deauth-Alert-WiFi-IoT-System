@@ -1,51 +1,60 @@
 # /src/Esp32_status_manager.py
 
-"""Estado actual de los dispotivos nodos IoT Esp32 en formato JSON."""
+# -------------------- Descripción --------------------
+"""Estado actual de los dispositivos nodos IoT ESP32 en formato JSON."""
 
-import json
-import os
-from datetime import datetime
+# -------------------- Importaciones --------------------
+import json                               # Para trabajar con archivos JSON
+import os                                 # Para gestionar rutas y archivos
+from datetime import datetime             # Para registrar la fecha y hora de actualización
 
-# Ubicación del archivo JSON donde se guardará el estado de los ESP32
-STATUS_FILE = "logs/Esp32_status.json"
+# -------------------- Ruta del archivo de estado --------------------
+STATUS_FILE = "logs/Esp32_status.json"  # Ruta donde se guarda el estado de los ESP32
 
-
-# Crear el archivo status.json si no existe
+# -------------------- Inicialización del archivo de estado --------------------
 def initialize_status_file():
-    os.makedirs(os.path.dirname(STATUS_FILE), exist_ok=True) #Asegura que la carpeta 'logs/' existe
-
+    """
+    Crea la carpeta y el archivo de estado si no existen.
+    """
+    os.makedirs(os.path.dirname(STATUS_FILE), exist_ok=True)  # Asegura que exista la carpeta 'logs/'
     if not os.path.exists(STATUS_FILE):
         with open(STATUS_FILE, "w") as f:
-            json.dump({}, f, indent=4)
+            json.dump({}, f, indent=4)  # Inicializa el archivo como un diccionario vacío
 
-# Función para actualizar el estado de un ESP32
+# -------------------- Función: Actualizar estado de un ESP32 --------------------
 def update_device_status(device_name, status):
-    """Actualizar el estado de los ESP32 en el archivo status.json."""
+    """
+    Actualiza el estado de un dispositivo ESP32 en el archivo JSON.
+    :param device_name: Nombre identificador del dispositivo.
+    :param status: Estado actual del dispositivo (e.g., 'connected', 'disconnected').
+    """
     try:
         with open(STATUS_FILE, "r") as f:
-            status_data = json.load(f)
+            status_data = json.load(f)  # Cargar datos actuales
     except (json.JSONDecodeError, FileNotFoundError):
         status_data = {}
 
-    # Actualizar el estado del dispositivo
+    # Actualizar información del dispositivo
     status_data[device_name] = {
         "status": status,
         "last_update": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
-    # Guardar los cambios en status.json
+    # Guardar los datos actualizados
     with open(STATUS_FILE, "w") as f:
         json.dump(status_data, f, indent=4)
 
-# Función para obtener el estado actual de los dispositivos
+# -------------------- Función: Obtener estado actual de los dispositivos --------------------
 def get_device_status():
-    """Obtener el estado actual de los dispositivos desde status.json."""
+    """
+    Devuelve el estado actual de todos los dispositivos desde el archivo JSON.
+    :return: Diccionario con la información de estado.
+    """
     try:
         with open(STATUS_FILE, "r") as f:
             return json.load(f)
     except (json.JSONDecodeError, FileNotFoundError):
         return {}
 
-# Inicializar el archivo status.json si no existe
+# -------------------- Inicializar archivo al cargar el módulo --------------------
 initialize_status_file()
-
