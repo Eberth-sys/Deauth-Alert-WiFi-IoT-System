@@ -1,4 +1,4 @@
-//perception-layer\ESP32_01_Deauth_Detector_CH_01\main\main.c
+//perception-layer\espidf-nodes\ESP32_01_Deauth_Detector_CH_01\main\main.c
 
 // Inclusión de librerías del framework ESP-IDF necesarias para Wi-Fi, BLE, sistema de eventos y logs.
 #include "freertos/FreeRTOS.h"

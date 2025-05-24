@@ -1,4 +1,4 @@
-#perception-layer\ESP32_02_Deauth_Detector_CH_06\main\CMakeLists.txt
+#perception-layer\espidf-nodes\ESP32_04_Deauth_Detector_SCAN\main\CMakeLists.txt
 idf_component_register(SRCS "main.c"
                     INCLUDE_DIRS "."
                     REQUIRES bt esp_wifi nvs_flash)

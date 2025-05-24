@@ -1,4 +1,4 @@
-//perception-layer\config\config_template.h
+//perception-layer\espidf-nodes\config\config_template.h
 
 // ------------------------------------------------------
 // 📁 config_template.h – Plantilla para configuración BLE
