@@ -10,6 +10,9 @@ __pycache__/
 
 # Ignorar configuración sensible
 processing-layer/config/devices.yaml
+config.h
+
+
 
 # Ignorar configuración sensible
 .env
