@@ -1,16 +1,50 @@
 //perception-layer\esp32-nodes-ino\ESP32_01_Deauth_Detector_CH_01\main.ino
 
-#include "WiFi.h"
-#include "esp_wifi.h"
-#include <BLEDevice.h>
-#include <BLEServer.h>
-#include <BLEUtils.h>
-#include <BLESecurity.h>
+// ------------------------------------------------------
+// LIBRERÍAS NECESARIAS PARA CONECTIVIDAD Y SEGURIDAD
+// ------------------------------------------------------
 
-// Carga la configuración personalizada del nodo (BSSID objetivo y UUIDs de BLE)
-// Este archivo debe ser creado a partir de 'config_template.h'
-#include "config.h"
+#include "WiFi.h"            // Funciones básicas de conexión Wi-Fi.
+#include "esp_wifi.h"        // Acceso a funciones avanzadas (modo promiscuo, canal).
+#include <BLEDevice.h>       // Inicializa el dispositivo BLE.
+#include <BLEServer.h>       // Configura el servidor BLE.
+#include <BLEUtils.h>        // Utilidades BLE (UUIDs, callbacks).
+#include <BLESecurity.h>     // Configuración de seguridad BLE.
 
+
+// ------------------------------------------------------
+// 💡 CONFIGURACIÓN DEL ENTORNO DE DESARROLLO
+// ------------------------------------------------------
+
+/*
+  📌 Si utilizas **Visual Studio Code con PlatformIO**:
+  - Asegúrate de contar con el archivo `config.h`, donde debes definir el BSSID y los UUIDs reales.
+  - Puedes usar el archivo `config_template.h` como referencia para crear `config.h`.
+
+  📌 Si utilizas el **Arduino IDE**:
+  - Comenta la línea `#include "config.h"`.
+  - Descomenta las definiciones bajo el apartado "CONFIGURACIÓN MANUAL" y reemplaza con tus datos.
+*/
+
+// 📁 Carga de configuración desde archivo externo (solo para PlatformIO o VSCode con ESP-IDF):
+#include "config.h"  // ❗⚠️ Comenta esta línea si estás usando Arduino IDE ⚠️ ❗
+
+// ------------------------------------------------------
+// 🛠️ CONFIGURACIÓN MANUAL PARA USUARIOS DEL ARDUINO IDE
+// ------------------------------------------------------
+
+/*
+   🔧 Descomenta las siguientes líneas y completa los valores si usas Arduino IDE.
+   ⚠️⚠️(Recuerda comentar `#include "config.h"` para evitar errores de compilación) ⚠️⚠️
+*/
+
+// #define TARGET_BSSID "XX:XX:XX:XX:XX:XX"              
+// #define SERVICE_UUID "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  
+// #define CHARACTERISTIC_UUID "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+// ------------------------------------------------------
+//  INICIO DEL PROGRAMA
+// ------------------------------------------------------
 
 BLECharacteristic *pCharacteristic; // Característica BLE para enviar notificaciones
 BLEServer *pServer;
