@@ -1,4 +1,4 @@
-#perception-layer\ESP32_03_Deauth_Detector_CH_11\CMakeLists.txt
+#perception-layer\ESP32_04_Deauth_Detector_SCAN\CMakeLists.txt
 
 # For more information about build system see
 # https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html
@@ -10,5 +10,4 @@ cmake_minimum_required(VERSION 3.16)
 set(PARTITION_TABLE_CSV "${CMAKE_SOURCE_DIR}/../partitions.csv") #localiza el archivo de particion.
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(ESP32_03_Deauth_Detector_CH_11)
-
+project(ESP32_04_Deauth_Detector_SCANNER)
