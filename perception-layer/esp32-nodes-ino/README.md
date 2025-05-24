@@ -1,4 +1,4 @@
-# 📡 Nodos IoT ESP32 para monitoreo y detección de ataques de desautenticación en redes Wi‑Fi  <!-- omit in toc -->
+# 📡 Nodos IoT ESP32 para monitoreo y detección de ataques de desautenticación en redes Wi‑Fi 2,4 GHz  <!-- omit in toc -->
 
 ## 🗂️ Índice <!-- omit in toc -->
 
@@ -305,7 +305,7 @@ La carga del firmware mediante Arduino IDE sigue estos pasos detallados para ase
 | 🖥️ Placa                | ESP32 Dev Module                            |
 | 🚀 Velocidad de carga    | 921 600 baudios                             |
 | 🔌 Monitor Serial        | 115 200 baudios                             |
-| 💾 Scheme de particiones | Minimal SPIFFS (1.9 MB APP + 190 KB SPIFFS) |
+| 💾 Scheme de particiones | ⚠️`Minimal SPIFFS (1.9 MB APP + 190 KB SPIFFS)⚠️` |
 | ⚡ CPU Frequency          | 240 MHz                                     |
 | 🔧 Flash Mode            | QIO                                         |
 | 📦 Flash Size            | 4 MB                                        |
