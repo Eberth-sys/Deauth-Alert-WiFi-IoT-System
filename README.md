@@ -15,7 +15,7 @@
   - [Processing layer](#processing-layer)
 - [Instrucciones De Instalación](#instrucciones-de-instalación)
   - [Requisitos](#requisitos)
-  - [Pasos Para Ejecutar El Proyecto](#pasos-para-ejecutar-el-proyecto)
+  - [Pasos para ejecutar el proyecto](#pasos-para-ejecutar-el-proyecto)
 - [Contribuciones](#contribuciones)
 - [Acerca del autor.](#acerca-del-autor)
 - [📄 Licencia](#-licencia)
@@ -29,10 +29,10 @@ El **Sistema IoT para el Monitoreo y Detección de Ataques de Desautenticación 
 
 La principal motivación detrás de este proyecto es fortalecer la protección de redes Wi-Fi ante la amenaza de los ataques de desautenticación, un tipo de **Denial of Service (DoS)** que puede comprometer la disponibilidad de la red y permitir ataques más complejos, como la suplantación de puntos de acceso (Evil Twin). El sistema propuesto tiene como objetivo mejorar la seguridad operativa, ofreciendo:
 
-* **Monitoreo en tiempo real**: Análisis continuo del tráfico de red para identificar intentos de ataque.
-* **Detección temprana**: Generación de alertas inmediatas para facilitar la intervención rápida y la mitigación de amenazas.
-* **Bajo costo y alta escalabilidad**: Implementación eficiente con dispositivos de bajo costo, lo que permite su adopción en empresas de cualquier tamaño sin requerir infraestructuras avanzadas ni personal altamente especializado.
-* **Integración sencilla**: La solución puede ser implementada en redes existentes sin necesidad de modificaciones complejas.
+* **Monitoreo en tiempo real**: análisis continuo del tráfico de red para identificar intentos de ataque.
+* **Detección temprana**: generación de alertas inmediatas para facilitar la intervención rápida y la mitigación de amenazas.
+* **Bajo costo y alta escalabilidad**: implementación eficiente con dispositivos de bajo costo, lo que permite su adopción en empresas de cualquier tamaño sin requerir infraestructuras avanzadas ni personal altamente especializado.
+* **Integración sencilla**: la solución puede ser implementada en redes existentes sin necesidad de modificaciones complejas.
 
 ### Estado Del Arte
 
@@ -46,10 +46,10 @@ La investigación realizada se centró en el estudio de los protocolos Wi-Fi, lo
 
 El desarrollo incluyó:
 
-* **Diseño del hardware**: Configuración de los nodos sensores ESP32 para capturar paquetes de gestión de redes Wi-Fi.
-* **Desarrollo del software**: Programación del firmware en C/C++ para los ESP32 y la creación del backend con **FastAPI** para el procesamiento de los eventos detectados.
-* **Implementación de la base de datos**: Uso de **PostgreSQL** para almacenar los eventos y los estados de los nodos sensores.
-* **Desarrollo de la interfaz gráfica**: Implementación de una interfaz web con **React** y **TailwindCSS** para la visualización en tiempo real de las alertas.
+* **Diseño del hardware**: configuración de los nodos sensores ESP32 para capturar paquetes de gestión de redes Wi-Fi.
+* **Desarrollo del software**: programación del firmware en C/C++ para los ESP32 y la creación del backend con **FastAPI** para el procesamiento de los eventos detectados.
+* **Implementación de la base de datos**: uso de **PostgreSQL** para almacenar los eventos y los estados de los nodos sensores.
+* **Desarrollo de la interfaz gráfica**: implementación de una interfaz web con **React** y **TailwindCSS** para la visualización en tiempo real de las alertas.
 
 ## Estructura del proyecto
 
@@ -93,7 +93,7 @@ La capa de procesamiento se encarga de la comunicación con los nodos **ESP32** 
 * **Docker** para la implementación del backend y la base de datos.
 * **Python 3.8+** y **Node.js** para ejecutar el sistema.
 
-### Pasos Para Ejecutar El Proyecto
+### Pasos para ejecutar el proyecto
 
 1. **Configurar el entorno local:**
 
