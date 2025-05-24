@@ -1,5 +1,5 @@
 
-# Sistema IoT para el monitoreo y detección de ataques de desautenticación en redes Wi-Fi 2,4 GHz<!-- omit in toc -->
+# Sistema IoT para el monitoreo y detección de ataques de desautenticación en redes Wi-Fi 2,4 GHz.<!-- omit in toc -->
 
 ## Índice <!-- omit in toc -->
 
