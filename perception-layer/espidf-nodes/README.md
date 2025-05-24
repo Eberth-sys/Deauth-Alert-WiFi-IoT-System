@@ -14,7 +14,7 @@
   - [👨‍💻 **Autor**](#-autor)
   - [📄 Licencia](#-licencia)
 
-## 🧩 Descripción General
+## 🧩 Descripción general
 
 La presente documentación corresponde a la **capa de percepción** del sistema de ciberseguridad denominado *Deauth-Alert WiFi IoT System*. Esta capa está constituida por una serie de nodos desarrollados sobre microcontroladores **ESP32**, cuyo propósito es detectar ataques de desautenticación en redes Wi-Fi de 2,4 GHz y emitir alertas cifradas a través de tecnología **Bluetooth Low Energy (BLE)**.
 
