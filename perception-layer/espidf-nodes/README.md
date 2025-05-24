@@ -1,10 +1,10 @@
-# 📡 Nodos IoT ESP32 para monitoreo y detección de ataques de desautenticación en redes Wi‑Fi 2,4 GHz.<!-- omit in toc -->
+# 📡 Nodos IoT ESP32 para monitoreo y detección de ataques de desautenticación en redes Wi‑Fi 2,4 GHz<!-- omit in toc -->
 
 ## 🗂️ Índice <!-- omit in toc -->
 
 <!-- TOC levels="2..4" -->
 
-- [🛠️ Entorno de Trabajo y Ejecución](#️-entorno-de-trabajo-y-ejecución)
+- [🛠️ Entorno de trabajo y ejecución](#️-entorno-de-trabajo-y-ejecución)
     - [📋 Requisitos previos](#-requisitos-previos)
     - [🧪 Comandos para compilar y cargar el firmware](#-comandos-para-compilar-y-cargar-el-firmware)
   - [📲 Alerta BLE al nodo centralizador](#-alerta-ble-al-nodo-centralizador)
@@ -20,7 +20,7 @@ La presente documentación corresponde a la **capa de percepción** del sistema 
 
 Dichos ataques, conocidos como *deauthentication attacks*, forman parte de técnicas comunes en escenarios de denegación de servicio (DoS) en redes inalámbricas. Este sistema proporciona una respuesta efectiva y distribuida, al desplegar nodos que monitorizan diferentes canales del espectro Wi-Fi.
 
-## ⚙️ Funcionalidades Principales
+## ⚙️ Funcionalidades principales
 
 - Captura de paquetes Wi-Fi mediante el modo promiscuo.
 - Identificación de tramas de desautenticación dirigidas a un BSSID específico.
@@ -29,7 +29,7 @@ Dichos ataques, conocidos como *deauthentication attacks*, forman parte de técn
 - Configuración de seguridad BLE avanzada (Secure Connections + MITM).
 - Nodo adicional con capacidad de escaneo dinámico multicanal.
 
-## 🗂️ Estructura del Proyecto
+## 🗂️ Estructura del trabajo
 
 ```bash
 perception-layer/
@@ -67,7 +67,7 @@ perception-layer/
 
 ```
 
-## 🧠 Arquitectura de los Nodos
+## 🧠 Arquitectura de los nodos
 
 La arquitectura comprende cuatro nodos independientes, cada uno dedicado a analizar un canal específico o múltiples canales, según el siguiente esquema:
 
@@ -80,14 +80,14 @@ La arquitectura comprende cuatro nodos independientes, cada uno dedicado a anali
 
 Todos los nodos comparten un archivo de configuración común con los parámetros de seguridad y las direcciones UUID necesarias para la operación BLE.
 
- **Detección de Ataques de Desautenticación:**
+ **Detección de ataques de desautenticación:**
 
    * Los nodos IoT ESP32 capturan paquetes Wi‑Fi, analizan y detectan paquetes de desautenticación dirigidos al BSSID objetivo.
    * Al detectar un ataque, el nodo genera una alerta y la envía al nodo centralizador para su posterior análisis y gestión de eventos.
   
-## 🔐 Parámetros de Seguridad BLE
+## 🔐 Parámetros de seguridad BLE
 
-### 🛠️ Archivo de Configuración BLE: `config.h`
+### 🛠️ Archivo de configuración BLE: `config.h`
 
 Para que el sistema funcione correctamente, es necesario crear un archivo personalizado con los parámetros reales del entorno BLE. A continuación, se detallan los pasos a seguir:
 
@@ -110,7 +110,7 @@ Para que el sistema funcione correctamente, es necesario crear un archivo person
 ⚠️ **Importante**: Si el archivo `config.h` no está presente o está mal configurado, el firmware no podrá compilar ni funcionar correctamente.
 
 
-## 🧱 Archivo de Particiones
+## 🧱 Archivo de particiones
 
 El archivo partitions.csv define cómo se organiza la memoria flash del ESP32. Es necesario para que el sistema pueda identificar correctamente las áreas reservadas para la aplicación, los datos persistentes (NVS) y la configuración del hardware. Este archivo permite al firmware funcionar de forma estructurada y evita conflictos en el uso del espacio de memoria.
 
@@ -120,11 +120,11 @@ El archivo partitions.csv define cómo se organiza la memoria flash del ESP32. E
 | `phy_init` | data | phy     | 0xf000  | 4 KB    | Inicialización de hardware PHY |
 | `factory`  | app  | factory | 0x10000 | 1536 KB | Aplicación principal           |
 
-## ⚙️ Configuración del Sistema (`sdkconfig.defaults`)
+## ⚙️ Configuración del sistema (`sdkconfig.defaults`)
 
-El archivo sdkconfig.defaults incluye las configuraciones esenciales para el funcionamiento del sistema, como el soporte para BLE, la seguridad requerida y la tabla de particiones personalizada. Gracias a esto, no es necesario ejecutar idf.py menuconfig, salvo que se requieran otras modificaciones específicas.
+El archivo `sdkconfig.defaults` incluye las configuraciones esenciales para el funcionamiento del sistema, como el soporte para BLE, la seguridad requerida y la tabla de particiones personalizada. Gracias a esto, no es necesario ejecutar idf.py menuconfig, salvo que se requieran otras modificaciones específicas.
 
-### 🔧 Parámetros de Configuración BLE
+### 🔧 Parámetros de configuración BLE
 
 | Parámetro                              | Valor | Descripción                                                                 |
 |----------------------------------------|-------|-----------------------------------------------------------------------------|
@@ -143,7 +143,7 @@ El archivo sdkconfig.defaults incluye las configuraciones esenciales para el fun
 | `CONFIG_BT_SMP_ENABLE`              | `y`   | Asegura compatibilidad total con el intercambio de claves de seguridad.    |
 | `CONFIG_BT_BLE_MAX_ENCRYPTION_KEY_SIZE` | `16` | Define la longitud máxima permitida para las claves de cifrado BLE.       |
 
-### 🧱 Configuración de Particiones
+### 🧱 Configuración de particiones
 
 | Parámetro                                  | Valor               | Descripción                                                      |
 |--------------------------------------------|---------------------|------------------------------------------------------------------|
@@ -152,7 +152,7 @@ El archivo sdkconfig.defaults incluye las configuraciones esenciales para el fun
 | `CONFIG_PARTITION_TABLE_FILENAME`          | `../partitions.csv` | Archivo referenciado como tabla activa de particiones.           |
 
 ---
-# 🛠️ Entorno de Trabajo y Ejecución
+# 🛠️ Entorno de trabajo y ejecución
 
 Para el desarrollo, compilación y carga del firmware del sistema IoT, se utiliza el entorno **ESP-IDF (Espressif IoT Development Framework)**. Se recomienda utilizar la versión **v5.0 o superior** para asegurar la compatibilidad con las herramientas y bibliotecas necesarias.
 
