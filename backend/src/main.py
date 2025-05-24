@@ -1,6 +1,3 @@
-#backend/src/main.py
-# backend/src/main.py
-
 # backend/src/main.py
 
 # -------------------- Librerías externas --------------------
@@ -9,6 +6,11 @@ from sqlalchemy.exc import OperationalError                # Manejo de errores a
 from fastapi.middleware.cors import CORSMiddleware         # Middleware para permitir solicitudes desde otros orígenes (CORS)
 from fastapi.security import OAuth2PasswordBearer          # Esquema de seguridad para autenticación con JWT
 from fastapi.openapi.utils import get_openapi              # Permite personalizar la documentación de Swagger/OpenAPI
+from dotenv import load_dotenv                             # Para cargar variables desde .env
+import os                                                  # Para acceder a variables de entorno
+
+# -------------------- Cargar configuración desde .env --------------------
+load_dotenv()
 
 # -------------------- Módulos internos del proyecto --------------------
 from src.database import engine                                        # Motor de conexión a la base de datos PostgreSQL
@@ -16,8 +18,6 @@ from src.models import Base                                            # Base de
 from src.routes import alerts, websocket, esp32_nodes, logs            # Rutas principales de la API
 from src.routes import alerts_summary, custom_queries, auth            # Rutas adicionales: resúmenes, consultas personalizadas y autenticación
 from src.routes import admin_routes                                    # Importa las rutas exclusivas para administradores
-
-
 
 # -------------------- Instancia principal --------------------
 app = FastAPI()                                            # Crea la instancia principal de FastAPI
@@ -62,11 +62,7 @@ def startup():
         print(f"❌ Error al conectar con la base de datos: {e}")
 
 # -------------------- Middleware CORS --------------------
-origins = [
-    "http://localhost:5173",           # Frontend local
-    "http://192.168.255.132:5173",     # IP local del desarrollador
-    "http://192.168.255.100:5173"      # Otra IP permitida
-]
+origins = os.getenv("CORS_ORIGINS", "").split(",")         # Carga los orígenes permitidos desde .env separados por comas
 
 # Configuración del middleware para permitir solicitudes desde el frontend
 app.add_middleware(

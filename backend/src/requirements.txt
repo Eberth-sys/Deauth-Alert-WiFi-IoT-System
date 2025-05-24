@@ -1,10 +1,19 @@
-#backend\src\requirements.txt
+# backend/src/requirements.txt
 
-fastapi[all]        # Framework principal + WebSockets + CORS
-uvicorn             # Servidor ASGI para FastAPI
-psycopg2            # Driver PostgreSQL
-python-dotenv       # Carga de variables desde .env
-sqlalchemy          # ORM para base de datos
-pydantic            # Validación de datos con Python
-python-jose         # Para tokens JWT (firma y decodificación)
-passlib[bcrypt]     # Hashing seguro de contraseñas
+# -------------------- Framework y servidor --------------------
+fastapi[all]            # Incluye FastAPI con soporte para WebSockets, CORS, y todas las extensiones opcionales
+uvicorn                 # Servidor ASGI recomendado para ejecutar aplicaciones FastAPI
+
+# -------------------- Base de datos --------------------
+psycopg2                # Driver para conectar con PostgreSQL desde Python
+sqlalchemy              # ORM para manejar modelos y consultas SQL con Python
+
+# -------------------- Variables de entorno --------------------
+python-dotenv           # Para cargar variables desde archivos .env
+
+# -------------------- Validación y serialización --------------------
+pydantic                # Validación de datos y creación de modelos de datos
+
+# -------------------- Seguridad --------------------
+python-jose             # Para crear y verificar tokens JWT (usado en autenticación)
+passlib[bcrypt]         # Hashing seguro de contraseñas (bcrypt incluido)

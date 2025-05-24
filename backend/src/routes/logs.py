@@ -1,34 +1,43 @@
 #backend\src\routes\logs.py
 
-import os
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+# -------------------- Importaciones --------------------
+import os                                           # Para manejar rutas y archivos del sistema
+from fastapi import APIRouter, HTTPException        # Para definir rutas y manejar excepciones HTTP
+from fastapi.responses import FileResponse          # Para retornar archivos como respuesta
+from dotenv import load_dotenv                      # Para cargar variables de entorno desde .env
 
-# Definir el router para los logs
-router = APIRouter(prefix="/logs", tags=["logs"])
+# -------------------- Cargar configuración desde .env --------------------
+load_dotenv()  # Carga las variables definidas en el archivo .env
 
-# Ruta donde se almacenan los logs en el servidor
-LOGS_DIR = "/home/user/GitHub/Deauth-Alert-WiFi-IoT-System/processing-layer/logs"
+# -------------------- Definir router --------------------
+router = APIRouter(prefix="/logs", tags=["logs"])  # Prefijo y etiqueta para las rutas de logs
 
-# - Endpoint para obtener la lista de archivos de logs disponibles
+# -------------------- Ruta donde se almacenan los logs --------------------
+LOGS_DIR = os.getenv("LOGS_DIR", "processing-layer/logs")  # Ruta desde .env, o por defecto
+
+# -------------------- Endpoint: Listar archivos de logs --------------------
 @router.get("/")
 def list_logs():
+    """
+    Retorna una lista de nombres de archivos de log disponibles.
+    """
     try:
-        files = os.listdir(LOGS_DIR)  # Listar archivos en la carpeta logs
-        return {"logs": files}  # Retornar la lista de archivos disponibles
+        files = os.listdir(LOGS_DIR)
+        return {"logs": files}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al listar logs: {e}")
 
-# - Endpoint para ver el contenido de un archivo de log
+# -------------------- Endpoint: Leer contenido de un log --------------------
 @router.get("/{log_filename}")
 def read_log(log_filename: str):
+    """
+    Retorna el contenido línea por línea de un archivo de log específico.
+    """
     log_path = os.path.join(LOGS_DIR, log_filename)
 
-    # Verificar si el archivo existe
     if not os.path.exists(log_path):
         raise HTTPException(status_code=404, detail="Archivo de log no encontrado")
 
-    # Leer y devolver el contenido del archivo
     try:
         with open(log_path, "r", encoding="utf-8") as log_file:
             content = log_file.readlines()
@@ -36,12 +45,14 @@ def read_log(log_filename: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al leer el log: {e}")
 
-# - Endpoint para descargar un archivo de log
+# -------------------- Endpoint: Descargar archivo de log --------------------
 @router.get("/download/{log_filename}")
 def download_log(log_filename: str):
+    """
+    Permite descargar un archivo de log como texto plano.
+    """
     log_path = os.path.join(LOGS_DIR, log_filename)
 
-    # Verificar si el archivo existe
     if not os.path.exists(log_path):
         raise HTTPException(status_code=404, detail="Archivo de log no encontrado")
 

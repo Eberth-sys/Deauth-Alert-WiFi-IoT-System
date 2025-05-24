@@ -1,26 +1,30 @@
 # backend/src/routes/alerts.py
 
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+# -------------------- Librerías externas --------------------
+from fastapi import APIRouter, Depends                         # Para definir rutas y manejar dependencias
+from sqlalchemy.orm import Session                             # Para interactuar con la base de datos mediante SQLAlchemy
 
-# Importaciones internas
-from src.database import get_db                          # Conexión a la base de datos
-from src.models import Alert                             # Modelo de la tabla "alerts"
-from src.schemas import AlertResponse                    # Esquema de respuesta
-from src.routes.websocket import send_alert_to_clients   # Importamos la función para enviar alertas
+# -------------------- Módulos internos del proyecto --------------------
+from src.database import get_db                                # Función para obtener una sesión de la base de datos
+from src.models import Alert                                   # Modelo ORM de la tabla "alerts"
+from src.schemas import AlertResponse                          # Esquema de salida que representa una alerta
+from src.routes.websocket import send_alert_to_clients         # Función para enviar alertas por WebSocket
 
-# Crear un router para gestionar alertas
-router = APIRouter(prefix="/alerts", tags=["alerts"])
+# -------------------- Inicialización del router --------------------
+router = APIRouter(prefix="/alerts", tags=["alerts"])          # Prefijo de ruta y etiqueta de grupo para documentación
 
-# Endpoint para obtener las últimas alertas
+# -------------------- Ruta: Obtener las últimas alertas --------------------
 @router.get("/", response_model=list[AlertResponse])
-async def get_latest_alerts(limit: int = 10, db: Session = Depends(get_db)): # Consulto los últimos 10 eventos de la base de datos. 
-
+async def get_latest_alerts(limit: int = 10, db: Session = Depends(get_db)):
+    """
+    Retorna las últimas 'n' alertas registradas en la base de datos.
+    Además, si hay resultados, envía la alerta más reciente a todos los clientes WebSocket conectados.
+    """
     alerts = db.query(Alert).order_by(Alert.timestamp.desc()).limit(limit).all()
 
-    # Si hay alertas en la BD, se envia 
+    # Si existen alertas, se prepara y envía la más reciente en tiempo real por WebSocket
     if alerts:
-        last_alert = alerts[0]  # Última alerta recibida
+        last_alert = alerts[0]
         alert_data = {
             "id": last_alert.id,
             "nodo_iot": last_alert.nodo_iot,
@@ -28,8 +32,8 @@ async def get_latest_alerts(limit: int = 10, db: Session = Depends(get_db)): # C
             "target_mac": last_alert.target_mac,
             "bssid": last_alert.bssid,
             "canal": last_alert.canal,
-            "timestamp": last_alert.timestamp.isoformat()
+            "timestamp": last_alert.timestamp.isoformat()  # Formato ISO para facilitar compatibilidad en frontend
         }
-        await send_alert_to_clients(alert_data)  # Enviar alerta en tiempo real
+        await send_alert_to_clients(alert_data)  # Enviar alerta a los clientes conectados
 
     return alerts

@@ -1,4 +1,4 @@
-#backend\src\routes\admin_routes.py
+# backend/src/routes/admin_routes.py
 
 # -------------------- Importaciones externas --------------------
 from fastapi import APIRouter, Depends                      # Para definir rutas y usar dependencias
@@ -15,6 +15,9 @@ router = APIRouter(prefix="/admin", tags=["Administrador"])  # Prefijo y etiquet
 # -------------------- Ruta: Vista de logs solo para administradores --------------------
 @router.get("/logs", summary="Vista de logs (solo admin)")
 def get_logs_page(current_admin: User = Depends(get_current_admin_user), db: Session = Depends(get_db)):
+    """
+    Proporciona acceso a la vista de logs solo si el usuario autenticado es un administrador.
+    """
     return {
         "page": "logs",
         "message": f"Bienvenido admin {current_admin.username}, accediendo a LogsPage.",
@@ -24,9 +27,11 @@ def get_logs_page(current_admin: User = Depends(get_current_admin_user), db: Ses
 # -------------------- Ruta: Vista de reportes solo para administradores --------------------
 @router.get("/reports", summary="Vista de reportes (solo admin)")
 def get_reports_page(current_admin: User = Depends(get_current_admin_user), db: Session = Depends(get_db)):
+    """
+    Proporciona acceso a la vista de reportes solo si el usuario autenticado es un administrador.
+    """
     return {
         "page": "reports",
         "message": f"Bienvenido admin {current_admin.username}, accediendo a ReportsPage.",
         "can_view": True
     }
-
