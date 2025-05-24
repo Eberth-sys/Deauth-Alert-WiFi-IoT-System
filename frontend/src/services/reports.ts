@@ -1,21 +1,30 @@
 //frontend\src\services\reports.ts
 
-// Función para obtener alertas en un rango de fechas específico
+// -------------------- URL base del backend (desde .env) --------------------
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";  // Valor por defecto si no está definido
+
+// -------------------- Función: Obtener alertas en un rango de fechas --------------------
 export const fetchAlertsByDate = async (start: string, end: string) => {
-  // Realiza una petición GET al endpoint con parámetros de fecha
+  /**
+   * Realiza una petición GET al backend para obtener alertas
+   * entre dos fechas específicas, utilizando parámetros en la URL.
+   */
   const response = await fetch(
-    `http://192.168.255.132:8000/custom-queries/alertas-por-fecha?start=${start}&end=${end}`
-  )
+    `${API_URL}/custom-queries/alertas-por-fecha?start=${start}&end=${end}`
+  );
+
+  // Devuelve la respuesta en formato JSON
+  return await response.json();
+};
+
+// -------------------- Función: Obtener alertas registradas hoy --------------------
+export const fetchAlertsToday = async () => {
+  /**
+   * Realiza una petición GET al backend para obtener todas las alertas
+   * registradas durante el día actual.
+   */
+  const response = await fetch(`${API_URL}/custom-queries/alertas-de-hoy`);
 
   // Devuelve la respuesta parseada como JSON
-  return await response.json()
-}
-
-// Función para obtener únicamente las alertas registradas hoy
-export const fetchAlertsToday = async () => {
-  // Realiza una petición GET al endpoint correspondiente
-  const response = await fetch(`http://192.168.255.132:8000/custom-queries/alertas-de-hoy`)
-
-  // Devuelve los resultados en formato JSON
-  return await response.json()
-}
+  return await response.json();
+};

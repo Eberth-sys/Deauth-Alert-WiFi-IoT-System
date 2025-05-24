@@ -1,7 +1,7 @@
 //frontend\src\services\auth.ts
 
-// -------------------- URL base del backend --------------------
-const API_URL = "http://192.168.255.132:8000";  // Recomendación: mover a archivo .env en producción
+// -------------------- URL base del backend (desde archivo .env) --------------------
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";  // Valor de respaldo en desarrollo
 
 // -------------------- Iniciar sesión --------------------
 export const loginUser = async (email: string, password: string) => {

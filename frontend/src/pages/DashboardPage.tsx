@@ -1,5 +1,6 @@
 //frontend\src\pages\DashboardPage.tsx
 
+// -------------------- Importaciones --------------------
 import { useEffect, useRef, useState } from 'react'
 import AlertSummaryTable from '../components/AlertSummaryTable'
 import NodeStatusTable from '../components/NodeStatusTable'
@@ -10,7 +11,10 @@ import { connectToWebSocket } from '../services/socket'
 import { useAlertWatcher } from '../hooks/useAlertWatcher'
 import { useNodeConnectionWatcher } from '../hooks/useNodeConnectionWatcher'
 
-// Declaración explícita de nodos esperados
+// -------------------- URL base del backend --------------------
+const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000"
+
+// -------------------- Declaración de nodos esperados --------------------
 const NODOS_ESPERADOS: { nodo_iot: string; canal: number }[] = [
   { nodo_iot: 'ESP32_1_CH_01', canal: 1 },
   { nodo_iot: 'ESP32_4_SCANN', canal: 2 },
@@ -28,19 +32,17 @@ const NODOS_ESPERADOS: { nodo_iot: string; canal: number }[] = [
   { nodo_iot: 'ESP32_4_SCANN', canal: 14 },
 ]
 
+// -------------------- Componente principal --------------------
 const DashboardPage = () => {
   const [alertSummary, setAlertSummary] = useState<AlertSummary[]>([])
   const [nodeStatus, setNodeStatus] = useState<NodeStatus[]>([])
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'reconnecting'>('disconnected')
-
-  // 🔁 WebSocket
   const socketRef = useRef<WebSocket | null>(null)
 
-  // 🧠 Hooks de monitoreo
   const { alertMessage, checkAlertThreshold } = useAlertWatcher()
   const { connectionAlert, checkConnectionChanges, setConnectionAlert } = useNodeConnectionWatcher()
 
-  // 🔧 Agrega resumen de nodos y estado de conexión
+  // 🧠 Fusiona datos de alertas y estado para la tabla
   const aggregateAlerts = (): AggregatedAlert[] => {
     return NODOS_ESPERADOS.map(({ nodo_iot, canal }) => {
       const summary = alertSummary.find((s) => s.canal === canal)
@@ -59,7 +61,7 @@ const DashboardPage = () => {
     })
   }
 
-  // 🛰️ Indicador visual del estado de WebSocket
+  // 🔴🟢 Muestra estado visual del WebSocket
   const getConnectionIndicator = () => {
     switch (connectionStatus) {
       case 'connected':
@@ -71,13 +73,14 @@ const DashboardPage = () => {
     }
   }
 
-  // 📡 Inicialización del monitoreo
+  // 🛰️ Fetch inicial y conexión WebSocket
   useEffect(() => {
     let isMounted = true
 
+    // Consulta alertas por canal
     const fetchResumen = async () => {
       try {
-        const res = await fetch('http://192.168.255.132:8000/alerts-summary')
+        const res = await fetch(`${API_URL}/alerts-summary`)
         const data = await res.json()
         if (isMounted) {
           setAlertSummary(data)
@@ -88,9 +91,10 @@ const DashboardPage = () => {
       }
     }
 
+    // Consulta estado de nodos ESP32
     const fetchStatus = async () => {
       try {
-        const res = await fetch('http://192.168.255.132:8000/esp32-nodes')
+        const res = await fetch(`${API_URL}/esp32-nodes`)
         const data = await res.json()
         if (isMounted) {
           setNodeStatus(data)
@@ -101,9 +105,11 @@ const DashboardPage = () => {
       }
     }
 
+    // Carga inicial
     fetchResumen()
     fetchStatus()
 
+    // Establece WebSocket
     const socket = connectToWebSocket(
       () => {
         fetchResumen()
@@ -115,6 +121,7 @@ const DashboardPage = () => {
 
     socketRef.current = socket
 
+    // Limpieza al desmontar
     return () => {
       isMounted = false
       socketRef.current?.close()
@@ -125,39 +132,27 @@ const DashboardPage = () => {
 
   return (
     <div className="w-full px-4 md:px-8 py-6 space-y-10 font-inter">
-
-      {/* 🔔 Alerta de Seguridad por ataque */}
+      {/* 🔔 Alertas por seguridad o conexión */}
       {alertMessage && (
-        <AlertNotification
-          message={alertMessage}
-          onClose={() => {}} // El hook ya gestiona el cierre
-          sound="/sounds/warning.mp3"
-        />
+        <AlertNotification message={alertMessage} onClose={() => {}} sound="/sounds/warning.mp3" />
       )}
-
-      {/* 🔔 Alerta por conexión o desconexión */}
       {connectionAlert && (
-        <ConnectionNotification
-          message={connectionAlert}
-          onClose={() => setConnectionAlert(null)}
-        />
+        <ConnectionNotification message={connectionAlert} onClose={() => setConnectionAlert(null)} />
       )}
 
-      {/* 🔷 Introducción */}
+      {/* 💬 Introducción y estado de conexión */}
       <div className="text-center">
         <p className="text-gray-400 mt-1 text-sm sm:text-base">
           Sistema en tiempo real para detección de ataques de desautenticación sobre redes WiFi.
         </p>
       </div>
-
-      {/* 🔌 Estado de WebSocket */}
       <div className="text-center">
         <div className="inline-block px-4 py-2 rounded-full bg-gray-800 border border-gray-600 shadow text-sm">
           {getConnectionIndicator()}
         </div>
       </div>
 
-      {/* 📊 Tablas de datos */}
+      {/* 📊 Tablas con datos de actividad y nodos */}
       <section className="space-y-2">
         <h2 className="text-lg sm:text-xl font-semibold text-purple-400">📊 Resumen de actividad por canal</h2>
         <AlertSummaryTable data={data} />
