@@ -38,16 +38,16 @@ La principal motivación detrás de este proyecto es fortalecer la protección d
 
 El campo de la seguridad en redes Wi-Fi ha sido objeto de diversas investigaciones a lo largo de los años. Sin embargo, muchos de los métodos actuales de protección contra ataques de desautenticación requieren de infraestructuras complejas, lo que limita su accesibilidad para pequeñas y medianas empresas. Las soluciones tradicionales como **Aircrack-ng** y **Wireshark**, si bien eficaces para el análisis del tráfico, requieren de supervisión constante y no proporcionan una respuesta automatizada ante incidentes.
 
-Por otro lado, sistemas más avanzados como **WIDS/IPS** (Sistemas de Detección de Intrusos en Redes Inalámbricas) ofrecen soluciones robustas, pero su implementación es costosa y difícil de adaptar a redes convencionales. En este contexto, el sistema propuesto utiliza tecnologías de bajo costo como el **ESP32** y el **Bluetooth Low Energy (BLE)** para proporcionar una solución escalable, autónoma y de fácil integración.
+Por otro lado, sistemas más avanzados como **WIDS/IPS** (Sistemas de Detección de Intrusos en Redes Inalámbricas) ofrecen soluciones robustas, pero su implementación es costosa y difícil de adaptar a redes convencionales. En este contexto, el sistema propuesto utiliza tecnologías de bajo costo como el **ESP32-WROOM-32U** y el **Bluetooth Low Energy (BLE)** para proporcionar una solución escalable, autónoma y de fácil integración.
 
 ### Investigación y desarrollo
 
-La investigación realizada se centró en el estudio de los protocolos Wi-Fi, los ataques de desautenticación y las soluciones IoT aplicables a la seguridad de redes. Se investigaron enfoques previos, y se identificaron las limitaciones de las tecnologías existentes. A partir de allí, se diseñó y desarrolló un sistema capaz de detectar en tiempo real los ataques de desautenticación utilizando dispositivos ESP32 configurados en modo promiscuo para la captura de tráfico en redes Wi-Fi de 2,4 GHz.
+La investigación realizada se centró en el estudio de los protocolos Wi-Fi, los ataques de desautenticación y las soluciones IoT aplicables a la seguridad de redes. Se investigaron enfoques previos, y se identificaron las limitaciones de las tecnologías existentes. A partir de allí, se diseñó y desarrolló un sistema capaz de detectar en tiempo real los ataques de desautenticación utilizando dispositivos **ESP32-WROOM-32U** configurados en modo promiscuo para la captura de tráfico en redes Wi-Fi de 2,4 GHz.
 
 El desarrollo incluyó:
 
-* **Diseño del hardware**: configuración de los nodos sensores ESP32 para capturar paquetes de gestión de redes Wi-Fi.
-* **Desarrollo del software**: programación del firmware en C/C++ para los ESP32 y la creación del backend con **FastAPI** para el procesamiento de los eventos detectados.
+* **Diseño del hardware**: configuración de los nodos sensores **ESP32-WROOM-32U** para capturar paquetes de gestión de redes Wi-Fi.
+* **Desarrollo del software**: programación del firmware en C/C++ para los **ESP32-WROOM-32U** y la creación del backend con **FastAPI** para el procesamiento de los eventos detectados.
 * **Implementación de la base de datos**: uso de **PostgreSQL** para almacenar los eventos y los estados de los nodos sensores.
 * **Desarrollo de la interfaz gráfica**: implementación de una interfaz web con **React** y **TailwindCSS** para la visualización en tiempo real de las alertas.
 
@@ -82,14 +82,14 @@ El frontend está desarrollado utilizando **React** con **Vite** y **TypeScript*
 
 ### Processing layer
 
-La capa de procesamiento se encarga de la comunicación con los nodos **ESP32** mediante **Bluetooth Low Energy (BLE)** y procesa los eventos de desautenticación para generar alertas en tiempo real. Además, esta capa gestiona la conexión con la base de datos y asegura la integridad y persistencia de los datos.
+La capa de procesamiento se encarga de la comunicación con los nodos **ESP32** (`modelo ESP32-WROOM-32U con conector U.FL`) mediante **Bluetooth Low Energy (BLE)** y procesa los eventos de desautenticación para generar alertas en tiempo real. Además, esta capa gestiona la conexión con la base de datos y asegura la integridad y persistencia de los datos.
 
 ## Instrucciones De Instalación
 
 ### Requisitos
 
 * **Raspberry Pi** con Raspbian OS.
-* **ESP32** configurados con el firmware del sistema.
+* **ESP32-WROOM-32U** configurados con el firmware del sistema.
 * **Docker** para la implementación del backend y la base de datos.
 * **Python 3.8+** y **Node.js** para ejecutar el sistema.
 

@@ -4,27 +4,28 @@
 
 <!-- TOC levels="2..4" -->
 
-- [🛡️ **Capa de Percepción (Arduino IDE)**](#️-capa-de-percepción-arduino-ide)
-- [⚙️ Estructura del proyecto](#️-estructura-del-proyecto)
-- [📡 Funcionamiento detallado de los nodos](#-funcionamiento-detallado-de-los-nodos)
-  - [🕹️ Modos de Escaneo por Canal](#️-modos-de-escaneo-por-canal)
+- [🛡️ Capa de Percepción (Arduino IDE)](#🛡️-capa-de-percepción-arduino-ide)
+- [⚙️ Estructura del proyecto](#⚙️-estructura-del-proyecto)
+- [📡 Funcionamiento detallado de los nodos](#📡-funcionamiento-detallado-de-los-nodos)
+  - [🕹️ Modos de Escaneo por Canal](#🕹️-modos-de-escaneo-por-canal)
+  - [🔌 Modelo de nodo: ESP32-WROOM-32U](#-Modelo-de-nodo:-ESP32-WROOM-32U)
   - [1️⃣ Proceso de inicialización](#1️⃣-proceso-de-inicialización)
   - [2️⃣ Modo promiscuo](#2️⃣-modo-promiscuo)
   - [3️⃣ Detección de paquetes deauth](#3️⃣-detección-de-paquetes-deauth)
   - [4️⃣ Construcción y envío de alerta BLE](#4️⃣-construcción-y-envío-de-alerta-ble)
-- [🚀 Guía de configuración y uso](#-guía-de-configuración-y-uso)
+- [🚀 Guía de configuración y uso](#🚀-guía-de-configuración-y-uso)
   - [A. Clonar el repositorio](#a-clonar-el-repositorio)
   - [B. Preparar el Archivo `config.h`](#b-preparar-el-archivo-configh)
   - [C. Carga con PlatformIO (VSCode)](#c-carga-con-platformio-vscode)
-  - [D. 🚀 Carga con Arduino IDE 🖥️](#d--carga-con-arduino-ide-️)
-- [🌟🔧 Parámetros críticos de configuración 🔧🌟](#-parámetros-críticos-de-configuración-)
-- [⚡ Otros ajustes 🛠️](#-otros-ajustes-️)
-- [📲 Alerta BLE al Nodo Centralizador](#-alerta-ble-al-nodo-centralizador)
-  - [⚡ **Ejemplo de alerta generada:**](#-ejemplo-de-alerta-generada)
-    - [Desglose del ejemplo:](#desglose-del-ejemplo)
-- [📖 **Notas adicionales**](#-notas-adicionales)
-- [👨‍💻 **Autor**](#-autor)
-- [📄 Licencia](#-licencia)
+  - [D. Carga con Arduino IDE](#d-carga-con-arduino-ide)
+- [🌟🔧 Parámetros críticos de configuración](#🌟🔧-parámetros-críticos-de-configuración)
+- [⚡ Otros ajustes](#⚡-otros-ajustes)
+- [📲 Alerta BLE al Nodo Centralizador](#📲-alerta-ble-al-nodo-centralizador)
+  - [⚡ Ejemplo de alerta generada](#⚡-ejemplo-de-alerta-generada)
+  - [Desglose del ejemplo](#desglose-del-ejemplo)
+- [📖 Notas adicionales](#📖-notas-adicionales)
+- [👨‍💻 Autor](#👨‍💻-autor)
+- [📄 Licencia](#📄-licencia)
 <!-- /TOC -->
 ---
 
@@ -87,7 +88,27 @@ Dentro de cada carpeta:
 
    * Los nodos IoT ESP32 capturan paquetes Wi‑Fi, analizan y detectan paquetes de desautenticación dirigidos al BSSID objetivo.
    * Al detectar un ataque, el nodo genera una alerta y la envía al nodo centralizador para su posterior análisis y gestión de eventos.
+---
 
+### 🔌 Modelo de nodo: ESP32-WROOM-32U
+
+Cada nodo está basado en el ESP32-WROOM-32U, un módulo compacto y potente que integra Wi-Fi y Bluetooth para capturar, procesar y transmitir datos de manera eficiente. A continuación, sus principales características:
+
+| Característica            | Detalle                                                                                                       |
+|---------------------------|----------------------------------------------------------------------------------------------------------------|
+| 🖥️ **Procesador**         | Dual-core Xtensa® 32-bit LX6 a 240 MHz, alto rendimiento para captura y análisis de paquetes.                |
+| 💾 **Memoria**            | 520 KB de SRAM interna y 4 MB de flash SPI, suficiente para firmware y buffers de datos.                       |
+| 📶 **Wi-Fi**              | 802.11 b/g/n a 2,4 GHz, compatible con modo promiscuo, esencial para detección pasiva de tramas de gestión.   |
+| 🔵 **Bluetooth**          | BLE 4.2 y Bluetooth clásico, usado en este proyecto para transmisión cifrada de alertas.                      |
+| 📡 **Conector U.FL**      | Permite acoplar antenas externas de alta ganancia, mejorando la recepción en entornos con interferencias.     |
+| 🔋 **Alimentación**       | Rango de 2,2 V a 3,6 V, adecuado para baterías o fuentes de alimentación embebidas.                           |
+| 📏 **Dimensiones**        | 18 × 25,5 × 3,1 mm, facilita su integración en carcasas y entornos reducidos.                                 |
+
+📸 **Referencia de imagen**:  
+
+[![esp32-wroom32u.png](https://i.postimg.cc/W1V2Zsxj/esp32-wroom32u.png)](https://postimg.cc/jL800Ysk)
+
+---
 ### 1️⃣ Proceso de inicialización
 
 Al arrancar, `main.ino` ejecuta:

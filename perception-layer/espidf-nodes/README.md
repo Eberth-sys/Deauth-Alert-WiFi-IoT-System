@@ -1,22 +1,34 @@
-# 📡 Nodos IoT ESP32 para monitoreo y detección de ataques de desautenticación en redes Wi‑Fi 2,4 GHz<!-- omit in toc -->
+# 📡 Nodos IoT ESP32 para monitoreo y detección de ataques de desautenticación en redes Wi-Fi 2,4 GHz
 
-## 🗂️ Índice <!-- omit in toc -->
+## 🗂️ Índice
 
-<!-- TOC levels="2..4" -->
+- [🧩 Descripción general](#🧩-descripción-general)
+- [⚙️ Funcionalidades principales](#⚙️-funcionalidades-principales)
+- [🗂️ Estructura del trabajo](#🗂️-estructura-del-trabajo)
+- [🧠 Arquitectura de los nodos](#🧠-arquitectura-de-los-nodos)
+  - [🔌 Modelo de nodo: ESP32-WROOM-32U](#🔌-modelo-de-nodo-esp32-wroom-32u)
+- [🔐 Parámetros de seguridad BLE](#🔐-parámetros-de-seguridad-ble)
+  - [🛠️ Archivo de configuración BLE: `config.h`](#🛠️-archivo-de-configuración-ble-configh)
+- [🧱 Archivo de particiones](#🧱-archivo-de-particiones)
+- [⚙️ Configuración del sistema (`sdkconfig.defaults`)](#⚙️-configuración-del-sistema-sdkconfigdefaults)
+  - [🔧 Parámetros de configuración BLE](#🔧-parámetros-de-configuración-ble)
+  - [🔐 Seguridad BLE](#🔐-seguridad-ble)
+  - [🧱 Configuración de particiones](#🧱-configuración-de-particiones)
+- [🛠️ Entorno de trabajo y ejecución](#🛠️-entorno-de-trabajo-y-ejecución)
+  - [📋 Requisitos previos](#📋-requisitos-previos)
+  - [🧪 Comandos para compilar y cargar el firmware](#🧪-comandos-para-compilar-y-cargar-el-firmware)
+- [📲 Alerta BLE al nodo centralizador](#📲-alerta-ble-al-nodo-centralizador)
+  - [⚡ Ejemplo de alerta generada](#⚡-ejemplo-de-alerta-generada)
+  - [Desglose del ejemplo](#desglose-del-ejemplo)
+- [📖 Notas adicionales](#📖-notas-adicionales)
+- [👨‍💻 Autor](#👨‍💻-autor)
+- [📄 Licencia](#📄-licencia)
 
-- [🛠️ Entorno de trabajo y ejecución](#️-entorno-de-trabajo-y-ejecución)
-    - [📋 Requisitos previos](#-requisitos-previos)
-    - [🧪 Comandos para compilar y cargar el firmware](#-comandos-para-compilar-y-cargar-el-firmware)
-  - [📲 Alerta BLE al nodo centralizador](#-alerta-ble-al-nodo-centralizador)
-    - [⚡ **Ejemplo de alerta generada:**](#-ejemplo-de-alerta-generada)
-      - [Desglose del ejemplo:](#desglose-del-ejemplo)
-  - [📖 **Notas adicionales**](#-notas-adicionales)
-  - [👨‍💻 **Autor**](#-autor)
-  - [📄 Licencia](#-licencia)
+
 
 ## 🧩 Descripción general
 
-La presente documentación corresponde a la **capa de percepción** del sistema de ciberseguridad denominado *Deauth-Alert WiFi IoT System*. Esta capa está constituida por una serie de nodos desarrollados sobre microcontroladores **ESP32**, cuyo propósito es detectar ataques de desautenticación en redes Wi-Fi de 2,4 GHz y emitir alertas cifradas a través de tecnología **Bluetooth Low Energy (BLE)**.
+La presente documentación corresponde a la **capa de percepción** del sistema de ciberseguridad denominado *Deauth-Alert WiFi IoT System*. Esta capa está constituida por una serie de nodos desarrollados sobre microcontroladores **ESP32-WROOM-32U**, cuyo propósito es detectar ataques de desautenticación en redes Wi-Fi de 2,4 GHz y emitir alertas cifradas a través de tecnología **Bluetooth Low Energy (BLE)**.
 
 Dichos ataques, conocidos como *deauthentication attacks*, forman parte de técnicas comunes en escenarios de denegación de servicio (DoS) en redes inalámbricas. Este sistema proporciona una respuesta efectiva y distribuida, al desplegar nodos que monitorizan diferentes canales del espectro Wi-Fi.
 
@@ -84,7 +96,25 @@ Todos los nodos comparten un archivo de configuración común con los parámetro
 
    * Los nodos IoT ESP32 capturan paquetes Wi‑Fi, analizan y detectan paquetes de desautenticación dirigidos al BSSID objetivo.
    * Al detectar un ataque, el nodo genera una alerta y la envía al nodo centralizador para su posterior análisis y gestión de eventos.
-  
+
+### 🔌 Modelo de nodo: ESP32-WROOM-32U
+
+Cada nodo está basado en el ESP32-WROOM-32U, un módulo compacto y potente que integra Wi-Fi y Bluetooth para capturar, procesar y transmitir datos de manera eficiente. A continuación, sus principales características:
+
+| Característica            | Detalle                                                                                                       |
+|---------------------------|----------------------------------------------------------------------------------------------------------------|
+| 🖥️ **Procesador**         | Dual-core Xtensa® 32-bit LX6 a 240 MHz, alto rendimiento para captura y análisis de paquetes.                |
+| 💾 **Memoria**            | 520 KB de SRAM interna y 4 MB de flash SPI, suficiente para firmware y buffers de datos.                       |
+| 📶 **Wi-Fi**              | 802.11 b/g/n a 2,4 GHz, compatible con modo promiscuo, esencial para detección pasiva de tramas de gestión.   |
+| 🔵 **Bluetooth**          | BLE 4.2 y Bluetooth clásico, usado en este proyecto para transmisión cifrada de alertas.                      |
+| 📡 **Conector U.FL**      | Permite acoplar antenas externas de alta ganancia, mejorando la recepción en entornos con interferencias.     |
+| 🔋 **Alimentación**       | Rango de 2,2 V a 3,6 V, adecuado para baterías o fuentes de alimentación embebidas.                           |
+| 📏 **Dimensiones**        | 18 × 25,5 × 3,1 mm, facilita su integración en carcasas y entornos reducidos.                                 |
+
+📸 **Referencia de imagen**:  
+
+[![esp32-wroom32u.png](https://i.postimg.cc/W1V2Zsxj/esp32-wroom32u.png)](https://postimg.cc/jL800Ysk)
+
 ## 🔐 Parámetros de seguridad BLE
 
 ### 🛠️ Archivo de configuración BLE: `config.h`
@@ -156,7 +186,7 @@ El archivo `sdkconfig.defaults` incluye las configuraciones esenciales para el f
 
 Para el desarrollo, compilación y carga del firmware del sistema IoT, se utiliza el entorno **ESP-IDF (Espressif IoT Development Framework)**. Se recomienda utilizar la versión **v5.0 o superior** para asegurar la compatibilidad con las herramientas y bibliotecas necesarias.
 
-ESP-IDF es el marco de desarrollo oficial para los microcontroladores ESP32, y proporciona una colección robusta de herramientas, bibliotecas, ejemplos y documentación para facilitar el desarrollo de aplicaciones embebidas de manera eficiente y profesional.
+ESP-IDF es el marco de desarrollo oficial para los microcontroladores **ESP32-WROOM-32U**, y proporciona una colección robusta de herramientas, bibliotecas, ejemplos y documentación para facilitar el desarrollo de aplicaciones embebidas de manera eficiente y profesional.
 
 ### 📋 Requisitos previos
 
@@ -169,7 +199,7 @@ Antes de proceder, asegúrese de tener instalado lo siguiente:
 
 ### 🧪 Comandos para compilar y cargar el firmware
 
-Los siguientes comandos deben ejecutarse en una terminal para preparar el entorno de desarrollo, compilar el proyecto y cargar el firmware al ESP32:
+Los siguientes comandos deben ejecutarse en una terminal para preparar el entorno de desarrollo, compilar el proyecto y cargar el firmware al **ESP32-WROOM-32U**:
 
 ```bash
 # Activar el entorno del ESP-IDF
@@ -178,7 +208,7 @@ Los siguientes comandos deben ejecutarse en una terminal para preparar el entorn
 # Compilar el proyecto
 idf.py build
 
-# Flashear el firmware al dispositivo ESP32
+# Flashear el firmware al dispositivo **ESP32-WROOM-32U**
 idf.py -p /dev/ttyUSB0 flash
 
 # Iniciar el monitor en serie para ver los mensajes del ESP32 en tiempo real
@@ -245,3 +275,7 @@ El nodo centralizador realiza:
 Proyecto bajo **Licencia MIT** (ver `LICENSE.md`).
 
 ---
+
+
+
+
