@@ -8,7 +8,7 @@
 - [⚙️ Estructura del proyecto](#⚙️-estructura-del-proyecto)
 - [📡 Funcionamiento detallado de los nodos](#📡-funcionamiento-detallado-de-los-nodos)
   - [🕹️ Modos de Escaneo por Canal](#🕹️-modos-de-escaneo-por-canal)
-  - [🔌 Modelo de nodo: ESP32-WROOM-32U](#-Modelo-de-nodo:-ESP32-WROOM-32U)
+  - [🔌 Modelo de nodo: ESP32-WROOM-32U](#🔌-modelo-de-nodo-esp32-wroom-32u)
   - [1️⃣ Proceso de inicialización](#1️⃣-proceso-de-inicialización)
   - [2️⃣ Modo promiscuo](#2️⃣-modo-promiscuo)
   - [3️⃣ Detección de paquetes deauth](#3️⃣-detección-de-paquetes-deauth)
