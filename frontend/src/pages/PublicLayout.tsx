@@ -18,7 +18,7 @@ const PublicLayout = ({ children }: { children: ReactNode }) => {
           {/* Encabezado refinado: título e instrucciones */}
           <header className="text-center mb-4 space-y-1">
           <h1 className="text-[12px] sm:text-[14px] font-medium text-cyan-300 text-center leading-tight">
-            Sistema IoT – seguridad Wi-Fi 2.4 GHz
+            Sistema IoT – seguridad Wi-Fi 2,4 GHz
           </h1>
           </header>
           {/* Área dinámica: login, registro, recuperación, etc. */}
