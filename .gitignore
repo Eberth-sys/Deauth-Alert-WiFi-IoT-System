@@ -8,6 +8,12 @@ __pycache__/
 *.vscode/
 *.idea/
 
+# Node.js / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+
 # Ignorar configuración sensible
 processing-layer/config/devices.yaml
 config.h
@@ -19,7 +25,7 @@ config.h
 *.pem
 *.key
 *.crt
-perception-layer/config/config.h
+perception-layer/espidf-nodes/config/config.h
 
 # Carpeta de certificados (segura)
 src/certs/

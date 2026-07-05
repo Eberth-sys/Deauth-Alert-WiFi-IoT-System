@@ -224,6 +224,6 @@ Se utiliza **PostgreSQL**. Las tablas se generan automáticamente al iniciar la 
 
 ## 📄 Licencia
 
-Proyecto bajo **Licencia MIT** (ver `LICENSE.md`).
+Licencia **pendiente de definición** — se establecerá antes de la publicación pública. Hasta entonces, © 2025 Eberth Alarcón, todos los derechos reservados.
 
 ---

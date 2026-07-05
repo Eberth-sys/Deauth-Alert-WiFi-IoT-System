@@ -1,0 +1,53 @@
+<svg viewBox="0 0 820 470" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img">
+  <title>Flujo de un evento: de la detección del ataque a la alerta en el dashboard</title>
+  <desc>ESP32 detecta deauth, envía por BLE a Raspberry Pi, que persiste en PostgreSQL, publica a AWS IoT y notifica por Telegram; el backend hace push al dashboard por WebSocket.</desc>
+  <defs>
+    <marker id="ah2" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L7,4 L0,8 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="820" height="470" fill="#ffffff"/>
+  <text x="410" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">Flujo de un evento — detección → alerta</text>
+  <text x="410" y="50" text-anchor="middle" font-size="12" fill="#64748b">del ataque Wi-Fi a la alerta en el dashboard, en tiempo real</text>
+
+  <!-- spine -->
+  <line x1="60" y1="96" x2="60" y2="400" stroke="#cbd5e1" stroke-width="3"/>
+
+  <!-- step 1 -->
+  <circle cx="60" cy="96" r="16" fill="#0f172a"/>
+  <text x="60" y="101" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">1</text>
+  <rect x="92" y="78" width="450" height="36" rx="9" fill="#DBEAFE" stroke="#2563EB" stroke-width="1.4"/>
+  <text x="110" y="101" font-size="13" font-weight="600" fill="#1E3A8A">🛰️ ESP32 detecta un frame de deauth (802.11)</text>
+
+  <!-- step 2 -->
+  <circle cx="60" cy="172" r="16" fill="#0f172a"/>
+  <text x="60" y="177" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">2</text>
+  <rect x="92" y="154" width="450" height="36" rx="9" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.4"/>
+  <text x="110" y="177" font-size="13" font-weight="600" fill="#1E3A8A">📶 Envía la alerta por BLE (GATT notify)</text>
+
+  <!-- step 3 -->
+  <circle cx="60" cy="248" r="16" fill="#0f172a"/>
+  <text x="60" y="253" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">3</text>
+  <rect x="92" y="230" width="450" height="36" rx="9" fill="#DCFCE7" stroke="#16A34A" stroke-width="1.4"/>
+  <text x="110" y="253" font-size="13" font-weight="600" fill="#14532D">🍓 Raspberry Pi recibe y distribuye en paralelo:</text>
+
+  <line x1="162" y1="266" x2="162" y2="288" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah2)"/>
+  <line x1="317" y1="266" x2="317" y2="288" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah2)"/>
+  <line x1="472" y1="266" x2="472" y2="288" stroke="#94a3b8" stroke-width="1.4" marker-end="url(#ah2)"/>
+  <rect x="92" y="290" width="140" height="44" rx="9" fill="#F3E8FF" stroke="#9333EA" stroke-width="1.4"/>
+  <text x="162" y="317" text-anchor="middle" font-size="12.5" font-weight="600" fill="#581C87">🐘 PostgreSQL</text>
+  <rect x="247" y="290" width="140" height="44" rx="9" fill="#CCFBF1" stroke="#0D9488" stroke-width="1.4"/>
+  <text x="317" y="317" text-anchor="middle" font-size="12.5" font-weight="600" fill="#134E4A">☁️ AWS IoT</text>
+  <rect x="402" y="290" width="140" height="44" rx="9" fill="#E0F2FE" stroke="#0284C7" stroke-width="1.4"/>
+  <text x="472" y="317" text-anchor="middle" font-size="12.5" font-weight="600" fill="#075985">✈️ Telegram</text>
+
+  <!-- step 4 -->
+  <circle cx="60" cy="376" r="16" fill="#0f172a"/>
+  <text x="60" y="381" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">4</text>
+  <rect x="92" y="352" width="450" height="52" rx="9" fill="#FFEDD5" stroke="#EA580C" stroke-width="1.6"/>
+  <text x="110" y="374" font-size="13" font-weight="600" fill="#7C2D12">⚙️ El Backend consulta la base y hace</text>
+  <text x="110" y="392" font-size="13" font-weight="600" fill="#7C2D12">🖥️ push al Dashboard en tiempo real (WebSocket)</text>
+
+  <text x="410" y="440" text-anchor="middle" font-size="11" fill="#94a3b8">Latencia objetivo: alerta visible en el dashboard en segundos desde la detección.</text>
+</svg>
