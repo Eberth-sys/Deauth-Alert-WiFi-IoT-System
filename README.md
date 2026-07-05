@@ -44,12 +44,19 @@ Cuatro capas, desde la captura del ataque hasta la visualización en tiempo real
 
 ![Flujo de un evento](docs/img/event-flow.svg)
 
+![Capas del sistema](docs/img/layers.svg)
+
+<details>
+<summary><b>Ver las capas como tabla de texto</b></summary>
+
 | Capa | Carpeta | Tecnología | Rol |
 | --- | --- | --- | --- |
 | **Perception** | `perception-layer/` | ESP32-WROOM-32U · C/C++ (Arduino `.ino` y ESP-IDF `.c`) | Captura de frames deauth en modo promiscuo; envío por BLE |
 | **Processing** | `processing-layer/` | Python (`bleak`, `paho-mqtt`, `psycopg2`) · Docker/PostgreSQL | Ingesta BLE, persistencia, publicación MQTT/AWS IoT y Telegram |
 | **Backend** | `backend/` | FastAPI · SQLAlchemy · PostgreSQL · JWT | API REST + WebSocket + autenticación |
 | **Frontend** | `frontend/` | React · Vite · TypeScript · TailwindCSS | Dashboard en tiempo real |
+
+</details>
 
 > Cada capa incluye su propio `README.md` con instrucciones detalladas.
 
