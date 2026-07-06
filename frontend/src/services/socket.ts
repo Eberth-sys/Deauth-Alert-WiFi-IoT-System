@@ -1,5 +1,7 @@
 // frontend/src/services/socket.ts
 
+import { getToken } from "./http";  // Token JWT para autenticar el handshake del WebSocket (SEC-04)
+
 // -------------------- Configuración desde archivo .env --------------------
 const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8000";  // Valor de respaldo si no se define en .env
 
@@ -20,8 +22,11 @@ export const connectToWebSocket = (
   setConnectionStatus?: (status: 'connected' | 'disconnected' | 'reconnecting') => void
 ): WebSocket => {
 
-  // Crea una nueva conexión WebSocket con el backend
-  const socket = new WebSocket(`${WS_URL}/ws/alerts`);
+  // Crea una nueva conexión WebSocket con el backend.
+  // El token JWT viaja por query param (los WebSocket del navegador no permiten
+  // header Authorization). En producción usar WSS para cifrarlo en tránsito.
+  const token = getToken();
+  const socket = new WebSocket(`${WS_URL}/ws/alerts?token=${encodeURIComponent(token ?? "")}`);
 
   // Evento: conexión exitosa
   socket.onopen = () => {
@@ -48,7 +53,15 @@ export const connectToWebSocket = (
   };
 
   // Evento: conexión cerrada (por error o por cierre manual)
-  socket.onclose = () => {
+  socket.onclose = (event) => {
+    // Si el backend rechazó por autenticación (close code 1008), NO reintentar:
+    // reconectar cada 3s no arregla un token inválido/ausente y solo genera ruido.
+    if (event.code === 1008) {
+      console.warn('🔒 WebSocket rechazado por autenticación (1008). No se reintenta.');
+      setConnectionStatus?.('disconnected');
+      return;
+    }
+
     console.warn('🔌 WebSocket cerrado. Reintentando en 3s...');
     setConnectionStatus?.('reconnecting'); // Notifica estado de reconexión
 

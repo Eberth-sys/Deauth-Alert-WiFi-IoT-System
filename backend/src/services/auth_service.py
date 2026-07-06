@@ -82,6 +82,25 @@ def get_current_user(token: str = Depends(get_token_from_header), db: Session = 
         raise credentials_exception
     return user
 
+def get_user_from_token(token: str, db: Session) -> User | None:
+    """
+    Valida un JWT de usuario para canales SIN HTTP (ej. WebSocket, SEC-04) y
+    devuelve el usuario, o None si el token falta / es inválido / expiró / el
+    usuario no existe. No levanta HTTPException: los WebSocket rechazan con
+    close code, no con status HTTP. Reutiliza SECRET_KEY/ALGORITHM de este módulo.
+    """
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        sub = payload.get("sub")
+        if sub is None:
+            return None
+        user_id = int(sub)
+    except (JWTError, ValueError, TypeError):
+        return None
+    return db.query(User).filter(User.id == user_id).first()
+
 # -------------------- Funciones para recuperación de contraseña --------------------
 
 def create_reset_token(user: User) -> str:
