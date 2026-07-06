@@ -18,6 +18,31 @@ BACKEND_URL = os.getenv("BACKEND_URL")  # Cargar la URL base del backend desde e
 if not BACKEND_URL:
     raise ValueError("[CONFIG] ❌ Variable BACKEND_URL no definida en .env")  # Lanzar error si la variable no está definida
 
+# Clave de servicio para autenticar contra el backend (DEC-0005). Debe coincidir
+# EXACTAMENTE con SERVICE_API_KEY del backend. No es fatal si falta o es débil:
+# solo se rechazará la actualización de estado (401), sin afectar el guardado en
+# BD ni las alertas Telegram.
+BACKEND_SERVICE_API_KEY = os.getenv("BACKEND_SERVICE_API_KEY")
+
+def _problema_service_key(clave):
+    """Devuelve None si la clave es válida, o el motivo del problema (solo warning, no corta)."""
+    placeholder = "your_strong_service_api_key"
+    if not clave:
+        return "no está definida"
+    if clave != clave.strip():
+        return "tiene espacios al inicio o al final"
+    if clave == placeholder:
+        return "conserva el valor placeholder del .env.example"
+    if len(clave) < 32:
+        return "es demasiado corta (mínimo 32 caracteres)"
+    return None
+
+_problema_key = _problema_service_key(BACKEND_SERVICE_API_KEY)
+if _problema_key:
+    print(f"[CONFIG] ⚠️ BACKEND_SERVICE_API_KEY {_problema_key} — "
+          "la actualización de estado al backend será rechazada (401). "
+          "El resto del procesamiento (BD y Telegram) continúa normalmente.")
+
 
 # -------------------- Variables de almacenamiento temporal --------------------
 alerta_reciente = {}  # Diccionario para evitar el envío repetido de alertas en un corto período de tiempo
@@ -111,7 +136,10 @@ def actualizar_estado_esp32(device_name, mac_address, status):
         }
 
         try:
-            response = requests.post(f"{BACKEND_URL}/esp32-nodes/update", json=status_data, timeout=3)
+            # Header de autenticación máquina-a-máquina (DEC-0005). Se omite si no
+            # hay clave configurada (el backend responderá 401 y se registrará el warning).
+            headers = {"X-API-Key": BACKEND_SERVICE_API_KEY} if BACKEND_SERVICE_API_KEY else {}
+            response = requests.post(f"{BACKEND_URL}/esp32-nodes/update", json=status_data, headers=headers, timeout=3)
             if response.status_code == 200:
                 print(f"[INFO] 🔄 Estado de {device_name} actualizado y enviado al backend.")
             else:

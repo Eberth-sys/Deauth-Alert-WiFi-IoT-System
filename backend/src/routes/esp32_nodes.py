@@ -9,6 +9,7 @@ from src.database import get_db                               # Conexión a la b
 from src.models import ESP32Status                            # Modelo ORM para el estado de los nodos ESP32
 from src.schemas import ESP32StatusResponse                   # Esquema de datos para validación y respuesta
 from src.routes.websocket import send_esp32_status_to_clients # Función para emitir datos por WebSocket
+from src.services.service_auth import verify_service_key      # Autenticación máquina-a-máquina (DEC-0005)
 
 # -------------------- Crear router --------------------
 router = APIRouter(prefix="/esp32-nodes", tags=["esp32_nodes"])
@@ -22,11 +23,14 @@ def get_esp32_status(db: Session = Depends(get_db)):
     return db.query(ESP32Status).all()
 
 # -------------------- Endpoint: Actualizar estado desde processing-layer --------------------
-@router.post("/update")
+@router.post("/update", dependencies=[Depends(verify_service_key)])
 async def update_esp32_status(esp32_data: ESP32StatusResponse, db: Session = Depends(get_db)):
     """
     Recibe el estado actualizado de un nodo ESP32 y lo guarda en la base de datos.
     También emite la actualización vía WebSocket para clientes conectados.
+
+    Autenticación: máquina-a-máquina vía header 'X-API-Key' (DEC-0005). El
+    cliente legítimo es la processing-layer (Raspberry Pi), no un usuario.
     """
     existing_device = db.query(ESP32Status).filter(ESP32Status.device_name == esp32_data.device_name).first()
 
