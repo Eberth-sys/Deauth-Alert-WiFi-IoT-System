@@ -1,6 +1,8 @@
 //frontend\src\services\stats.ts
 
 // -------------------- Carga de URL del backend desde archivo .env --------------------
+import { authHeader } from "./http";                 // Header Authorization (JWT de usuario) — T2
+
 const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
 /**
@@ -8,7 +10,7 @@ const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
  * Utiliza el endpoint: /custom-queries/total-alertas
  */
 export const fetchTotalAlerts = async () => {
-  const res = await fetch(`${API_URL}/custom-queries/total-alertas`);
+  const res = await fetch(`${API_URL}/custom-queries/total-alertas`, { headers: authHeader() });
   return await res.json();
 };
 
@@ -17,7 +19,7 @@ export const fetchTotalAlerts = async () => {
  * Utiliza el endpoint: /custom-queries/alertas-por-nodo
  */
 export const fetchAlertsByNode = async () => {
-  const res = await fetch(`${API_URL}/custom-queries/alertas-por-nodo`);
+  const res = await fetch(`${API_URL}/custom-queries/alertas-por-nodo`, { headers: authHeader() });
   return await res.json();
 };
 
@@ -26,7 +28,7 @@ export const fetchAlertsByNode = async () => {
  * Utiliza el endpoint: /custom-queries/canales-mas-afectados
  */
 export const fetchAlertsByChannel = async () => {
-  const res = await fetch(`${API_URL}/custom-queries/canales-mas-afectados`);
+  const res = await fetch(`${API_URL}/custom-queries/canales-mas-afectados`, { headers: authHeader() });
   return await res.json();
 };
 
@@ -35,6 +37,6 @@ export const fetchAlertsByChannel = async () => {
  * Utiliza el endpoint: /custom-queries/ultimas-alertas
  */
 export const fetchLatestAlerts = async () => {
-  const res = await fetch(`${API_URL}/custom-queries/ultimas-alertas`);
+  const res = await fetch(`${API_URL}/custom-queries/ultimas-alertas`, { headers: authHeader() });
   return await res.json();
 };

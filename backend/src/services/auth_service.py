@@ -27,9 +27,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "1440")) # Exp
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")          # URL del frontend para enlaces
 
-# Validación: si no hay clave secreta, lanzar error crítico
-if not SECRET_KEY:
-    raise RuntimeError("❌ JWT_SECRET_KEY no está definido en el archivo .env")
+# Validación (SEC-08): la clave debe existir y ser suficientemente larga (>=32 chars).
+# Fail-fast en el arranque para no operar con una clave débil.
+if not SECRET_KEY or len(SECRET_KEY) < 32:
+    raise RuntimeError("JWT_SECRET_KEY ausente o demasiado corta (mínimo 32 caracteres) — SEC-08")
 
 # -------------------- Contexto de encriptación para contraseñas --------------------
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -82,27 +83,56 @@ def get_current_user(token: str = Depends(get_token_from_header), db: Session = 
         raise credentials_exception
     return user
 
+def get_user_from_token(token: str, db: Session) -> User | None:
+    """
+    Valida un JWT de usuario para canales SIN HTTP (ej. WebSocket, SEC-04) y
+    devuelve el usuario, o None si el token falta / es inválido / expiró / el
+    usuario no existe. No levanta HTTPException: los WebSocket rechazan con
+    close code, no con status HTTP. Reutiliza SECRET_KEY/ALGORITHM de este módulo.
+    """
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        sub = payload.get("sub")
+        if sub is None:
+            return None
+        user_id = int(sub)
+    except (JWTError, ValueError, TypeError):
+        return None
+    return db.query(User).filter(User.id == user_id).first()
+
 # -------------------- Funciones para recuperación de contraseña --------------------
 
 def create_reset_token(user: User) -> str:
     """Genera un token temporal (30 min) para restablecer la contraseña"""
     expire = datetime.utcnow() + timedelta(minutes=30)
-    payload = {"sub": str(user.id), "exp": expire}
+    payload = {"sub": str(user.id), "exp": expire, "type": "reset"}  # claim de tipo (SEC-05)
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 def verify_reset_token(token: str, db: Session) -> User:
-    """Verifica el token recibido para restablecimiento de contraseña"""
+    """
+    Verifica el token de restablecimiento de contraseña.
+
+    Exige el claim type="reset" (un access token NO sirve como reset token) y
+    responde 401 genérico ante cualquier fallo (firma / expiración / tipo / sub
+    inválido), sin distinguir el motivo ni revelar si el usuario existe (SEC-05).
+    """
+    invalid = HTTPException(status_code=401, detail="Token inválido o expirado")
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = int(payload.get("sub"))
-        if not user_id:
-            raise ValueError("ID inválido en token")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+    except (JWTError, ValueError, TypeError):
+        raise invalid
+
+    if payload.get("type") != "reset":          # debe ser un token de reset, no un access token
+        raise invalid
+    if not user_id:
+        raise invalid
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise invalid                           # mismo 401 genérico (no revela si el usuario existe)
     return user
 
 def send_recovery_email_simulado(email: str, token: str):

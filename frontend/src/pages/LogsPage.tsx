@@ -16,8 +16,19 @@ const LogsPage = () => {
 
   const handleReload = () => {
     fetchLogFile(LOG_FILE)
-      .then(setLogLines)
-      .catch(() => setError('❌ Error al cargar el archivo de logs'))
+      .then((lines) => {
+        setLogLines(lines)
+        setError(null)
+      })
+      .catch((e) => {
+        // El endpoint de logs es solo-admin: si el backend responde 403,
+        // mostramos un mensaje claro de acceso restringido.
+        if (e instanceof Error && e.message === 'FORBIDDEN') {
+          setError('🔒 Acceso restringido: los logs son solo para administradores.')
+        } else {
+          setError('❌ Error al cargar el archivo de logs')
+        }
+      })
   }
 
   useEffect(() => {

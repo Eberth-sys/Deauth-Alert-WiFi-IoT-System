@@ -9,12 +9,13 @@ from src.database import get_db                                # Función para o
 from src.models import Alert                                   # Modelo ORM de la tabla "alerts"
 from src.schemas import AlertResponse                          # Esquema de salida que representa una alerta
 from src.routes.websocket import send_alert_to_clients         # Función para enviar alertas por WebSocket
+from src.services.auth_service import get_current_user         # Autenticación JWT de usuario (T2, SEC-02)
 
 # -------------------- Inicialización del router --------------------
 router = APIRouter(prefix="/alerts", tags=["alerts"])          # Prefijo de ruta y etiqueta de grupo para documentación
 
 # -------------------- Ruta: Obtener las últimas alertas --------------------
-@router.get("/", response_model=list[AlertResponse])
+@router.get("/", response_model=list[AlertResponse], dependencies=[Depends(get_current_user)])
 async def get_latest_alerts(limit: int = 10, db: Session = Depends(get_db)):
     """
     Retorna las últimas 'n' alertas registradas en la base de datos.

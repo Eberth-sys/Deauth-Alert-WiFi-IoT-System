@@ -10,6 +10,7 @@ import { AlertSummary, AggregatedAlert, NodeStatus } from '../components/types'
 import { connectToWebSocket } from '../services/socket'
 import { useAlertWatcher } from '../hooks/useAlertWatcher'
 import { useNodeConnectionWatcher } from '../hooks/useNodeConnectionWatcher'
+import { authHeader } from '../services/http'   // Header Authorization (JWT de usuario) — T2
 
 // -------------------- URL base del backend --------------------
 const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000"
@@ -80,7 +81,7 @@ const DashboardPage = () => {
     // Consulta alertas por canal
     const fetchResumen = async () => {
       try {
-        const res = await fetch(`${API_URL}/alerts-summary`)
+        const res = await fetch(`${API_URL}/alerts-summary`, { headers: authHeader() })
         const data = await res.json()
         if (isMounted) {
           setAlertSummary(data)
@@ -94,7 +95,7 @@ const DashboardPage = () => {
     // Consulta estado de nodos ESP32
     const fetchStatus = async () => {
       try {
-        const res = await fetch(`${API_URL}/esp32-nodes`)
+        const res = await fetch(`${API_URL}/esp32-nodes`, { headers: authHeader() })
         const data = await res.json()
         if (isMounted) {
           setNodeStatus(data)
