@@ -65,20 +65,20 @@ def get_profile(current_user: User = Depends(get_current_user)):
 @router.post("/forgot-password", summary="Solicita recuperación de contraseña")
 def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
     """
-    Genera un token de recuperación de contraseña y simula el envío por correo.
+    Solicita la recuperación de contraseña.
+
+    Responde SIEMPRE lo mismo (exista o no la cuenta) para no permitir enumeración
+    de usuarios (SEC-05). El token nunca se devuelve en la respuesta: se entrega por
+    el canal de "correo" (aquí simulado / log del servidor).
     """
     user = db.query(User).filter(User.email == data.email).first()
 
-    if not user:
-        raise HTTPException(status_code=404, detail="No existe una cuenta con ese email")
+    if user:
+        reset_token = create_reset_token(user)
+        send_recovery_email_simulado(user.email, reset_token)
 
-    reset_token = create_reset_token(user)
-    send_recovery_email_simulado(user.email, reset_token)
-
-    return {
-        "message": "Enlace de recuperación generado (simulado)",
-        "token": reset_token  # Visible solo para pruebas desde Swagger
-    }
+    # Respuesta genérica idéntica para email existente o inexistente (anti-enumeración).
+    return {"message": "Si el email está registrado, enviaremos un enlace de recuperación."}
 
 # -------------------- Ruta: Restablecimiento de contraseña --------------------
 @router.post("/reset-password", summary="Reinicia la contraseña con token")

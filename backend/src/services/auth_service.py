@@ -106,22 +106,32 @@ def get_user_from_token(token: str, db: Session) -> User | None:
 def create_reset_token(user: User) -> str:
     """Genera un token temporal (30 min) para restablecer la contraseña"""
     expire = datetime.utcnow() + timedelta(minutes=30)
-    payload = {"sub": str(user.id), "exp": expire}
+    payload = {"sub": str(user.id), "exp": expire, "type": "reset"}  # claim de tipo (SEC-05)
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 def verify_reset_token(token: str, db: Session) -> User:
-    """Verifica el token recibido para restablecimiento de contraseña"""
+    """
+    Verifica el token de restablecimiento de contraseña.
+
+    Exige el claim type="reset" (un access token NO sirve como reset token) y
+    responde 401 genérico ante cualquier fallo (firma / expiración / tipo / sub
+    inválido), sin distinguir el motivo ni revelar si el usuario existe (SEC-05).
+    """
+    invalid = HTTPException(status_code=401, detail="Token inválido o expirado")
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = int(payload.get("sub"))
-        if not user_id:
-            raise ValueError("ID inválido en token")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+    except (JWTError, ValueError, TypeError):
+        raise invalid
+
+    if payload.get("type") != "reset":          # debe ser un token de reset, no un access token
+        raise invalid
+    if not user_id:
+        raise invalid
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise invalid                           # mismo 401 genérico (no revela si el usuario existe)
     return user
 
 def send_recovery_email_simulado(email: str, token: str):
