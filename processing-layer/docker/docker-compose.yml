@@ -4,7 +4,7 @@
 # Definimos los servicios que correrán en los contenedores
 services:
   postgres:                                              # Nombre del servicio (puede ser cualquier nombre, pero debe ser único en este archivo)
-    image: postgres:latest                               # última versión de la imagen oficial de PostgreSQL en Docker Hub
+    image: postgres:16-alpine                            # versión FIJA (reproducible). Nunca "latest". Si un volumen existente fue creado con otro major, migrar (pg_dump/restore) antes de cambiar el pin.
     container_name: deauth_postgres                      # Nombre del contenedor
     restart: always                                      # Configura el contenedor para que se reinicie automáticamente si se detiene inesperadamente
     env_file:
