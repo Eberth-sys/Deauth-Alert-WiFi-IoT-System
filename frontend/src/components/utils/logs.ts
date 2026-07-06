@@ -1,15 +1,24 @@
 // frontend/src/components/utils/logs.ts
 
+import { authHeader } from "../../services/http";  // Header Authorization (JWT de usuario) — T2/T4
+
 // -------------------- URL base del backend (desde archivo .env) --------------------
 const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
 
 /**
  * Solicita al backend el contenido de un archivo de logs específico.
+ * El endpoint es solo-admin: puede responder 403 si el usuario no es administrador.
  * @param filename - Nombre del archivo de logs (por ejemplo: ble_events.log)
  * @returns Un arreglo con cada línea del log como string
  */
 export const fetchLogFile = async (filename: string): Promise<string[]> => {
-  const response = await fetch(`${API_URL}/logs/${filename}`); // Llama al endpoint usando la URL desde .env
+  const response = await fetch(`${API_URL}/logs/${filename}`, { headers: authHeader() }); // envía el JWT
+  if (response.status === 403) {
+    throw new Error("FORBIDDEN"); // acceso restringido (solo administradores)
+  }
+  if (!response.ok) {
+    throw new Error("FETCH_ERROR"); // otro error (401 / 404 / 500 ...)
+  }
   const data = await response.json();
   return data.content; // Retorna el contenido del log
 };

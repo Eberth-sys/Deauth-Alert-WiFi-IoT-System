@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom"
 
 // -------------------- Componente principal --------------------
 function App() {
-  const { logout } = useAuthContext()
+  const { logout, user } = useAuthContext()   // `user.is_admin` decide la visibilidad del nav de logs
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -35,13 +35,15 @@ function App() {
 
       {/* 🧭 Botones flotantes para escritorio (sm+) */}
       <div className="fixed z-50 right-6 top-24 flex flex-col gap-3 sm:flex hidden">
-        <a
-          href="/logs"
-          className="flex items-center gap-2 bg-white text-gray-800 px-4 py-2 rounded-full shadow-lg font-semibold hover:bg-gray-200 transition-all duration-300"
-        >
-          <span className="text-lg">📜</span>
-          <span>Ver BLE logs</span>
-        </a>
+        {user?.is_admin && (
+          <a
+            href="/logs"
+            className="flex items-center gap-2 bg-white text-gray-800 px-4 py-2 rounded-full shadow-lg font-semibold hover:bg-gray-200 transition-all duration-300"
+          >
+            <span className="text-lg">📜</span>
+            <span>Ver BLE logs</span>
+          </a>
+        )}
         <a
           href="/reportes"
           className="flex items-center gap-2 bg-white text-gray-800 px-4 py-2 rounded-full shadow-lg font-semibold hover:bg-gray-200 transition-all duration-300"
@@ -68,12 +70,14 @@ function App() {
           🔓
         </button>
 
-        <a
-          href="/logs"
-          className="bg-white text-gray-800 px-3 py-2 rounded-full shadow-md text-sm font-semibold flex items-center gap-1"
-        >
-          📜
-        </a>
+        {user?.is_admin && (
+          <a
+            href="/logs"
+            className="bg-white text-gray-800 px-3 py-2 rounded-full shadow-md text-sm font-semibold flex items-center gap-1"
+          >
+            📜
+          </a>
+        )}
         <a
           href="/reportes"
           className="bg-white text-gray-800 px-3 py-2 rounded-full shadow-md text-sm font-semibold flex items-center gap-1"
