@@ -27,9 +27,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "1440")) # Exp
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")          # URL del frontend para enlaces
 
-# Validación: si no hay clave secreta, lanzar error crítico
-if not SECRET_KEY:
-    raise RuntimeError("❌ JWT_SECRET_KEY no está definido en el archivo .env")
+# Validación (SEC-08): la clave debe existir y ser suficientemente larga (>=32 chars).
+# Fail-fast en el arranque para no operar con una clave débil.
+if not SECRET_KEY or len(SECRET_KEY) < 32:
+    raise RuntimeError("JWT_SECRET_KEY ausente o demasiado corta (mínimo 32 caracteres) — SEC-08")
 
 # -------------------- Contexto de encriptación para contraseñas --------------------
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

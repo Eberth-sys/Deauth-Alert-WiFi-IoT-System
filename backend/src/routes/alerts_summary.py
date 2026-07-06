@@ -63,4 +63,5 @@ def get_alerts_summary(db: Session = Depends(get_db)):
             for row in result
         ]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))  # Manejo de errores generales
+        print(f"[ALERTS-SUMMARY] Error al obtener el resumen: {e}")  # detalle SOLO server-side (SEC-07)
+        raise HTTPException(status_code=500, detail="No se pudo obtener el resumen de alertas")

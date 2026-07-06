@@ -85,4 +85,5 @@ def alertas_por_fecha(start: str, end: str, db: Session = Depends(get_db)):
         result = db.execute(query, {"start": start_dt, "end": end_dt}).fetchall()
         return [dict(row._mapping) for row in result]
     except Exception as e:
-        return {"error": f"❌ Consulta inválida: {str(e)}"}
+        print(f"[CUSTOM-QUERIES] Consulta por fecha inválida: {e}")  # detalle SOLO server-side (SEC-07)
+        return {"error": "Consulta inválida: verifique el formato de fechas."}
