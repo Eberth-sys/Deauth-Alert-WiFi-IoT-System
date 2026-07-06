@@ -10,12 +10,13 @@ from src.models import ESP32Status                            # Modelo ORM para 
 from src.schemas import ESP32StatusResponse                   # Esquema de datos para validación y respuesta
 from src.routes.websocket import send_esp32_status_to_clients # Función para emitir datos por WebSocket
 from src.services.service_auth import verify_service_key      # Autenticación máquina-a-máquina (DEC-0005)
+from src.services.auth_service import get_current_user        # Autenticación JWT de usuario (T2, SEC-02)
 
 # -------------------- Crear router --------------------
 router = APIRouter(prefix="/esp32-nodes", tags=["esp32_nodes"])
 
 # -------------------- Endpoint: Obtener estado de nodos --------------------
-@router.get("/", response_model=list[ESP32StatusResponse])
+@router.get("/", response_model=list[ESP32StatusResponse], dependencies=[Depends(get_current_user)])
 def get_esp32_status(db: Session = Depends(get_db)):
     """
     Retorna una lista con el estado actual de todos los nodos ESP32 registrados.

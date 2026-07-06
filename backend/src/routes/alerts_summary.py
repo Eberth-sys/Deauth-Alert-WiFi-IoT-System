@@ -7,12 +7,13 @@ from sqlalchemy import text                                       # Para ejecuta
 
 # -------------------- Módulos internos --------------------
 from src.database import get_db                                   # Función para obtener una sesión de base de datos
+from src.services.auth_service import get_current_user           # Autenticación JWT de usuario (T2, SEC-02)
 
 # -------------------- Inicialización del router --------------------
 router = APIRouter(prefix="/alerts-summary", tags=["Resumen de alertas"])  # Agrupa las rutas bajo un prefijo y etiqueta
 
 # -------------------- Ruta: Obtener resumen de alertas por canal --------------------
-@router.get("/")
+@router.get("/", dependencies=[Depends(get_current_user)])
 def get_alerts_summary(db: Session = Depends(get_db)):
     """
     Consulta un resumen de alertas agrupadas por canal Wi-Fi.

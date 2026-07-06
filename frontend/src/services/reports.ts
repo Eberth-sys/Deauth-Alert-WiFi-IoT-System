@@ -1,6 +1,8 @@
 //frontend\src\services\reports.ts
 
 // -------------------- URL base del backend (desde .env) --------------------
+import { authHeader } from "./http";                 // Header Authorization (JWT de usuario) — T2
+
 const API_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";  // Valor por defecto si no está definido
 
 // -------------------- Función: Obtener alertas en un rango de fechas --------------------
@@ -10,7 +12,8 @@ export const fetchAlertsByDate = async (start: string, end: string) => {
    * entre dos fechas específicas, utilizando parámetros en la URL.
    */
   const response = await fetch(
-    `${API_URL}/custom-queries/alertas-por-fecha?start=${start}&end=${end}`
+    `${API_URL}/custom-queries/alertas-por-fecha?start=${start}&end=${end}`,
+    { headers: authHeader() }
   );
 
   // Devuelve la respuesta en formato JSON
@@ -23,7 +26,7 @@ export const fetchAlertsToday = async () => {
    * Realiza una petición GET al backend para obtener todas las alertas
    * registradas durante el día actual.
    */
-  const response = await fetch(`${API_URL}/custom-queries/alertas-de-hoy`);
+  const response = await fetch(`${API_URL}/custom-queries/alertas-de-hoy`, { headers: authHeader() });
 
   // Devuelve la respuesta parseada como JSON
   return await response.json();
