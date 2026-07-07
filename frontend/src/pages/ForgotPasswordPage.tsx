@@ -18,7 +18,7 @@ const ForgotPasswordPage = () => {
     setError("");
 
     try {
-      const res = await requestPasswordReset(email);       // Envía la solicitud al backend
+      await requestPasswordReset(email);                   // Envía la solicitud al backend
       setMessage("✅ Se envió un enlace de recuperación a tu correo.");
     } catch (err: any) {
       setError("❌ " + (err.message || "Error al enviar recuperación")); // Muestra error si falla

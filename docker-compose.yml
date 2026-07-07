@@ -2,7 +2,7 @@
 # Configuración por variables de entorno (12-factor). Uso:
 #   docker compose --env-file .env up --build          (o crea un ".env" auto-cargado)
 # Los secretos vienen del env-file en RUNTIME; NUNCA se hornean en las imágenes.
-# (El frontend y la processing-layer/BLE NO están acá: web-stack software-only.)
+# (Incluye frontend; la processing-layer/BLE NO está acá — requiere hardware.)
 
 services:
   postgres:
@@ -47,6 +47,20 @@ services:
     depends_on:
       postgres:
         condition: service_healthy             # arranca solo cuando Postgres está healthy
+    networks:
+      - deauth_network
+
+  frontend:
+    build:
+      context: ./frontend                      # Dockerfile de D4 (node → nginx)
+      args:
+        VITE_BACKEND_URL: ${VITE_BACKEND_URL:-http://localhost:8000}   # baked en build-time por Vite
+        VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:8000}
+    restart: unless-stopped
+    ports:
+      - "8080:80"                              # frontend (nginx) expuesto al host
+    depends_on:
+      - backend
     networks:
       - deauth_network
 

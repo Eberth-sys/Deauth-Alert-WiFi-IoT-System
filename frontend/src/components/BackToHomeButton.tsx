@@ -1,7 +1,5 @@
 // frontend/src/components/BackToHomeButton.tsx
 
-import React from 'react'
-
 const BackToHomeButton = () => {
   return (
     <div className="w-full flex justify-end mb-6">
