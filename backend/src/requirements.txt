@@ -1,19 +1,23 @@
 # backend/src/requirements.txt
+# Dependencias DIRECTAS pineadas (D2). Versiones resueltas desde una imagen
+# limpia `python:3.11-slim-bookworm` (no `pip freeze` de un entorno personal).
 
 # -------------------- Framework y servidor --------------------
-fastapi[all]            # Incluye FastAPI con soporte para WebSockets, CORS, y todas las extensiones opcionales
-uvicorn                 # Servidor ASGI recomendado para ejecutar aplicaciones FastAPI
+fastapi==0.139.0            # FastAPI (core). Se quitó `fastapi[all]`: las extras que usa la app se declaran explícitas.
+uvicorn[standard]==0.50.2   # Servidor ASGI + soporte WebSocket (websockets/httptools)
 
 # -------------------- Base de datos --------------------
-psycopg2                # Driver para conectar con PostgreSQL desde Python
-sqlalchemy              # ORM para manejar modelos y consultas SQL con Python
+psycopg2-binary==2.9.12     # Driver PostgreSQL precompilado (sin build-essential/libpq-dev en la imagen)
+sqlalchemy==2.0.51          # ORM
 
 # -------------------- Variables de entorno --------------------
-python-dotenv           # Para cargar variables desde archivos .env
+python-dotenv==1.2.2
 
 # -------------------- Validación y serialización --------------------
-pydantic                # Validación de datos y creación de modelos de datos
+pydantic==2.13.4
+email-validator==2.3.0      # REQUERIDO por EmailStr (lo traía `fastapi[all]`; ahora explícito)
 
 # -------------------- Seguridad --------------------
-python-jose             # Para crear y verificar tokens JWT (usado en autenticación)
-passlib[bcrypt]         # Hashing seguro de contraseñas (bcrypt incluido)
+python-jose==3.5.0          # JWT (HS256)
+passlib[bcrypt]==1.7.4      # Hashing de contraseñas
+bcrypt==4.0.1               # PIN de compatibilidad con passlib 1.7.4 (bcrypt >=4.1 rompe su self-test)

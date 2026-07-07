@@ -1,0 +1,37 @@
+# ==========================================================================
+# .dockerignore — backend (D1 · higiene Docker)
+# Evita hornear secretos, cachés y basura en la imagen del backend.
+# NOTA: un .dockerignore solo actúa durante `docker build`; no cambia el
+# runtime actual. Aplica al contexto de build del backend.
+# ==========================================================================
+
+# 🔐 Secretos y config local — NUNCA en la imagen
+**/.env
+**/.env.*
+**/certs/
+*.pem
+*.key
+*.crt
+
+# 🐍 Python — cachés y entornos
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# 🗂️ Control de versiones / editores / SO
+.git/
+.gitignore
+.dockerignore
+.vscode/
+.idea/
+.DS_Store
+
+# 📝 Logs y artefactos de build
+**/logs/
+*.log
+dist/
+build/

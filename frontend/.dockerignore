@@ -1,0 +1,27 @@
+# ==========================================================================
+# .dockerignore — frontend (D1 · higiene Docker)
+# El build (multi-stage node → nginx) regenera dependencias y estáticos.
+# NOTA: solo actúa durante `docker build`; no cambia el runtime actual.
+# ==========================================================================
+
+# 📦 Dependencias y build — se regeneran con `npm ci` / `vite build`
+node_modules/
+dist/
+build/
+.vite/
+
+# 🔐 Config local / secretos — no se hornea .env (el frontend es público igual)
+**/.env
+**/.env.*
+
+# 🗂️ Control de versiones / editores / SO
+.git/
+.gitignore
+.dockerignore
+.vscode/
+.idea/
+.DS_Store
+
+# 📝 Logs y coverage
+*.log
+coverage/
