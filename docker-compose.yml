@@ -1,0 +1,58 @@
+# docker-compose.yml — WEB-STACK (postgres + backend) · D3 · DEC-0004
+# Configuración por variables de entorno (12-factor). Uso:
+#   docker compose --env-file .env up --build          (o crea un ".env" auto-cargado)
+# Los secretos vienen del env-file en RUNTIME; NUNCA se hornean en las imágenes.
+# (El frontend y la processing-layer/BLE NO están acá: web-stack software-only.)
+
+services:
+  postgres:
+    image: postgres:16-alpine                # versión FIJA (reproducible)
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PG_DB}
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}       # secreto (por env-file en runtime)
+    ports:
+      - "${PG_PORT:-5432}:5432"               # puerto EXPUESTO al host (para clientes DB externos)
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Referencia READ-ONLY al init.sql existente (no se duplica ni se edita processing-layer):
+      - ./processing-layer/docker/init-scripts:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - deauth_network
+
+  backend:
+    build: ./backend                          # Dockerfile de D2 (contexto ./backend)
+    restart: unless-stopped
+    environment:
+      PG_HOST: postgres                        # ← nombre de SERVICIO en la red Docker
+      PG_PORT: "5432"                          # puerto INTERNO del contenedor postgres (fijo, no el del host)
+      PG_DB: ${PG_DB}
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}        # secreto, ≥32 chars (fail-fast si es corta)
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-1440}
+      SERVICE_API_KEY: ${SERVICE_API_KEY}      # secreto, ≥32 chars
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      LOGS_DIR: ${LOGS_DIR:-/app/logs}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+    ports:
+      - "8000:8000"                            # backend expuesto al host
+    depends_on:
+      postgres:
+        condition: service_healthy             # arranca solo cuando Postgres está healthy
+    networks:
+      - deauth_network
+
+volumes:
+  postgres_data:
+
+networks:
+  deauth_network:
+    driver: bridge
