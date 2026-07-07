@@ -3,9 +3,6 @@
 // Importamos el tipo de datos que describe el estado de los nodos
 import { NodeStatus } from './types'
 
-// Importamos función para obtener el texto del estado del nodo (conectado/desconectado)
-import { getConnectionStatusText } from './utils/formatters'
-
 // Definimos las props que el componente espera recibir
 type Props = {
   status: NodeStatus[]

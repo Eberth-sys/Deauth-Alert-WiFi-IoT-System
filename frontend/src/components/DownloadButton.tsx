@@ -1,7 +1,5 @@
 //frontend\src\components\DownloadButton.tsx
 
-import React from 'react'
-
 // Props que recibe el botón: una función que se ejecuta al hacer clic
 type Props = {
   onClick: () => void
