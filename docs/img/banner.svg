@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-label="Deauth-Alert: detección en tiempo real de ataques de desautenticación Wi-Fi 802.11">
+  <title>Deauth-Alert</title>
+  <desc>Banner del proyecto Deauth-Alert: el nombre con la palabra Alert resaltada en rojo, una línea sobre la detección de ataques Wi-Fi en tiempo real, las tecnologías principales, la atribución académica a la Universidad de Buenos Aires y un trazo de señal con una anomalía roja que representa una trama de desautenticación detectada.</desc>
+  <rect x="0" y="0" width="1200" height="300" fill="#0f172a"/>
+  <rect x="0" y="0" width="6" height="300" fill="#ef4444"/>
+  <polyline points="950,150 1058,150" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" opacity="0.75"/>
+  <polyline points="1058,150 1066,116 1074,184 1082,150" fill="none" stroke="#f87171" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="1082,150 1180,150" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" opacity="0.75"/>
+  <text x="64" y="118" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="64" font-weight="700"><tspan fill="#f8fafc">Deauth-</tspan><tspan fill="#f87171">Alert</tspan></text>
+  <text x="66" y="162" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="25" fill="#f1f5f9">Detección en tiempo real de ataques de desautenticación Wi-Fi (802.11)</text>
+  <text x="66" y="207" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="16" fill="#7dd3fc" letter-spacing="0.5">ESP32 · Raspberry Pi · FastAPI · React · PostgreSQL · Docker</text>
+  <text x="66" y="248" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="15" fill="#64748b">UBA · FIUBA · Especialización en Internet de las Cosas · Trabajo de tesis</text>
+</svg>
