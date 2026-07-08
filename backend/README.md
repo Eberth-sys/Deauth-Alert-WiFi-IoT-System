@@ -1,229 +1,209 @@
-# 🚀 Servicio Backend | Deauth‑Alert Wi‑Fi IoT System<!-- omit in toc -->
+# Backend
 
-## 🗂️ Índice <!-- omit in toc -->
+⬅ Parte de [Deauth-Alert](../README.md)
 
-<!-- TOC levels="2..4" -->
+<p align="left">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white">
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.139-009688?logo=fastapi&logoColor=white">
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white">
+  <img alt="JWT" src="https://img.shields.io/badge/Auth-JWT-000000?logo=jsonwebtokens&logoColor=white">
+  <img alt="Licencia" src="https://img.shields.io/badge/licencia-pendiente-lightgrey">
+</p>
 
-- [🖥️ Descripción](#️-descripción)
-- [📂 Estructura del backend](#-estructura-del-backend)
-- [⚙️ Configuración del entorno](#️-configuración-del-entorno)
-  - [📋 Requisitos previos](#-requisitos-previos)
-- [🔧 Instalación y arranque](#-instalación-y-arranque)
-- [🔗 Endpoints REST \& WebSocket](#-endpoints-rest--websocket)
-  - [📡 REST API](#-rest-api)
-  - [🌐 WebSocket](#-websocket)
-- [🗄️ Modelos y esquemas](#️-modelos-y-esquemas)
-- [💾 Base de datos](#-base-de-datos)
-- [👨‍💻 **Autor**](#-autor)
-- [📄 Licencia](#-licencia)
+Manual técnico del backend: API REST y WebSocket desarrollados con FastAPI sobre PostgreSQL. Registra alertas de desautenticación, gestiona el estado de los nodos ESP32 y autentica usuarios y servicios.
 
-## 🖥️ Descripción
+## Índice
 
-El **servicio backend** de este sistema proporciona una API desarrollada con **FastAPI** y una base de datos **PostgreSQL**. Sus objetivos principales son:
+- [Descripción](#descripción)
+- [Estructura del backend](#estructura-del-backend)
+- [Configuración del entorno](#configuración-del-entorno)
+- [Instalación y arranque](#instalación-y-arranque)
+- [Endpoints REST y WebSocket](#endpoints-rest-y-websocket)
+- [Modelos y esquemas](#modelos-y-esquemas)
+- [Base de datos](#base-de-datos)
+- [Estado de validación](#estado-de-validación)
+- [Autor](#autor)
+- [Licencia](#licencia)
 
-1. **Registrar** y almacenar alertas de desautenticación capturadas por nodos ESP32.
-2. **Exponer** los datos mediante **endpoints REST** y **canal WebSocket** para comunicación en tiempo real.
-3. **Gestionar** el estado de los dispositivos y **asegurar** la autenticación de usuarios.
+## Descripción
 
-A lo largo de este documento se detallan la instalación, configuración, uso y arquitectura de todos los componentes.
+El backend expone una API con FastAPI y persiste los datos en PostgreSQL. Sus responsabilidades principales:
 
-## 📂 Estructura del backend
+1. Registrar y consultar alertas de desautenticación capturadas por los nodos ESP32.
+2. Exponer los datos por endpoints REST y por un canal WebSocket en tiempo real.
+3. Autenticar usuarios (JWT) y servicios (credencial máquina a máquina para la capa de procesamiento).
+
+Para el contexto completo del sistema (arquitectura, otras capas, evidencia académica), ver el [README principal](../README.md). El [README principal también documenta el despliegue con Docker](../README.md#puesta-en-marcha), que levanta este backend junto con PostgreSQL y el frontend.
+
+## Estructura del backend
 
 ```plaintext
-DEAUTH-ALERT-WIFI-IOT-SYSTEM/           # Raíz del repositorio general
-└── backend/                            # Carpeta del servicio backend
-    ├── src/                           # Código fuente principal
-    │   ├── __pycache__/               # Archivos compilados de Python
-    │   ├── routes/                    # Definición de rutas HTTP y WebSocket
-    │   │   ├── admin_routes.py        # Gestión de usuarios y permisos
-    │   │   ├── alerts_summary.py      # Consultas agregadas de alertas
-    │   │   ├── alerts.py              # Endpoints para alertas
-    │   │   ├── auth.py                # Autenticación y autorización
-    │   │   ├── custom_queries.py      # Consultas SQL personalizadas
-    │   │   ├── esp32_nodes.py         # Estado y actualización de nodos ESP32
-    │   │   ├── logs.py                # Lectura y descarga de logs
-    │   │   └── websocket.py           # Canal WebSocket en tiempo real
-    │   ├── services/                  # Lógica de negocio adicional
-    │   │   └── auth_service.py        # Servicio de autenticación
-    │   ├── tests/                     # Pruebas unitarias e integración
-    │   ├── database.py                # Configuración de la base de datos y sesiones
-    │   ├── main.py                    # Inicialización de la app y registro de routers
-    │   ├── models.py                  # Definición de modelos ORM (SQLAlchemy)
-    │   ├── requirements.txt           # Dependencias del proyecto
-    │   └── schemas.py                 # Esquemas Pydantic para validación
-    ├── .env                           # Variables de entorno (no versionar)
-    ├── .env.example                   # Plantilla de variables de entorno
-    └── README.md                      # Documentación principal del backend
-
+backend/
+├── src/
+│   ├── routes/                    # Rutas HTTP y WebSocket
+│   │   ├── admin_routes.py        # Vistas de administrador (/admin)
+│   │   ├── alerts_summary.py      # Consultas agregadas de alertas
+│   │   ├── alerts.py              # Endpoints de alertas
+│   │   ├── auth.py                # Registro, login y recuperación de contraseña
+│   │   ├── custom_queries.py      # Consultas predefinidas sobre alertas
+│   │   ├── esp32_nodes.py         # Estado y actualización de nodos ESP32
+│   │   ├── logs.py                # Lectura y descarga de logs
+│   │   └── websocket.py           # Canal WebSocket en tiempo real
+│   ├── services/
+│   │   ├── auth_service.py        # JWT y hashing de contraseñas
+│   │   └── service_auth.py        # Credencial de servicio (máquina a máquina)
+│   ├── tests/                     # Pruebas
+│   ├── database.py                # Configuración de la base de datos y sesiones
+│   ├── main.py                    # Inicialización de la app y registro de routers
+│   ├── models.py                  # Modelos ORM (SQLAlchemy)
+│   ├── requirements.txt           # Dependencias, versiones fijadas
+│   └── schemas.py                 # Esquemas Pydantic
+├── Dockerfile
+├── .dockerignore
+└── README.md
 ```
 
-## ⚙️ Configuración del entorno
+## Configuración del entorno
 
-### 📋 Requisitos previos
+### Requisitos previos
 
-* **Python 3.8 o superior**
-* **Git**
-* **PostgreSQL** en ejecución
-* **Docker & Docker Compose** (opcional para base de datos)
-* **Virtualenv** o similar (recomendado)
+- Python 3.11, versión validada por la imagen Docker del backend.
+- Git.
+- PostgreSQL en ejecución (local o vía el Docker Compose del [README principal](../README.md)).
 
-## 🔧 Instalación y arranque
+## Instalación y arranque
 
-1. **Clonar el repositorio y entrar en el backend**:
+### 1. Clonar el repositorio y entrar al backend
 
-   ```bash
-   git clone https://github.com/usuario/DEAUTH-ALERT-WIFI-IOT-SYSTEM.git
-   cd DEAUTH-ALERT-WIFI-IOT-SYSTEM/backend
-   ```
+```bash
+git clone https://github.com/Eberth-sys/Deauth-Alert-WiFi-IoT-System.git
+cd Deauth-Alert-WiFi-IoT-System/backend
+```
 
-2. **Crear y activar un entorno virtual**:
+### 2. Crear y activar un entorno virtual
 
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate      # Linux/macOS
-   .venv\Scripts\activate       # Windows
-   ```
+```bash
+python -m venv .venv
+source .venv/bin/activate      # Linux/macOS
+.venv\Scripts\activate         # Windows
+```
 
-3. **Instalar dependencias**:
+### 3. Instalar dependencias
 
-   ```bash
-   pip install --upgrade pip
-   pip install -r src/requirements.txt
-   ```
+```bash
+pip install --upgrade pip
+pip install -r src/requirements.txt
+```
 
-4. **Configurar la base de datos**:
+### 4. Configurar las variables de entorno
 
-   1. Copiar la plantilla de entorno:
+```bash
+cp src/.env.example src/.env
+```
 
-      ```bash
-      cp .env.example .env
-      ```
-   2. Abrir `.env` y completar las variables:
+Completar en `src/.env`, como mínimo:
 
-      * `PG_DB`: nombre de la base de datos
-      * `PG_USER`: usuario de PostgreSQL
-      * `PG_PASSWORD`: contraseña del usuario
-      * `PG_HOST`: dirección del servidor de DB
-      * `PG_PORT`: puerto de conexión
-   3. Ver sección **Plantilla de archivo `.env`** para más detalles sobre cada variable.
-      1.  Abrir el archivo .env recién creado.
-   
-   Reemplazar cada valor de variable por sus credenciales y rutas correspondientes:
-   
-   Guardar los cambios y verificar que el archivo .env esté excluido del control de versiones.
+| Variable | Descripción |
+| --- | --- |
+| `PG_DB`, `PG_USER`, `PG_PASSWORD`, `PG_HOST`, `PG_PORT` | Conexión a PostgreSQL. El backend deriva `DATABASE_URL` de estas variables; no hace falta definirla. |
+| `JWT_SECRET_KEY` | Clave para firmar los JWT. Debe tener 32 caracteres o más: el backend falla al arrancar si es más corta. |
+| `SERVICE_API_KEY` | Credencial que usa la capa de procesamiento para actualizar el estado de los nodos ESP32. |
+| `CORS_ORIGINS` | Orígenes permitidos, separados por coma y sin espacios (por ejemplo `http://localhost:5173,http://localhost:8080`). |
+| `LOGS_DIR` | Carpeta donde se guardan los archivos de log. |
+| `FRONTEND_URL` | URL del frontend, usada en enlaces generados por el backend. |
 
-    ```bash
+Mantener `src/.env` fuera del control de versiones (ya está en `.gitignore`).
 
-    # ==========================================================================================================
-    # 📦 Archivo de ejemplo .env para la configuración del sistema IoT
-    # 🛠️ Este archivo contiene las variables necesarias para ejecutar el backend del proyecto.
-    # ==========================================================================================================
+### 5. Arrancar el servidor
 
-    # -------------------- 🗄️ Configuración de la base de datos PostgreSQL --------------------
-    PG_DB=deauth_alerts           # Nombre de la base de datos creada en PostgreSQL
-    PG_USER=your_username         # Usuario con permisos de lectura/escritura
-    PG_PASSWORD=your_secure_password  # Contraseña del usuario de la base de datos
-    PG_HOST=localhost             # Dirección del servidor de la base de datos
-    PG_PORT=5432                  # Puerto de conexión (por defecto: 5432)
+```bash
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-    # 🔗 URL de conexión completa para SQLAlchemy
-    # Construida automáticamente con las variables anteriores.
-    DATABASE_URL=postgresql://$PG_USER:$PG_PASSWORD@$PG_HOST:$PG_PORT/$PG_DB
+Este es el mismo comando (sin `--reload`) que usa la imagen Docker del backend.
 
-    # -------------------- 🔐 Configuración de autenticación JWT --------------------
-    JWT_SECRET_KEY=replace_with_a_long_random_string  # Clave secreta para firmar los tokens JWT
-    JWT_ALGORITHM=HS256                              # Algoritmo de firma (p.ej.: HS256)
-    JWT_EXPIRE_MINUTES=1440                           # Duración del token en minutos (1440 = 24 h)
+### 6. Ver la documentación interactiva
 
-    # -------------------- 🤖 Configuración de notificaciones por Telegram --------------------
-    TELEGRAM_BOT_TOKEN=your_telegram_bot_token        # Token del bot creado en Telegram via BotFather
-    TELEGRAM_CHAT_ID=your_telegram_chat_id            # ID del chat o grupo que recibirá las alertas
+Con el servidor en ejecución, abrir [http://localhost:8000/docs](http://localhost:8000/docs) (Swagger UI) para explorar y probar los endpoints.
 
-    # -------------------- 🌐 Control de orígenes permitidos (CORS) --------------------
-    # Enumerar las URLs desde las que el frontend podrá hacer peticiones
-    CORS_ORIGINS=http://localhost:5173,http://192.168.0.100:5173
+## Endpoints REST y WebSocket
 
-    # -------------------- 📝 Ruta para almacenamiento de logs --------------------
-    LOGS_DIR=/ruta/a/tu/repositorio/processing-layer/logs  # Carpeta donde se guardan los archivos de registro
+`get_current_user` exige un JWT de usuario válido (encabezado `Authorization: Bearer <token>`). `get_current_admin_user` exige además rol de administrador. `verify_service_key` exige el encabezado `X-API-Key` con el valor de `SERVICE_API_KEY`.
 
-    # -------------------- 🔗 URL del frontend --------------------
-    # Usada para redirecciones y generación de enlaces en correos
-    FRONTEND_URL=http://localhost:5173
-    ```
+### Autenticación (`/auth`)
 
-    ⚠️  Consejo: Mantenga este archivo fuera del control de versiones (.gitignore) y gestione sus credenciales con cuidado.
+| Método | Ruta | Auth | Descripción |
+| --- | --- | --- | --- |
+| POST | `/auth/register` | Ninguna | Registra un usuario nuevo. |
+| POST | `/auth/login` | Ninguna | Inicia sesión y devuelve un JWT. |
+| GET | `/auth/me` | Usuario | Devuelve los datos del usuario autenticado. |
+| POST | `/auth/forgot-password` | Ninguna | Solicita la recuperación de contraseña. |
+| POST | `/auth/reset-password` | Ninguna (token de reseteo en el cuerpo) | Restablece la contraseña con el token recibido. |
 
+### Alertas y nodos
 
+| Método | Ruta | Auth | Descripción |
+| --- | --- | --- | --- |
+| GET | `/alerts` | Usuario | Lista las alertas registradas. |
+| GET | `/alerts-summary` | Usuario | Estadísticas agregadas de alertas. |
+| GET | `/esp32-nodes` | Usuario | Lista el estado de los nodos ESP32. |
+| POST | `/esp32-nodes/update` | Servicio (`X-API-Key`) | Actualiza el estado de un nodo; la capa de procesamiento la invoca y el backend emite el cambio por WebSocket. |
 
-1. **Arrancar el servidor**:
-   
-   Ejecute el siguiente comando para arrancar la aplicación con recarga automática:
+### Consultas personalizadas (`/custom-queries`)
 
-   ```bash
-   `uvicorn src.main:app --reload --host $HOST --port $PORT`
-   ```
-    ⚠️ Reemplace `$HOST` y `$PORT` por los valores definidos en el archivo .env.
+| Método | Ruta | Auth | Descripción |
+| --- | --- | --- | --- |
+| GET | `/custom-queries/ultimas-alertas` | Usuario | Últimas alertas registradas. |
+| GET | `/custom-queries/total-alertas` | Usuario | Total de alertas. |
+| GET | `/custom-queries/alertas-por-nodo` | Usuario | Alertas agrupadas por nodo. |
+| GET | `/custom-queries/canales-mas-afectados` | Usuario | Canales con más alertas. |
+| GET | `/custom-queries/alertas-de-hoy` | Usuario | Alertas del día actual. |
+| GET | `/custom-queries/alertas-por-fecha` | Usuario | Alertas filtradas por fecha. |
 
-2. **Ver documentación interactiva**:
-   
-   Abra en navegador:
+### Logs y administración
 
-   ```bash
-   http://$HOST:$PORT/docs
-   ````
-    Esta interfaz de Swagger UI permite explorar y probar todos los endpoints disponibles.
+| Método | Ruta | Auth | Descripción |
+| --- | --- | --- | --- |
+| GET | `/logs` | Administrador | Lista los archivos de log. |
+| GET | `/logs/{log_filename}` | Administrador | Devuelve el contenido de un log. |
+| GET | `/logs/download/{log_filename}` | Administrador | Descarga el archivo de log completo. |
+| GET | `/admin/logs` | Administrador | Vista de logs para administración. |
+| GET | `/admin/reports` | Administrador | Vista de reportes para administración. |
 
+### WebSocket
 
-## 🔗 Endpoints REST & WebSocket
+- **URL:** `ws://<host>:<puerto>/ws/alerts?token=<JWT>` (por ejemplo, `ws://localhost:8000/ws/alerts?token=...`).
+- El token JWT viaja por parámetro de consulta, porque el WebSocket del navegador no admite encabezados personalizados en el *handshake*. Sin token válido, la conexión se rechaza con el código de cierre 1008 antes de aceptarse.
+- En un despliegue expuesto a Internet, usar WSS para cifrar el token en tránsito.
+- Emite en tiempo real las nuevas alertas y los cambios de estado de los nodos.
 
-### 📡 REST API
+## Modelos y esquemas
 
-| Método | Ruta                        | Descripción                                                  |
-| ------ | --------------------------- | ------------------------------------------------------------ |
-| GET    | `/alerts`                   | Recupera las últimas N alertas (parámetro opcional `limit`). |
-| POST   | `/alerts`                   | Crea una nueva alerta.                                       |
-| GET    | `/alerts-summary`           | Obtiene estadísticas agregadas por canal y último timestamp. |
-| GET    | `/esp32-nodes`              | Lista el estado de todos los nodos ESP32.                    |
-| POST   | `/esp32-nodes/update`       | Actualiza el estado de un nodo y emite WebSocket.            |
-| GET    | `/logs`                     | Lista archivos de registro.                                  |
-| GET    | `/logs/{filename}`          | Devuelve el contenido del log línea a línea.                 |
-| GET    | `/logs/download/{filename}` | Descarga el archivo de log completo.                         |
+| Archivo | Motor | Contenido | Descripción |
+| --- | --- | --- | --- |
+| `models.py` | SQLAlchemy | `Alert`, `ESP32Status` | Tablas `alerts` y `esp32_status`, con sus campos y restricciones. |
+| `schemas.py` | Pydantic | `AlertCreate`, `AlertResponse`, `ESP32StatusResponse` | Validación y serialización de peticiones y respuestas. |
 
-### 🌐 WebSocket
+## Base de datos
 
-* **URL:** `ws://$HOST:$PORT/ws/alerts`
-* **Función:** Emite en tiempo real todas las nuevas alertas y cambios de estado de nodos.
+Se usa PostgreSQL. Las tablas se crean automáticamente al iniciar la aplicación (`Base.metadata.create_all`):
 
-## 🗄️ Modelos y esquemas
+| Tabla | Descripción |
+| --- | --- |
+| `alerts` | Eventos de desautenticación (BSSID, canal, fecha). |
+| `esp32_status` | Estado (`connected`/`disconnected`) de cada nodo. |
+| `users` | Cuentas de usuario del panel (creada por el propio backend). |
 
-| Archivo      | Motor      | Clases / Schemas                                  | Descripción                                                                  |
-| ------------ | ---------- | ------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `models.py`  | SQLAlchemy | `Alert``ESP32Status`                              | Define las tablas: `alerts` y `esp32_status` con sus campos y restricciones. |
-| `schemas.py` | Pydantic   | `AlertCreate``AlertResponse``ESP32StatusResponse` | Valida y serializa datos en peticiones y respuestas.                         |
+## Estado de validación
 
-## 💾 Base de datos
+| Estado de validación |
+| :--- |
+| El backend se probó en laboratorio como parte del prototipo de tesis. Las rutas de datos y el WebSocket están protegidos con autenticación (JWT o credencial de servicio, según el endpoint); las consideraciones de seguridad y despliegue completas están en [`SECURITY.md`](../SECURITY.md). |
 
-Se utiliza **PostgreSQL**. Las tablas se generan automáticamente al iniciar la aplicación:
+## Autor
 
-| Tabla          | Descripción                                                 |
-| -------------- | ----------------------------------------------------------- |
-| `alerts`       | Registra eventos de desautenticación (BSSID, canal, fecha). |
-| `esp32_status` | Guarda estado (`connected`/`disconnected`) de cada nodo.    |
+**Esp. Ing. Eberth Gabriel Alarcón González.** Perfil completo, formación y evidencia académica en el [README principal](../README.md#sobre-el-autor).
 
-## 👨‍💻 **Autor**
+## Licencia
 
-**Esp. Ing. Eberth Alarcón**  
-🌐 [LinkedIn - Eberth Alarcón](https://www.linkedin.com/in/eberthalarcon90)  
-
-**Universidad de Buenos Aires (UBA)** 🇦🇷  
-**Facultad de Ingeniería**  -  **Especialización en Internet de las Cosas (IoT)**
-
-<img src="https://i.postimg.cc/nz9jwWQG/uba-logo.png" alt="Universidad de Buenos Aires" width="300"/>
-
----
-
-## 📄 Licencia
-
-Licencia **pendiente de definición** — se establecerá antes de la publicación pública. Hasta entonces, © 2025 Eberth Alarcón, todos los derechos reservados.
-
----
+Licencia pendiente de definición. Se establecerá antes de la publicación pública definitiva.

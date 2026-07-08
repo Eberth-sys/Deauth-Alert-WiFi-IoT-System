@@ -1,186 +1,130 @@
+# Capa de procesamiento
 
-# 🖥️ **Capa de Procesamiento IoT - Sistema de monitoreo y detección de ataques de desautenticación en redes Wi-Fi 2.4 GHz**  
+⬅ Parte de [Deauth-Alert](../README.md)
 
-## 📌 **Descripción General**  
+<p align="left">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white">
+  <img alt="Raspberry Pi" src="https://img.shields.io/badge/Raspberry%20Pi-OS-A22846?logo=raspberrypi&logoColor=white">
+  <img alt="BLE" src="https://img.shields.io/badge/Bluetooth-BLE-0082FC?logo=bluetooth&logoColor=white">
+  <img alt="Licencia" src="https://img.shields.io/badge/licencia-pendiente-lightgrey">
+</p>
 
-Este repositorio contiene la implementación y desarrollo de la **Capa de Procesamiento** del **Sistema IoT para el Monitoreo y Detección de Ataques de Desautenticación en Redes Wi-Fi 2.4 GHz**.  
+Manual técnico de la capa de procesamiento: recibe las alertas BLE de los nodos ESP32, las persiste en PostgreSQL y las publica hacia AWS IoT y Telegram. Corre en una Raspberry Pi, fuera del conjunto de servicios web en Docker.
 
-El sistema está compuesto por **nodos ESP32-WROOM-32U**, encargados de capturar y analizar el tráfico Wi-Fi en diferentes canales, y una **Raspberry Pi con Debian 12 (Bookworm)** que actúa como unidad de procesamiento central.  
+## Índice
 
-📡 **Funcionamiento:**  
-- Los **ESP32** monitorean paquetes Wi-Fi en sus respectivos canales y detectan posibles **ataques de desautenticación**.  
-- Cuando se detecta una anomalía, los nodos **envían alertas** a la **Raspberry Pi** mediante **Bluetooth Low Energy (BLE)**.  
-- La **Raspberry Pi** **procesa, almacena y gestiona** los eventos en la **Capa de Procesamiento**.  
+- [Descripción general](#descripción-general)
+- [Nodos ESP32 y su función en la red](#nodos-esp32-y-su-función-en-la-red)
+- [Tecnologías utilizadas](#tecnologías-utilizadas)
+- [Instalación en Raspberry Pi](#instalación-en-raspberry-pi)
+- [Detección de ESP32 mediante Bluetooth](#detección-de-esp32-mediante-bluetooth)
+- [Ejecución del proyecto](#ejecución-del-proyecto)
+- [Estado de validación](#estado-de-validación)
+- [Autor](#autor)
+- [Licencia](#licencia)
 
----
+## Descripción general
 
-## 🎯 **Nodos IoT ESP32 y su Función en la Red**  
+Esta capa corre en una Raspberry Pi con Debian 12 (Bookworm) y actúa como unidad de procesamiento central del sistema. Los nodos ESP32 monitorean el tráfico Wi-Fi en sus respectivos canales y, al detectar un ataque de desautenticación, envían una alerta por Bluetooth Low Energy (BLE). Esta capa recibe esas alertas, las procesa, las almacena en PostgreSQL y las publica hacia AWS IoT y Telegram.
 
-El sistema cuenta con **cuatro nodos ESP32**, cada uno asignado a un conjunto de canales Wi-Fi para realizar la detección de ataques:  
+Para el contexto completo del sistema (arquitectura, otras capas, evidencia académica), ver el [README principal](../README.md).
 
-| **Nodo IoT**       | **Función**  |
-|--------------------|--------------|
-| **ESP32_ch_01** 🎯 | Monitorea el **canal 1**. |
-| **ESP32_ch_06** 🎯 | Monitorea el **canal 6**. |
-| **ESP32_ch_11** 🎯 | Monitorea el **canal 11**. |
-| **ESP32_ch_Scan** 🔄 | Escanea los canales **2-5, 7-10 y 12-13**. |
+## Nodos ESP32 y su función en la red
 
-Cada **ESP32** captura los paquetes Wi-Fi en su canal y, si detecta un posible ataque de desautenticación, envía una alerta a la **Raspberry Pi** a través de **BLE**.
+El sistema cuenta con cuatro nodos ESP32, cada uno anunciado por BLE con un nombre fijo. La capa de procesamiento identifica a cada nodo por ese nombre, definido en `config/devices.yaml`:
 
----
+| Nombre BLE del nodo | Función |
+| --- | --- |
+| `ESP32_1_CH_01` | Monitorea el canal 1. |
+| `ESP32_2_CH_06` | Monitorea el canal 6. |
+| `ESP32_3_CH_11` | Monitorea el canal 11. |
+| `ESP32_4_SCANN` | Escanea los canales 2-5, 7-10 y 12-13. |
 
-## ⚙️ **Tecnologías Utilizadas**  
+Cada ESP32 captura los paquetes Wi-Fi en su canal y, si detecta un posible ataque de desautenticación, envía una alerta a la Raspberry Pi por BLE.
 
-El desarrollo de este sistema IoT se basó en **hardware y software** cuidadosamente seleccionados para garantizar la eficiencia en la captura y procesamiento de datos en tiempo real. A continuación, se detallan los componentes y tecnologías utilizadas junto con sus versiones:  
+## Tecnologías utilizadas
 
-### 🔹 **Hardware**  
+### Hardware
 
-| **Componente**   | **Descripción** |
-|------------------|----------------------------------|
-| **Raspberry Pi 5 (8GB RAM)** | Unidad central de procesamiento, ejecuta la capa de procesamiento IoT en **Debian 12 (Bookworm)**. |
-| **ESP32-WROOM-32U** | Módulo IoT con conectividad Wi-Fi 2.4 GHz y BLE, equipado con antena externa para mejorar la recepción de señal. |
+| Componente | Descripción |
+| --- | --- |
+| Raspberry Pi 5 (8 GB RAM) | Unidad central de procesamiento, ejecuta esta capa en Debian 12 (Bookworm). |
+| ESP32-WROOM-32U | Módulo con conectividad Wi-Fi 2,4 GHz y BLE, con antena externa. |
 
+### Software
 
-### 🔹 **Software**  
+| Tecnología | Versión | Descripción |
+| --- | --- | --- |
+| Python | 3.11 | Incluido por defecto en Debian 12 (Bookworm); versión usada en el desarrollo. |
+| BlueZ | Stack del sistema | Pila Bluetooth de Linux para gestionar las conexiones BLE. |
+| Bleak | Sin versión fijada | Librería de Python para la comunicación con dispositivos BLE. |
+| PyYAML | Sin versión fijada | Lectura de `devices.yaml`. |
+| asyncio | Incluido en Python 3 | Tareas asíncronas para el procesamiento en tiempo real. |
 
-| **Tecnología**   | **Versión** | **Descripción** |
-|------------------|------------|----------------------------------|
-| **Python** | `3.11.2` | Lenguaje de programación utilizado para la lógica del sistema. |
-| **Git** | `2.39.5` | Sistema de control de versiones para la gestión del código fuente. |
-| **BlueZ** | Última versión estable | Stack Bluetooth para manejar conexiones BLE en Raspberry Pi. |
-| **Bleak** | Última versión estable | Librería de Python para la comunicación con dispositivos BLE. |
-| **PyYAML** | Última versión estable | Manejo de archivos de configuración en formato YAML. |
-| **Asyncio** | Incluido en Python 3 | Permite la ejecución de tareas asíncronas para el procesamiento en tiempo real. |
+> Las dependencias de Python (`requirements.txt`) no están fijadas por versión; se instala la última disponible al momento de la instalación. Fijarlas es una mejora pendiente.
 
-✅ **Nota:** Las versiones indicadas corresponden a las utilizadas en el desarrollo del proyecto. Se recomienda verificar la compatibilidad con futuras actualizaciones de cada tecnología.  
+## Instalación en Raspberry Pi
 
----
+### 1. Instalar el sistema operativo
 
-## 🖥️ **Instalación en Raspberry Pi**  
+1. Descargar Raspberry Pi OS (Debian 12, Bookworm) desde [raspberrypi.com/software](https://www.raspberrypi.com/software/).
+2. Grabar la imagen en una tarjeta SD con Raspberry Pi Imager.
+3. Configurar SSH y Wi-Fi para acceso remoto (opcional).
 
-### 1️⃣ **Instalar el sistema operativo**  
-
-1. Descarga **Raspberry Pi OS (Debian 12 - Bookworm)** desde:  
-   - 🔗 [Raspberry Pi OS](https://www.raspberrypi.com/software/)  
-2. Instala la imagen en una tarjeta SD utilizando **Raspberry Pi Imager**.  
-3. Configura **SSH y Wi-Fi** para acceso remoto (opcional).  
-
----
-
-### 2️⃣ **Acceder a la Raspberry Pi por SSH**  
-
-Para conectarte desde otra máquina, abre una terminal y ejecuta:
-
-```bash
-ssh pi@<IP_RASPBERRY_PI>
-```
-
-Ejemplo:
+### 2. Acceder a la Raspberry Pi por SSH
 
 ```bash
-ssh pi@192.168.1.100
+ssh pi@<IP_DE_LA_RASPBERRY_PI>
 ```
 
-Si es la primera vez que te conectas, aparecerá un mensaje de autenticación. Escribe **`yes`** y presiona **Enter**.
-
----
-
-### 3️⃣ **Actualizar e instalar dependencias**  
-
-Ejecuta el siguiente comando para asegurarte de que el sistema esté **actualizado** y tenga las herramientas necesarias para el desarrollo:  
+### 3. Actualizar el sistema e instalar dependencias
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-```
-
-- **`sudo apt update`**: Descarga la lista de paquetes más recientes disponibles en los repositorios.  
-- **`sudo apt upgrade -y`**: Instala todas las actualizaciones disponibles para el sistema.  
-
-Luego, instala los paquetes requeridos para el proyecto:
-
-```bash
 sudo apt install git python3 python3-pip python3-venv bluetooth bluez -y
 ```
 
-🔹 **Explicación de los paquetes:**  
-- **`git`** → Para clonar el repositorio del proyecto.  
-- **`python3`** → Versión 3 de Python, necesaria para ejecutar el código.  
-- **`python3-pip`** → Administrador de paquetes de Python.  
-- **`python3-venv`** → Permite la creación de entornos virtuales en Python.  
-- **`bluetooth` y `bluez`** → Controladores y herramientas para gestionar conexiones **BLE** en Raspberry Pi.  
+| Paquete | Rol |
+| --- | --- |
+| `git` | Clonar el repositorio. |
+| `python3`, `python3-pip`, `python3-venv` | Ejecutar el proyecto en un entorno virtual. |
+| `bluetooth`, `bluez` | Gestionar las conexiones BLE en la Raspberry Pi. |
 
----
-
-### 4️⃣ **Clonar el repositorio y cambiar a la rama `processing-layer`**  
-
-📌 **Ubica la carpeta donde deseas clonar el repositorio:**  
-
-Si deseas organizar mejor tu sistema, puedes **crear una carpeta** para almacenar el proyecto, por ejemplo, `GitHub`:
+### 4. Clonar el repositorio
 
 ```bash
 cd ~
-mkdir GitHub && cd GitHub
+git clone https://github.com/Eberth-sys/Deauth-Alert-WiFi-IoT-System.git
+cd Deauth-Alert-WiFi-IoT-System/processing-layer
 ```
 
-Luego, clona el repositorio y accede a la rama de processing-layer:
+> El repositorio ya contiene esta capa dentro de la carpeta `processing-layer/`; no hace falta cambiar de rama.
 
-```bash
-git clone git@github.com:Eberth-sys/Deauth-Alert-WiFi-IoT-System.git
-cd Deauth-Alert-WiFi-IoT-System
-git checkout processing-layer
-```
----
-
-### 5️⃣ **Crear y activar un entorno virtual**  
-
-Para evitar conflictos con dependencias del sistema, se recomienda trabajar dentro de un **entorno virtual de Python**.  
-
-📌 **Ubica primero la carpeta del proyecto:**  
-
-```bash
-cd ~/GitHub/Deauth-Alert-WiFi-IoT-System/processing-layer
-```
-
-Luego, crea el entorno virtual:
+### 5. Crear y activar un entorno virtual
 
 ```bash
 python3 -m venv ble
-```
-
-Actívalo con:
-
-```bash
 source ble/bin/activate
 ```
 
-Deberías ver que el prompt de la terminal cambia a algo como:
+El prompt de la terminal debería mostrar el entorno activo, por ejemplo `(ble) pi@raspberrypi:~/Deauth-Alert-WiFi-IoT-System/processing-layer $`.
 
-```bash
-(ble) pi@raspberrypi:~/GitHub/Deauth-Alert-WiFi-IoT-System/processing-layer $
-```
-
----
-
-### 6️⃣ **Instalar las dependencias**  
-
-Ejecuta el siguiente comando dentro del entorno virtual **activo**:
+### 6. Instalar las dependencias
 
 ```bash
 pip install -r requirements.txt
 ```
 
----
+## Detección de ESP32 mediante Bluetooth
 
-## 🔧 **Detección de ESP32 mediante Bluetooth**  
-
-Para comprobar que los **ESP32** están transmitiendo BLE, usa:
+Para comprobar que los ESP32 anuncian su presencia por BLE:
 
 ```bash
 bluetoothctl
 scan on
 ```
 
-Ejemplo de salida esperada:
+Salida esperada:
 
 ```
 [NEW] Device AA:BB:CC:DD:EE:FF ESP32_1_CH_01
@@ -189,14 +133,9 @@ Ejemplo de salida esperada:
 
 Si los dispositivos aparecen en la lista, están listos para la conexión.
 
----
-### 🛠 **Solución de Problemas al Escanear Dispositivos con Bluetooth**  
+### Solución de problemas
 
-Si el **Bluetooth** no detecta los **ESP32**, asegúrate de que:  
-- Los **ESP32 están encendidos**.  
-- El **código ha sido correctamente cargado en cada ESP32**.  
-
-Si el problema persiste, puedes intentar reiniciar el servicio **Bluetooth** con los siguientes comandos:  
+Si Bluetooth no detecta los ESP32, confirmar que estén encendidos y con el firmware cargado. Si el problema persiste:
 
 ```bash
 sudo systemctl restart bluetooth
@@ -204,99 +143,66 @@ bluetoothctl
 scan on
 ```
 
-Si experimentas **problemas de permisos**, agrega tu usuario al grupo de **Bluetooth** y reinicia la Raspberry Pi:  
+Ante problemas de permisos, agregar el usuario al grupo `bluetooth` y reiniciar:
 
 ```bash
 sudo usermod -aG bluetooth pi
 sudo reboot
 ```
 
----
+## Ejecución del proyecto
 
-## 🚀 **Ejecución del Proyecto**  
+### 1. Configurar `devices.yaml`
 
-### 7️⃣ **Configurar `devices.yaml`**  
-
-Para que el sistema pueda reconocer los nodos **ESP32**, es necesario definir sus direcciones **MAC** y los **UUIDs** del servicio BLE en un archivo de configuración.  
-
-📌 **Primero, copia el archivo de ejemplo y renómbralo como `devices.yaml`**  
+Copiar la plantilla y completarla con las direcciones MAC reales de los ESP32 y los UUID del servicio BLE:
 
 ```bash
 cp config/devices.yaml.example config/devices.yaml
-```
-
-📌 **Ahora edita el archivo `devices.yaml` para ingresar las direcciones MAC de los ESP32 detectados:**  
-
-```bash
 nano config/devices.yaml
 ```
 
-📌 **Ejemplo de configuración:**  
-
 ```yaml
-# ⚠️ IMPORTANTE: Reemplaza las direcciones MAC y UUIDs con los valores reales antes de ejecutar el sistema.
+# Reemplazar las direcciones MAC y los UUID con los valores reales antes de ejecutar el sistema.
 
 esp32_devices:
-  - address: "AA:BB:CC:DD:EE:FF"  
+  - address: "AA:BB:CC:DD:EE:FF"
     name: "ESP32_1_CH_01"
-
   - address: "11:22:33:44:55:66"
     name: "ESP32_2_CH_06"
-
   - address: "22:33:44:55:66:77"
     name: "ESP32_3_CH_11"
-
   - address: "33:44:55:66:77:88"
     name: "ESP32_4_SCANN"
 
 uuids:
-  # 🔑 UUID del servicio BLE (Debe coincidir con el configurado en los ESP32)
-  service_uuid: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  
-
-  # 📡 UUID de la característica BLE utilizada para recibir datos
+  service_uuid: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
   characteristic_uuid: "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
 ```
 
-📌 **Guarda y cierra el archivo:**  
-1. **Presiona `Ctrl + O`** y luego **Enter** para guardar los cambios.  
-2. **Presiona `Ctrl + X`** para salir del editor Nano.  
-
----
-
-### 8️⃣ **Ejecutar el script principal**  
+### 2. Ejecutar el script principal
 
 ```bash
 python main.py
 ```
-✅ **Salida esperada:**
+
+Salida esperada:
+
 ```
 [INFO] Buscando ESP32_1_CH_01...
 [CONNECTED] Conectado a ESP32_1_CH_01
 [INFO] Esperando datos de ESP32_1_CH_01...
 ```
----
 
-## 👨‍💻 **Autor**  
+## Estado de validación
 
-<div style="display: flex; align-items: flex-start; background: #222; border-left: 5px solid #4da6ff; padding: 20px; border-radius: 10px; box-shadow: 3px 3px 15px rgba(0,0,0,0.3); font-family: Arial, sans-serif;">
+| Estado de validación |
+| :--- |
+| Esta capa se probó en laboratorio con hardware real (nodos ESP32 y Raspberry Pi) y funcionó como parte del prototipo de tesis. Las dependencias de Python no están fijadas por versión; fijarlas es una mejora pendiente documentada en el README principal. |
 
-  <div style="flex: 1; color: #ddd;">
-    <h2 style="margin: 0; color: #4da6ff; display: flex; align-items: center;">
-      Ing. Eberth Alarcón 
-      <a href="https://www.linkedin.com/in/eberthalarcon90" target="_blank" style="margin-left: 10px; font-size: 16px; color: #4da6ff; text-decoration: none; display: flex; align-items: center;">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/LinkedIn_logo_initials.png" alt="LinkedIn" width="20" style="margin-right: 5px;"> LinkedIn
-      </a>
-    </h2>
-    <hr style="border: 0; height: 2px; background: #4da6ff; margin: 10px 0;">
-    <p style="margin: 5px 0; font-size: 15px;"><strong>🏛️ Universidad de Buenos Aires (UBA) 🇦🇷</strong></p>
-    <p style="margin: 5px 0; font-size: 15px;"><strong>📚 Facultad de Ingeniería</strong></p>
-    <p style="margin: 5px 0; font-size: 15px;"><strong>📡 Especialización en Internet de las Cosas (IoT)</strong></p>
-  </div>
+## Autor
 
-  <div style="flex: 0 0 180px; text-align: right; margin-top: 60px;">
-    <img src="https://i.postimg.cc/nz9jwWQG/uba-logo.png" alt="Universidad de Buenos Aires" width="180" style="border-radius: 5px; background: #fff; padding: 5px;">
-  </div>
+**Esp. Ing. Eberth Gabriel Alarcón González.** Perfil completo, formación y evidencia académica en el [README principal](../README.md#sobre-el-autor).
 
-</div>
+## Licencia
 
-
+Licencia pendiente de definición. Se establecerá antes de la publicación pública definitiva.

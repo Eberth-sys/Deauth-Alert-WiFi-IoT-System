@@ -1,409 +1,195 @@
-# 📡 Nodos IoT ESP32 para monitoreo y detección de ataques de desautenticación en redes Wi‑Fi 2,4 GHz  <!-- omit in toc -->
+# Nodos ESP32 (Arduino): capa de percepción
 
-## 🗂️ Índice <!-- omit in toc -->
+⬅ Parte de [Deauth-Alert](../../README.md)
 
-<!-- TOC levels="2..4" -->
+<p align="left">
+  <img alt="ESP32" src="https://img.shields.io/badge/ESP32-WROOM--32U-E7352C?logo=espressif&logoColor=white">
+  <img alt="Arduino" src="https://img.shields.io/badge/Arduino-C%2B%2B-00979D?logo=arduino&logoColor=white">
+  <img alt="BLE" src="https://img.shields.io/badge/Bluetooth-BLE%20seguro-0082FC?logo=bluetooth&logoColor=white">
+  <img alt="Licencia" src="https://img.shields.io/badge/licencia-pendiente-lightgrey">
+</p>
 
-- [🛡️ Capa de Percepción (Arduino IDE)](#🛡️-capa-de-percepción-arduino-ide)
-- [⚙️ Estructura del proyecto](#⚙️-estructura-del-proyecto)
-- [📡 Funcionamiento detallado de los nodos](#📡-funcionamiento-detallado-de-los-nodos)
-  - [🕹️ Modos de Escaneo por Canal](#🕹️-modos-de-escaneo-por-canal)
-  - [🔌 Modelo de nodo: ESP32-WROOM-32U](#🔌-modelo-de-nodo-esp32-wroom-32u)
-  - [1️⃣ Proceso de inicialización](#1️⃣-proceso-de-inicialización)
-  - [2️⃣ Modo promiscuo](#2️⃣-modo-promiscuo)
-  - [3️⃣ Detección de paquetes deauth](#3️⃣-detección-de-paquetes-deauth)
-  - [4️⃣ Construcción y envío de alerta BLE](#4️⃣-construcción-y-envío-de-alerta-ble)
-- [🚀 Guía de configuración y uso](#🚀-guía-de-configuración-y-uso)
-  - [A. Clonar el repositorio](#a-clonar-el-repositorio)
-  - [B. Preparar el Archivo `config.h`](#b-preparar-el-archivo-configh)
-  - [C. Carga con PlatformIO (VSCode)](#c-carga-con-platformio-vscode)
-  - [D. Carga con Arduino IDE](#d-carga-con-arduino-ide)
-- [🌟🔧 Parámetros críticos de configuración](#🌟🔧-parámetros-críticos-de-configuración)
-- [⚡ Otros ajustes](#⚡-otros-ajustes)
-- [📲 Alerta BLE al Nodo Centralizador](#📲-alerta-ble-al-nodo-centralizador)
-  - [⚡ Ejemplo de alerta generada](#⚡-ejemplo-de-alerta-generada)
-  - [Desglose del ejemplo](#desglose-del-ejemplo)
-- [📖 Notas adicionales](#📖-notas-adicionales)
-- [👨‍💻 Autor](#👨‍💻-autor)
-- [📄 Licencia](#📄-licencia)
-<!-- /TOC -->
----
+Manual técnico del firmware Arduino de los nodos ESP32: captura tramas Wi-Fi en modo promiscuo, detecta ataques de desautenticación y envía la alerta por BLE a la capa de procesamiento.
 
-## 🛡️ **Capa de Percepción (Arduino IDE)**
+## Índice
 
-Este repositorio contiene el código fuente para los **nodos IoT ESP32** del proyecto de grado:
-**"Sistema IoT para el Monitoreo y Detección de Ataques de Desautenticación en Redes Wi‑Fi"**.
+- [Capa de percepción (Arduino IDE)](#capa-de-percepción-arduino-ide)
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Funcionamiento detallado de los nodos](#funcionamiento-detallado-de-los-nodos)
+- [Modelo de nodo: ESP32-WROOM-32U](#modelo-de-nodo-esp32-wroom-32u)
+- [Guía de configuración y uso](#guía-de-configuración-y-uso)
+- [Parámetros de configuración recomendados](#parámetros-de-configuración-recomendados)
+- [Alerta BLE al nodo centralizador](#alerta-ble-al-nodo-centralizador)
+- [Notas adicionales](#notas-adicionales)
+- [Estado de validación](#estado-de-validación)
+- [Autor](#autor)
+- [Licencia](#licencia)
 
-Estos nodos ESP32 son responsables de escanear redes Wi‑Fi de **2.4 GHz** en busca de posibles **ataques de desautenticación**, capturando paquetes en modo promiscuo y enviando alertas a un **nodo centralizador BLE** (Gateway IoT) para su posterior análisis y gestión de eventos.
+## Capa de percepción (Arduino IDE)
 
----
+Este directorio contiene el firmware Arduino de los nodos ESP32 del proyecto de tesis "Sistema IoT para el Monitoreo y Detección de Ataques de Desautenticación en Redes Wi-Fi". Cada nodo escanea redes Wi-Fi de 2,4 GHz en busca de ataques de desautenticación, captura los paquetes en modo promiscuo y envía alertas al nodo centralizador (la Raspberry Pi de la capa de procesamiento) por BLE.
 
-## ⚙️ Estructura del proyecto
+Para el contexto completo del sistema (arquitectura, otras capas, evidencia académica), ver el [README principal](../../README.md).
 
-Cada nodo se aloja en una carpeta independiente bajo `esp32-nodes-ino/`:
+## Estructura del proyecto
+
+Cada nodo se aloja en una carpeta independiente:
 
 ```text
-DEAUTH-ALERT-WIFI-IOT-SYSTEM
-│
-esp32-nodes-ino/
-├── ESP32_01_Deauth_Detector_CH_01/     
+perception-layer/esp32-nodes-ino/
+├── ESP32_01_Deauth_Detector_CH_01/
 │   ├── config_template.h               # Plantilla para configuración
 │   ├── config.h                        # excluido por .gitignore
 │   └── main.ino                        # Escaneo en canal 1
-├── ESP32_02_Deauth_Detector_CH_06/     
-│   ├── config_template.h               # Plantilla para configuración
-│   ├── config.h                        # excluido por .gitignore
-│   └── main.ino                        # Escaneo en canal 6
-├── ESP32_03_Deauth_Detector_CH_11/     
-│   ├── config_template.h               # Plantilla para configuración
-│   ├── config.h                        # excluido por .gitignore
-│   └── main.ino                        # Escaneo en canal 11
-├── ESP32_04_Deauth_Detector_SCANN/     
-│   ├── config_template.h               # Plantilla para configuración
-│   ├── config.h                        # excluido por .gitignore
-│   └── main.ino                        # Escaneo dinámico en múltiples canales
-└── README.md                           # 📄 README ESP32 iot-nodes
+├── ESP32_02_Deauth_Detector_CH_06/     # Escaneo en canal 6
+├── ESP32_03_Deauth_Detector_CH_11/     # Escaneo en canal 11
+├── ESP32_04_Deauth_Detector_SCANN/     # Escaneo dinámico en múltiples canales
+└── README.md
 ```
 
 Dentro de cada carpeta:
 
-* 📄 `config_template.h`: plantilla con marcadores (placeholders).
-* 🔒 `config.h`: definiciones reales (ignorado por `.gitignore`).
-* 💻 `main.ino`: código fuente con lógica de detección y notificación.
+- `config_template.h`: plantilla con marcadores (placeholders).
+- `config.h`: definiciones reales, ignorado por `.gitignore`.
+- `main.ino`: código fuente con la lógica de detección y notificación.
 
----
+## Funcionamiento detallado de los nodos
 
-## 📡 Funcionamiento detallado de los nodos
+### Modos de escaneo por canal
 
-### 🕹️ Modos de Escaneo por Canal
+- `ESP32_01_Deauth_Detector_CH_01`: monitorea el canal 1.
+- `ESP32_02_Deauth_Detector_CH_06`: monitorea el canal 6.
+- `ESP32_03_Deauth_Detector_CH_11`: monitorea el canal 11.
+- `ESP32_04_Deauth_Detector_SCANN`: escanea los canales 2-5, 7-10 y 12-13.
 
-1. **Códigos Individuales por Canal:**
+Cada nodo captura paquetes Wi-Fi, analiza y detecta tramas de desautenticación dirigidas al BSSID objetivo. Al detectar un ataque, genera una alerta y la envía al nodo centralizador.
 
-   * `ESP32_ch_01` 🎯 Monitorea el canal 1.
-   * `ESP32_ch_06` 🎯 Monitorea el canal 6.
-   * `ESP32_ch_11` 🎯 Monitorea el canal 11.
-   * `ESP32_ch_Scan` 🔄 Escanea canales 2-5, 7-10 y 12-13.
+## Modelo de nodo: ESP32-WROOM-32U
 
-2. **Detección de Ataques de Desautenticación:**
+| Característica | Detalle |
+| --- | --- |
+| Procesador | Dual-core Xtensa 32-bit LX6 a 240 MHz. |
+| Memoria | 520 KB de SRAM interna y 4 MB de flash SPI. |
+| Wi-Fi | 802.11 b/g/n a 2,4 GHz, con soporte de modo promiscuo. |
+| Bluetooth | BLE 4.2 y Bluetooth clásico. El firmware solicita BLE Secure Connections y protección MITM (`ESP_LE_AUTH_REQ_SC_MITM`). |
+| Conector U.FL | Permite antenas externas de mayor ganancia. |
+| Alimentación | Rango de 2,2 V a 3,6 V. |
+| Dimensiones | 18 × 25,5 × 3,1 mm. |
 
-   * Los nodos IoT ESP32 capturan paquetes Wi‑Fi, analizan y detectan paquetes de desautenticación dirigidos al BSSID objetivo.
-   * Al detectar un ataque, el nodo genera una alerta y la envía al nodo centralizador para su posterior análisis y gestión de eventos.
----
+> El firmware solicita BLE Secure Connections y protección MITM mediante `ESP_LE_AUTH_REQ_SC_MITM`. La aplicación efectiva del cifrado y la autenticación depende del proceso de emparejamiento y del cliente BLE. Este comportamiento requiere validación específica en laboratorio.
 
-### 🔌 Modelo de nodo: ESP32-WROOM-32U
-
-Cada nodo está basado en el ESP32-WROOM-32U, un módulo compacto y potente que integra Wi-Fi y Bluetooth para capturar, procesar y transmitir datos de manera eficiente. A continuación, sus principales características:
-
-| Característica            | Detalle                                                                                                       |
-|---------------------------|----------------------------------------------------------------------------------------------------------------|
-| 🖥️ **Procesador**         | Dual-core Xtensa® 32-bit LX6 a 240 MHz, alto rendimiento para captura y análisis de paquetes.                |
-| 💾 **Memoria**            | 520 KB de SRAM interna y 4 MB de flash SPI, suficiente para firmware y buffers de datos.                       |
-| 📶 **Wi-Fi**              | 802.11 b/g/n a 2,4 GHz, compatible con modo promiscuo, esencial para detección pasiva de tramas de gestión.   |
-| 🔵 **Bluetooth**          | BLE 4.2 y Bluetooth clásico, usado en este proyecto para transmisión cifrada de alertas.                      |
-| 📡 **Conector U.FL**      | Permite acoplar antenas externas de alta ganancia, mejorando la recepción en entornos con interferencias.     |
-| 🔋 **Alimentación**       | Rango de 2,2 V a 3,6 V, adecuado para baterías o fuentes de alimentación embebidas.                           |
-| 📏 **Dimensiones**        | 18 × 25,5 × 3,1 mm, facilita su integración en carcasas y entornos reducidos.                                 |
-
-📸 **Referencia de imagen**:  
-
-[![esp32-wroom32u.png](https://i.postimg.cc/W1V2Zsxj/esp32-wroom32u.png)](https://postimg.cc/jL800Ysk)
-
----
-### 1️⃣ Proceso de inicialización
+### Proceso de inicialización
 
 Al arrancar, `main.ino` ejecuta:
 
-1. **Monitor Serial** (115200 baud) para seguimiento local.
-2. **Interfaz Wi‑Fi** en modo estación (`WIFI_STA`).
-3. **Configuración BLE**:
+1. Monitor serial (115200 baudios) para seguimiento local.
+2. Interfaz Wi-Fi en modo estación (`WIFI_STA`).
+3. Configuración BLE: `BLEDevice::init("ESP32_[CANAL]")`, servicio con `SERVICE_UUID` y característica *notify* (`CHARACTERISTIC_UUID`), configuración de seguridad con `BLESecurity` (`ESP_LE_AUTH_REQ_SC_MITM`).
+4. Registro del callback Wi-Fi: `esp_wifi_set_promiscuous(true)` y `esp_wifi_set_promiscuous_rx_cb(&sniffer_callback)`.
 
-   * `BLEDevice::init("ESP32_[CANAL]")`.
-   * Servicio BLE con `SERVICE_UUID` y característica **notify** (`CHARACTERISTIC_UUID`).
-   * Callbacks de conexión/desconexión para reiniciar advertising.
-4. **Registro de Callback Wi‑Fi**:
+### Detección de tramas de desautenticación
 
-   * `esp_wifi_set_promiscuous(true)`.
-   * `esp_wifi_set_promiscuous_rx_cb(&sniffer_callback)`.
+En `sniffer_callback`, el nodo interpreta el paquete recibido, verifica si es una trama de desautenticación y compara el BSSID (`addr3`) con `TARGET_BSSID`. Si coincide, extrae la MAC de origen (`addr2`), la MAC de destino (`addr1`) y el canal (`pkt->rx_ctrl.channel`).
 
-### 2️⃣ Modo promiscuo
+### Construcción y envío de la alerta
 
-Captura **todos** los paquetes en el canal seleccionado:
+Al detectar un ataque, el nodo arma una cadena con los datos del evento, la imprime por el monitor serial y la notifica al cliente BLE conectado mediante `pCharacteristic->setValue(...)` y `pCharacteristic->notify()`.
 
-```cpp
-esp_wifi_set_promiscuous(true);
-esp_wifi_set_promiscuous_rx_cb(&sniffer_callback);
-```
+## Guía de configuración y uso
 
-Permite:
-
-* 📋 Análisis exhaustivo de la actividad de red.
-* ✂️ Filtrado específico de paquetes de desautenticación.
-
-### 3️⃣ Detección de paquetes deauth
-
-En `sniffer_callback`:
-
-1. Interpretación del paquete:
-
-   ```cpp
-   wifi_promiscuous_pkt_t *pkt = (wifi_promiscuous_pkt_t *)buf;
-   wifi_ieee80211_packet_t *ipkt = (wifi_ieee80211_packet_t *)pkt->payload;
-   ```
-2. Verificación de **Deauth**.
-3. Comparación de **BSSID** (`addr3`) con `TARGET_BSSID`.
-4. Extracción de:
-
-   * 🆔 **MAC origen** (`addr2`).
-   * 🆔 **MAC destino** (`addr1`).
-   * 📶 **Canal** (`pkt->rx_ctrl.channel`).
-
-### 4️⃣ Construcción y envío de alerta BLE
-
-Al detectar un ataque:
-
-1. Generar cadena:
-
-   ```cpp
-   String alert = "[ALERT] Ataque de Deauthentication detectado | Origen: " + macOrigen + " | Destino: " + macDestino + " | BSSID: " + bssidStr + " | Canal: " + channel;
-   ```
-2. Imprimir en **Serial**.
-3. Notificar cliente BLE conectado:
-
-   ```cpp
-   pCharacteristic->setValue(alert.c_str());
-   pCharacteristic->notify();
-   ```
-
-El evento se transmite en tiempo real al nodo centralizador.
-
----
-
-## 🚀 Guía de configuración y uso
-
-### A. Clonar el repositorio
+### 1. Clonar el repositorio
 
 ```bash
 git clone https://github.com/Eberth-sys/Deauth-Alert-WiFi-IoT-System.git
-cd Deauth-Alert-WiFi-IoT-System/esp32-nodes-ino/ESP32_01_Deauth_Detector_CH_01
+cd Deauth-Alert-WiFi-IoT-System/perception-layer/esp32-nodes-ino/ESP32_01_Deauth_Detector_CH_01
 ```
 
-### B. Preparar el Archivo `config.h`
+### 2. Preparar el archivo `config.h`
 
-1. `cp config_template.h config.h`
-2. Reemplazar placeholders:
+```bash
+cp config_template.h config.h
+```
 
-   ```cpp
-   #define TARGET_BSSID        "AA:BB:CC:DD:EE:FF"
-   #define SERVICE_UUID        "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-   #define CHARACTERISTIC_UUID "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
-   ```
-3. Confirmar `config.h` en `.gitignore`.
+Editar `config.h` y reemplazar los valores de ejemplo:
 
-### C. Carga con PlatformIO (VSCode)
+```cpp
+#define TARGET_BSSID        "XX:XX:XX:XX:XX:XX"
+#define SERVICE_UUID        "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+#define CHARACTERISTIC_UUID "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+```
 
-Para distribuir el firmware en los nodos ESP32 desde Visual Studio Code con PlatformIO, se recomienda el siguiente procedimiento detallado:
+Confirmar que `config.h` está listado en `.gitignore` antes de compilar.
 
-1. **Abrir el proyecto**
+### 3. Cargar el firmware con Arduino IDE
 
-   * En VSCode, seleccionar **Archivo > Abrir carpeta** y navegar hasta la ruta del nodo deseado, por ejemplo:
+Este repositorio no incluye configuración de PlatformIO; la vía documentada y probada es Arduino IDE.
 
-     ```text
-     Deauth-Alert-WiFi-IoT-System/esp32-nodes-ino/ESP32_01_Deauth_Detector_CH_01
-     ```
+1. Abrir `main.ino` desde **Archivo > Abrir** en Arduino IDE.
+2. Verificar que la línea `#include "config.h"` esté activa (el archivo debe existir según el paso anterior).
+3. En **Herramientas > Placa**, elegir **ESP32 Dev Module**.
+4. Configurar en **Herramientas**:
+   - Velocidad de carga: 921 600 baudios.
+   - Monitor Serial: 115 200 baudios.
+   - Partition Scheme: Minimal SPIFFS (1.9 MB APP + 190 KB SPIFFS).
+5. Conectar el ESP32 por USB e identificar el puerto serie en **Herramientas > Puerto**.
+6. Mantener presionado el botón **BOOT** en el ESP32 y hacer clic en **Subir**.
+7. Abrir el Monitor Serial (**Ctrl+Shift+M**) y confirmar los mensajes de arranque y las alertas:
 
-2. \*\*Verificar \*\***`platformio.ini`**
+```text
+[INFO]  Modo promiscuo activo | Canal: <N>
+[ALERT] Origen: ... | Destino: ... | Canal: <N>
+```
 
-   * Confirmar que la sección `[env]` corresponde al modelo de placa ESP32 utilizado:
+## Parámetros de configuración recomendados
 
-     ```ini
-     [env:esp32dev]
-     platform = espressif32
-     board    = esp32dev
-     framework = arduino
-     ```
-   * Ajustar puertos y velocidad si fuera necesario (opcional):
+| Parámetro | Valor |
+| --- | --- |
+| Placa | ESP32 Dev Module |
+| Velocidad de carga | 921 600 baudios |
+| Monitor Serial | 115 200 baudios |
+| Partition Scheme | Minimal SPIFFS (1.9 MB APP + 190 KB SPIFFS) |
+| CPU Frequency | 240 MHz |
+| Flash Mode | QIO |
+| Flash Frequency | 80 MHz |
+| Flash Size | 4 MB (32 Mb) |
+| PSRAM | Deshabilitado |
+| Core Debug Level | None |
+| Erase All Flash Before Sketch Upload | Disabled |
+| Events Run On / Arduino Runs On | Core 1 |
+| JTAG Adapter | Disabled |
+| Zigbee Mode | Disabled |
 
-     ```ini
-     upload_port = COM3        ; o /dev/ttyUSB0
-     upload_speed = 921600     ; velocidad en baudios
-     ```
+## Alerta BLE al nodo centralizador
 
-3. **Compilar el firmware**
-
-   * Ejecutar el comando **Build** (icono ✔️ o `PlatformIO: Build`) para comprobar que no haya errores de compilación.
-   * Revisar la consola de VSCode para asegurarse de que todos los archivos `.cpp` y `.ino` se procesan correctamente.
-
-4. **Subir el firmware al dispositivo**
-
-   * Conectar el ESP32 al equipo via USB.
-   * Pulsar **Upload** (icono ➤ o `PlatformIO: Upload`) para flashear el dispositivo.
-   * Durante la operación, observar en la consola:
-
-     ```text
-     [SUCCESS] Firmware fue cargado correctamente en /dev/ttyUSB0
-     ```
-
-5. **Verificar la ejecución**
-
-   * Abrir **Monitor Serial** (`PlatformIO: Serial Monitor`) o pulsar el icono de plug 🔌.
-   * Configurar velocidad en **115200 baudios**.
-   * Confirmar mensajes de arranque y alertas en tiempo real:
-
-     ```plaintext
-     [INFO]  Modo promiscuo activo | Canal: 6
-     [INFO]  Servidor BLE listo
-     [ALERT] Origen: … | Destino: … | Canal: 6
-     ```
-
-Con estos pasos, PlatformIO facilita la compilación, carga y monitoreo centralizado del firmware de los nodos ESP32.
-
-### D. 🚀 Carga con Arduino IDE 🖥️
-
-La carga del firmware mediante Arduino IDE sigue estos pasos detallados para asegurar un despliegue exitoso:
-
-1. \*\*Abrir el sketch \*\***`main.ino`**
-
-   * Desde Arduino IDE, ir a **Archivo > Abrir** y seleccionar `main.ino` del nodo correspondiente.
-
-2. **Preparar las definiciones de configuración**
-
-   * Comentar la línea que incluye el archivo de configuración (uso en PlatformIO):
-
-     ```cpp
-     // #include "config.h"
-     ```
-   * Insertar manualmente al inicio las directivas con los valores reales:
-
-     ```cpp
-     #define TARGET_BSSID        "AA:BB:CC:DD:EE:FF"
-     #define SERVICE_UUID        "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-     #define CHARACTERISTIC_UUID "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
-     ```
-
-3. **Seleccionar placa y ajustes de compilación**
-
-   * En **Herramientas > Placa**, elegir **ESP32 Dev Module**.
-   * Configurar en **Herramientas** los siguientes parámetros:
-
-     * **Velocidad de carga:** `921600 baudios`
-     * **Monitor Serial:** `115200 baudios`
-     * **Partition Scheme:** `Minimal SPIFFS (1.9MB APP + 190KB SPIFFS)`
-
-4. **Conectar y preparar el ESP32**
-
-   * Enchufar el ESP32 al puerto USB del equipo.
-   * Identificar el **Puerto serie** en **Herramientas > Puerto**.
-
-5. **Subir el sketch**
-
-   * Mantener pulsado el botón **BOOT** en el ESP32.
-   * Hacer clic en **Herramientas > Subir** o en el icono de flecha (➤).
-   * Observar en la consola de Arduino IDE la confirmación de carga exitosa:
-
-     ```text
-     Procesando sketch...
-     Subido con éxito al puerto COM3
-     ```
-
-6. **Verificar la ejecución**
-
-   * Abrir **Monitor Serial** (**Ctrl+Shift+M**).
-   * Confirmar que aparecen los mensajes de inicio y las alertas:
-
-     ```plaintext
-     [INFO]  Modo promiscuo activo | Canal: <N>
-     [ALERT] Origen: … | Destino: … | Canal: <N>
-     ```
-
----
-
-## 🌟🔧 Parámetros críticos de configuración 🔧🌟
-
-> A continuación, se destacan los parámetros esenciales para el correcto funcionamiento de los nodos ESP32 en Arduino IDE:
-
-| ⚙️ **Parámetro**         | ✅ **Valor recomendado**                     |
-| ------------------------ | ------------------------------------------- |
-| 🖥️ Placa                | ESP32 Dev Module                            |
-| 🚀 Velocidad de carga    | 921 600 baudios                             |
-| 🔌 Monitor Serial        | 115 200 baudios                             |
-| 💾 Scheme de particiones | ⚠️`Minimal SPIFFS (1.9 MB APP + 190 KB SPIFFS)⚠️` |
-| ⚡ CPU Frequency          | 240 MHz                                     |
-| 🔧 Flash Mode            | QIO                                         |
-| 📦 Flash Size            | 4 MB                                        |
-| 🧠 PSRAM                 | Deshabilitado                               |
-
----
-
-## ⚡ Otros ajustes 🛠️
-
-> Estos ajustes ofrecen un control más fino sobre el rendimiento y comportamiento del ESP32:
-
-| ⚙️ **Parámetro**                             | 🔢 **Configuración Recomendada** |
-| -------------------------------------------- | -------------------------------- |
-| 🔄 **CPU Frequency**                         | 240 MHz (Wi‑Fi/BT)               |
-| 🐞 **Core Debug Level**                      | None                             |
-| 🗑️ **Erase All Flash Before Sketch Upload** | Disabled                         |
-| 🏷️ **Events Run On**                        | Core 1                           |
-| 🔊 **Flash Frequency**                       | 80 MHz                           |
-| 🔧 **Flash Mode**                            | QIO                              |
-| 💾 **Flash Size**                            | 4 MB (32 Mb)                     |
-| 🔌 **JTAG Adapter**                          | Disabled                         |
-| ⚙️ **Arduino Runs On**                       | Core 1                           |
-| 🧠 **PSRAM**                                 | Disabled                         |
-| 📡 **Zigbee Mode**                           | Disabled                         |
-
----
-
-## 📲 Alerta BLE al Nodo Centralizador
-
-### ⚡ **Ejemplo de alerta generada:**
+Ejemplo de alerta generada:
 
 ```plaintext
 [ALERT] Ataque de Deauthentication detectado | Origen: 01:01:01:01:01:01 | Destino: FF:FF:FF:FF:FF:FF | BSSID: 01:01:01:01:01:01 | Canal: 6
 ```
 
-#### Desglose del ejemplo:
-- 🛡️**BSSID:** `01:01:01:01:01:01` → El punto de acceso suplantado por el atacante.  
-- 👉**Origen:** `01:01:01:01:01:01` → Coincide con el BSSID suplantado, típico en estos ataques.  
-- 🎯**Destino:** `FF:FF:FF:FF:FF:FF` → Ataque dirigido a **todos** los clientes conectados al punto de acceso (broadcast).  
-- 📶**Canal:** `6` → El canal Wi-Fi donde se detectó el ataque.
+- **BSSID:** `01:01:01:01:01:01`: el punto de acceso suplantado por el atacante.
+- **Origen:** `01:01:01:01:01:01`: coincide con el BSSID suplantado, típico de este ataque.
+- **Destino:** `FF:FF:FF:FF:FF:FF`: ataque dirigido a todos los clientes conectados (broadcast).
+- **Canal:** `6`: el canal Wi-Fi donde se detectó el ataque.
 
-El nodo centralizador realiza:
+*(Direcciones MAC de ejemplo; no corresponden a hardware real.)*
 
-1. 💾 Registro en base de datos.
-2. 📈 Procesamiento de tendencias.
-3. 📊 Generación de reportes.
-4. 🚨 Notificación a sistemas de seguridad.
+## Notas adicionales
 
----
+- **Uso responsable:** el modo promiscuo debe usarse únicamente en redes donde exista autorización.
+- **Seguridad:** el archivo `config.h` está protegido por `.gitignore` para evitar la exposición de información sensible.
+- **Compatibilidad Wi-Fi:** este sistema está diseñado para redes Wi-Fi de 2,4 GHz.
 
-## 📖 **Notas adicionales**
+## Estado de validación
 
-- ⚠️ **Uso responsable:**  
-  El modo promiscuo debe usarse únicamente en redes donde tengas autorización.
+| Estado de validación |
+| :--- |
+| Este firmware se probó en laboratorio con hardware real (nodos ESP32-WROOM-32U) y funcionó como parte del prototipo de tesis. |
 
-- 🔒 **Seguridad:**  
-  El archivo `config.h` está protegido mediante `.gitignore` para evitar la exposición de información sensible.
+## Autor
 
-- 📡 **Compatibilidad Wi-Fi:**  
-  Este sistema está diseñado para redes Wi-Fi de **2.4 GHz**.
+**Esp. Ing. Eberth Gabriel Alarcón González.** Perfil completo, formación y evidencia académica en el [README principal](../../README.md#sobre-el-autor).
 
----
+## Licencia
 
-## 👨‍💻 **Autor**
-
-**Esp. Ing. Eberth Alarcón**  
-🌐 [LinkedIn - Eberth Alarcón](https://www.linkedin.com/in/eberthalarcon90)  
-
-**Universidad de Buenos Aires (UBA)** 🇦🇷  
-**Facultad de Ingeniería**  -  **Especialización en Internet de las Cosas (IoT)**
-
-<img src="https://i.postimg.cc/nz9jwWQG/uba-logo.png" alt="Universidad de Buenos Aires" width="300"/>
-
----
-
-## 📄 Licencia
-
-Licencia **pendiente de definición** — se establecerá antes de la publicación pública. Hasta entonces, © 2025 Eberth Alarcón, todos los derechos reservados.
-
----
+Licencia pendiente de definición. Se establecerá antes de la publicación pública definitiva.
