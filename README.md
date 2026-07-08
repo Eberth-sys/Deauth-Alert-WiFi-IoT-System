@@ -68,9 +68,10 @@ Cuatro capas, desde la captura del ataque hasta la visualización en tiempo real
 Deauth-Alert-WiFi-IoT-System/
 ├── perception-layer/     # Firmware ESP32 (Arduino .ino + ESP-IDF .c) — modo promiscuo
 ├── processing-layer/     # Raspberry Pi: ingesta BLE, PostgreSQL (Docker), MQTT/AWS, Telegram
-├── backend/              # API FastAPI + PostgreSQL + JWT + WebSocket
-├── frontend/             # Dashboard React + Vite + TypeScript
+├── backend/              # API FastAPI + PostgreSQL + JWT + WebSocket (Dockerfile incluido)
+├── frontend/             # Dashboard React + Vite + TypeScript (Dockerfile + nginx.conf)
 ├── docs/img/             # Diagramas (SVG) usados en la documentación
+├── docker-compose.yml    # Web-stack: postgres + backend + frontend (docker compose up)
 ├── .env.example          # Plantilla de variables de entorno (los `.env` reales NO se versionan)
 ├── .gitignore
 └── README.md
@@ -82,18 +83,37 @@ Deauth-Alert-WiFi-IoT-System/
 
 ## Puesta en marcha
 
-**Requisitos:** Raspberry Pi (Raspberry Pi OS) · 4× ESP32-WROOM-32U · Docker · Python 3.11+ · Node.js 18+.
+**Requisitos:** Docker (para el web-stack). Para el laboratorio físico además: Raspberry Pi (Raspberry Pi OS) · 4× ESP32-WROOM-32U · Python 3.11+ · Node.js 18+.
+
+### Opción A — Web-stack con Docker (recomendada, sin hardware)
+
+Levanta **postgres + backend + frontend** con un solo comando (configuración 12-factor; los secretos vienen del `.env` en **runtime**, nunca horneados en las imágenes):
+
+```bash
+cp .env.example .env          # completar: PG_*, JWT_SECRET_KEY (≥32), SERVICE_API_KEY, CORS_ORIGINS, VITE_*
+docker compose up --build
+```
+
+| Servicio | URL |
+| --- | --- |
+| Frontend (dashboard) | http://localhost:8080 |
+| Backend (API + `/docs`) | http://localhost:8000 |
+| PostgreSQL | localhost:5432 |
+
+> La **processing-layer (BLE)** y el **firmware ESP32** **no** están en este compose: requieren hardware (Raspberry Pi + nodos ESP32) y se ejecutan aparte (ver Opción B y el laboratorio).
+
+### Opción B — Ejecución manual / desarrollo por capa
 
 > El detalle completo de cada capa está en su README. Resumen honesto de comandos:
 
-**1. Base de datos (PostgreSQL en Docker)**
+**1. Base de datos (PostgreSQL en Docker · solo capa edge/RPi)**
 ```bash
 cd processing-layer/docker
 cp .env.example .env          # completar credenciales
-docker compose up -d          # NOTA: hoy este compose levanta SOLO PostgreSQL
+docker compose up -d          # este compose (edge/RPi) levanta SOLO PostgreSQL — web-stack completo: Opción A
 ```
 
-**2. Backend (FastAPI)** — se ejecuta con `uvicorn` (aún no dockerizado):
+**2. Backend (FastAPI)** — con `uvicorn` (o dockerizado vía la Opción A):
 ```bash
 cd backend/src
 cp .env.example .env
@@ -125,9 +145,9 @@ python main.py                # requiere Bluetooth (BlueZ) y los ESP32 emparejad
 
 Este es un **prototipo de tesis**, funcional pero con deuda técnica documentada. A tener en cuenta antes de cualquier uso más allá de un laboratorio controlado:
 
-- **No endurecido para producción.** Hay endpoints del backend sin autenticación y validaciones pendientes — ver [`SECURITY.md`](SECURITY.md). **No exponer el backend a una red no confiable** sin corregir esto.
+- **No endurecido para producción.** El backend ya cuenta con **controles básicos de autenticación y hardening aplicados en Fase 6** (auth en rutas y WebSocket, `/logs` admin-only, reset endurecido, credencial máquina-a-máquina), pero aún requiere **revisión adicional antes de exponerse a redes no confiables**: CORS, rotación operativa de secretos, validación física end-to-end y hardening de despliegue — ver [`SECURITY.md`](SECURITY.md).
 - **Contrato ESP32→RPi en texto plano.** El evento viaja por BLE como una cadena delimitada (no JSON versionado) y su parser es posicional. *(Mejora planificada.)*
-- **Contenerización parcial.** Hoy solo PostgreSQL corre en Docker; backend y frontend se ejecutan directamente.
+- **Contenerización del web-stack completa.** `docker compose up` levanta postgres + backend + frontend. La **processing-layer (BLE)** y el **firmware ESP32** quedan **fuera de Docker** (requieren hardware/laboratorio).
 - **Cobertura de tests limitada** y **dependencias sin fijar** en algunas capas (reproducibilidad).
 
 ---
@@ -136,7 +156,7 @@ Este es un **prototipo de tesis**, funcional pero con deuda técnica documentada
 
 - [ ] Endurecer la seguridad del backend (auth en todas las rutas y WebSocket, hardening general).
 - [ ] Migrar el contrato ESP32→RPi a **JSON versionado** (`node_id`, `timestamp`, `event_type`, etc.).
-- [ ] **Contenerización completa** (`docker compose up` para DB + backend + frontend).
+- [ ] Contenerizar la **capa edge** (processing-layer/BLE en la Raspberry Pi) + build ESP-IDF *(el web-stack DB + backend + frontend ya corre con `docker compose up`)*.
 - [ ] Suite de tests + fijado de dependencias + CI.
 - [ ] *(Exploratorio)* Incorporar **IA/ML** para correlación de eventos y detección de anomalías.
 

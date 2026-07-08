@@ -22,13 +22,16 @@ config.h
 
 # Ignorar configuración sensible
 .env
+.env.*
+!.env.example
 *.pem
 *.key
 *.crt
 perception-layer/espidf-nodes/config/config.h
 
-# Carpeta de certificados (segura)
-src/certs/
+# Carpeta de certificados (segura) — ignora contenido real, conserva el template
+**/certs/*
+!**/certs/.env.example
 
 # Archivos de log
 *.log
