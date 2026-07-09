@@ -20,4 +20,4 @@ email-validator==2.3.0      # REQUERIDO por EmailStr (lo traía `fastapi[all]`; 
 # -------------------- Seguridad --------------------
 python-jose==3.5.0          # JWT (HS256)
 passlib[bcrypt]==1.7.4      # Hashing de contraseñas
-bcrypt==4.0.1               # PIN de compatibilidad con passlib 1.7.4 (bcrypt >=4.1 rompe su self-test)
+bcrypt==5.0.0               # PIN de compatibilidad con passlib 1.7.4 (bcrypt >=4.1 rompe su self-test)
