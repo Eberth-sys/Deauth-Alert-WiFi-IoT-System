@@ -3,7 +3,7 @@
 # Contexto de build: ./frontend (usa frontend/.dockerignore de D1).
 
 # ---------- Stage 1: build ----------
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 
 # Dependencias primero (cache de capas): solo los manifiestos.
