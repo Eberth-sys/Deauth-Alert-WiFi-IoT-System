@@ -1,0 +1,44 @@
+# Dependabot — actualizaciones de dependencias (DPS-01A).
+# Solo habilita el monitoreo y la apertura de PRs; NO modifica versiones por sí mismo.
+# Las alertas y las security updates se activan aparte en Settings -> Code security.
+# Pendiente (DPS-01B): agregar pip para /processing-layer una vez que su requirements.txt esté pineado.
+version: 2
+updates:
+  # -------------------- Frontend (npm) --------------------
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-patch:
+        update-types: ["minor", "patch"]   # los majors quedan como PR individual (revisión manual)
+
+  # -------------------- Backend (pip) --------------------
+  # requirements.txt vive en /backend/src, no en /backend.
+  - package-ecosystem: "pip"
+    directory: "/backend/src"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      backend-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # -------------------- Imágenes base de los Dockerfiles --------------------
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+
+  # -------------------- Imágenes del docker-compose raíz --------------------
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "weekly"
