@@ -6,7 +6,7 @@
 
 services:
   postgres:
-    image: postgres:16-alpine                # versión FIJA (reproducible)
+    image: postgres:18-alpine                # versión FIJA (reproducible)
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${PG_DB}
