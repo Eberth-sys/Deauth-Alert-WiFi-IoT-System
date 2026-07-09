@@ -116,12 +116,12 @@ El sistema se organiza en cuatro capas, desde la captura del ataque hasta la vis
 
 ## Tecnologías
 
-| Capa | Carpeta | Tecnología | Rol |
+| Capa | Manual técnico | Tecnología | Rol |
 | --- | --- | --- | --- |
-| Percepción | `perception-layer/` | ESP32-WROOM-32U · C/C++ (Arduino `.ino` y ESP-IDF `.c`) | Captura de *tramas* de desautenticación en modo promiscuo; envío por BLE |
-| Procesamiento | `processing-layer/` | Python (`bleak`, `paho-mqtt`, `psycopg2`) · Docker/PostgreSQL | Ingesta BLE, persistencia, publicación MQTT/AWS IoT y Telegram |
-| Backend | `backend/` | FastAPI · SQLAlchemy · PostgreSQL · JWT | API REST + WebSocket + autenticación |
-| Frontend | `frontend/` | React · Vite · TypeScript · TailwindCSS | Panel en tiempo real |
+| Percepción | [Arduino](perception-layer/esp32-nodes-ino/README.md) · [ESP-IDF](perception-layer/espidf-nodes/README.md) | ESP32-WROOM-32U · C/C++ (Arduino `.ino` y ESP-IDF `.c`) | Captura de *tramas* de desautenticación en modo promiscuo; envío por BLE |
+| Procesamiento | [Procesamiento](processing-layer/README.md) | Python (`bleak`, `paho-mqtt`, `psycopg2`) · Docker/PostgreSQL | Ingesta BLE, persistencia, publicación MQTT/AWS IoT y Telegram |
+| Backend | [Backend](backend/README.md) | FastAPI · SQLAlchemy · PostgreSQL · JWT | API REST + WebSocket + autenticación |
+| Frontend | [Frontend](frontend/README.md) | React · Vite · TypeScript · TailwindCSS | Panel en tiempo real |
 
 **Versiones principales** (tomadas de `requirements.txt`, `package.json`, los Dockerfiles y `docker-compose.yml`):
 
@@ -134,7 +134,7 @@ El sistema se organiza en cuatro capas, desde la captura del ataque hasta la vis
 | React · Vite · TypeScript | 19 · 6 · 5.7 |
 | Node (compilación) · nginx | 22 · 1.27 |
 
-> Cada capa incluye su propio `README.md` con instrucciones detalladas.
+> Cada manual técnico detalla la instalación y configuración de su capa.
 
 ---
 
