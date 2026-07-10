@@ -4,7 +4,7 @@
 
 # -------------------- Framework y servidor --------------------
 fastapi==0.139.0            # FastAPI (core). Se quitó `fastapi[all]`: las extras que usa la app se declaran explícitas.
-uvicorn[standard]==0.50.2   # Servidor ASGI + soporte WebSocket (websockets/httptools)
+uvicorn[standard]==0.51.0   # Servidor ASGI + soporte WebSocket (websockets/httptools)
 
 # -------------------- Base de datos --------------------
 psycopg2-binary==2.9.12     # Driver PostgreSQL precompilado (sin build-essential/libpq-dev en la imagen)
