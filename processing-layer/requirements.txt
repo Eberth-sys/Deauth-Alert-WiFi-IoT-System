@@ -1,8 +1,12 @@
-#processing-layer\requirements.txt
+# processing-layer/requirements.txt
+# Dependencias directas pineadas (DPS-01B). Versiones resueltas y validadas en una
+# imagen limpia python:3.11-slim-bookworm (instalacion + import + API que usa el codigo),
+# no con un `pip freeze` de un entorno personal. No se pinea a la ultima version cuando
+# esta rompe la API existente (ver bleak y paho-mqtt).
 
-bleak                 # Para la comunicación BLE con ESP32
-pyyaml                # Para manejar archivos YAML (configuración de dispositivos)
-python-dotenv         # Para manejar variables de entorno desde .env
-psycopg2-binary       # Para conectarse a PostgreSQL desde Python
-requests              # Librería para hacer peticiones HTTP al backend
-paho-mqtt             # Librería para comunicación MQTT con AWS IoT Core
+bleak==0.22.3            # BLE con los ESP32. Serie 0.x: preserva BleakScanner.discover / find_device_by_address / is_connected. bleak 3.x rompe esa API.
+pyyaml==6.0.3            # Lectura de config/devices.yaml.
+python-dotenv==1.2.2    # Variables de entorno desde .env (mismo pin que el backend).
+psycopg2-binary==2.9.12 # Driver PostgreSQL (mismo pin que el backend).
+requests==2.34.2        # Peticiones HTTP al backend y a la API de Telegram.
+paho-mqtt==1.6.1        # MQTT hacia AWS IoT Core. Serie 1.x: el codigo usa Client(CLIENT_ID) y callbacks (client, userdata, flags, rc). paho 2.x cambia esa firma.
