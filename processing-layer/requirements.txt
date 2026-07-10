@@ -9,4 +9,4 @@ pyyaml==6.0.3            # Lectura de config/devices.yaml.
 python-dotenv==1.2.2    # Variables de entorno desde .env (mismo pin que el backend).
 psycopg2-binary==2.9.12 # Driver PostgreSQL (mismo pin que el backend).
 requests==2.34.2        # Peticiones HTTP al backend y a la API de Telegram.
-paho-mqtt==1.6.1        # MQTT hacia AWS IoT Core. Serie 1.x: el codigo usa Client(CLIENT_ID) y callbacks (client, userdata, flags, rc). paho 2.x cambia esa firma.
+paho-mqtt==2.1.0        # MQTT hacia AWS IoT Core. Serie 1.x: el codigo usa Client(CLIENT_ID) y callbacks (client, userdata, flags, rc). paho 2.x cambia esa firma.
