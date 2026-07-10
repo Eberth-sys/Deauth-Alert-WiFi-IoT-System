@@ -4,7 +4,7 @@
 # no con un `pip freeze` de un entorno personal. No se pinea a la ultima version cuando
 # esta rompe la API existente (ver bleak y paho-mqtt).
 
-bleak==0.22.3            # BLE con los ESP32. Serie 0.x: preserva BleakScanner.discover / find_device_by_address / is_connected. bleak 3.x rompe esa API.
+bleak==3.0.2            # BLE con los ESP32. Serie 0.x: preserva BleakScanner.discover / find_device_by_address / is_connected. bleak 3.x rompe esa API.
 pyyaml==6.0.3            # Lectura de config/devices.yaml.
 python-dotenv==1.2.2    # Variables de entorno desde .env (mismo pin que el backend).
 psycopg2-binary==2.9.12 # Driver PostgreSQL (mismo pin que el backend).
