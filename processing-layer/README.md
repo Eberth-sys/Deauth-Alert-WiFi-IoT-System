@@ -57,11 +57,11 @@ Cada ESP32 captura los paquetes Wi-Fi en su canal y, si detecta un posible ataqu
 | --- | --- | --- |
 | Python | 3.11 | Incluido por defecto en Debian 12 (Bookworm); versión usada en el desarrollo. |
 | BlueZ | Stack del sistema | Pila Bluetooth de Linux para gestionar las conexiones BLE. |
-| Bleak | Sin versión fijada | Librería de Python para la comunicación con dispositivos BLE. |
-| PyYAML | Sin versión fijada | Lectura de `devices.yaml`. |
+| Bleak | 0.22.3 | Librería de Python para la comunicación con dispositivos BLE. |
+| PyYAML | 6.0.3 | Lectura de `devices.yaml`. |
 | asyncio | Incluido en Python 3 | Tareas asíncronas para el procesamiento en tiempo real. |
 
-> Las dependencias de Python (`requirements.txt`) no están fijadas por versión; se instala la última disponible al momento de la instalación. Fijarlas es una mejora pendiente.
+> Las dependencias directas de Python están fijadas por versión en `requirements.txt` para reproducibilidad. Bleak se mantiene en la serie 0.x y paho-mqtt en la serie 1.x por compatibilidad con la API que usa el código.
 
 ## Instalación en Raspberry Pi
 
@@ -197,7 +197,7 @@ Salida esperada:
 
 | Estado de validación |
 | :--- |
-| Esta capa se probó en laboratorio con hardware real (nodos ESP32 y Raspberry Pi) y funcionó como parte del prototipo de tesis. Las dependencias de Python no están fijadas por versión; fijarlas es una mejora pendiente documentada en el README principal. |
+| Esta capa se probó en laboratorio con hardware real (nodos ESP32 y Raspberry Pi) y funcionó como parte del prototipo de tesis. Las dependencias directas de Python están fijadas por versión en `requirements.txt`. |
 
 ## Autor
 
