@@ -23,7 +23,7 @@ ENV VITE_BACKEND_URL=$VITE_BACKEND_URL \
 RUN npm run build                        # genera /app/dist
 
 # ---------- Stage 2: serve (nginx) ----------
-FROM nginx:1.27-alpine
+FROM nginx:1.31-alpine
 
 # Config con SPA fallback (reemplaza el default.conf).
 COPY nginx.conf /etc/nginx/conf.d/default.conf
