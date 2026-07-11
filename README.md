@@ -112,7 +112,18 @@ El sistema se organiza en cuatro capas, desde la captura del ataque hasta la vis
 | Backend | [Backend](backend/README.md) | FastAPI · SQLAlchemy · PostgreSQL · JWT | API REST + WebSocket + autenticación |
 | Frontend | [Frontend](frontend/README.md) | React · Vite · TypeScript · TailwindCSS | Panel en tiempo real |
 
-**Versiones principales** (tomadas de `requirements.txt`, `package.json`, los Dockerfiles y `docker-compose.yml`):
+### Componentes de hardware
+
+| Componente | Rol en el sistema |
+| --- | --- |
+| **ESP32-WROOM-32U** | Nodo sensor de la capa de percepción. Captura tramas Wi-Fi 802.11 en modo promiscuo (2,4 GHz) y emite las alertas por BLE. Incluye conector U.FL para antena externa. |
+| **Raspberry Pi 5 (8 GB RAM)** | Unidad central de procesamiento. Recibe las alertas BLE, las persiste en PostgreSQL y las publica hacia AWS IoT y Telegram. |
+
+> El detalle de especificaciones y el fundamento de la selección de cada componente se documentan en la [tesis (PDF)](https://lse-posgrados-files.fi.uba.ar/tesis/LSE-FIUBA-Trabajo-Final-CEIoT-Eberth-Gabriel-Alarcon-Gonzalez-2025.pdf) (figuras 2.1 y 2.2) y en los manuales técnicos de cada capa.
+
+### Versiones principales
+
+Tomadas de `requirements.txt`, `package.json`, los Dockerfiles y `docker-compose.yml`.
 
 | Componente | Versión |
 | --- | --- |
