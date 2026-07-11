@@ -6,7 +6,7 @@
   <img alt="ESP32" src="https://img.shields.io/badge/ESP32-WROOM--32U-E7352C?logo=espressif&logoColor=white">
   <img alt="Arduino" src="https://img.shields.io/badge/Arduino-C%2B%2B-00979D?logo=arduino&logoColor=white">
   <img alt="BLE" src="https://img.shields.io/badge/Bluetooth-BLE%20seguro-0082FC?logo=bluetooth&logoColor=white">
-  <img alt="Licencia" src="https://img.shields.io/badge/licencia-pendiente-lightgrey">
+  <img alt="Licencia" src="https://img.shields.io/badge/licencia-Apache%202.0-blue">
 </p>
 
 Manual técnico del firmware Arduino de los nodos ESP32: captura tramas Wi-Fi en modo promiscuo, detecta ataques de desautenticación y envía la alerta por BLE a la capa de procesamiento.
@@ -192,4 +192,4 @@ Ejemplo de alerta generada:
 
 ## Licencia
 
-Licencia pendiente de definición. Se establecerá antes de la publicación pública definitiva.
+Código y documentación propia bajo licencia Apache 2.0. Ver [LICENSE](../../LICENSE) y [NOTICE](../../NOTICE) en la raíz del repositorio.

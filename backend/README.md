@@ -7,7 +7,7 @@
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.139-009688?logo=fastapi&logoColor=white">
   <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white">
   <img alt="JWT" src="https://img.shields.io/badge/Auth-JWT-000000?logo=jsonwebtokens&logoColor=white">
-  <img alt="Licencia" src="https://img.shields.io/badge/licencia-pendiente-lightgrey">
+  <img alt="Licencia" src="https://img.shields.io/badge/licencia-Apache%202.0-blue">
 </p>
 
 Manual técnico del backend: API REST y WebSocket desarrollados con FastAPI sobre PostgreSQL. Registra alertas de desautenticación, gestiona el estado de los nodos ESP32 y autentica usuarios y servicios.
@@ -206,4 +206,4 @@ Se usa PostgreSQL. Las tablas se crean automáticamente al iniciar la aplicació
 
 ## Licencia
 
-Licencia pendiente de definición. Se establecerá antes de la publicación pública definitiva.
+Código y documentación propia bajo licencia Apache 2.0. Ver [LICENSE](../LICENSE) y [NOTICE](../NOTICE) en la raíz del repositorio.

@@ -6,7 +6,7 @@
   <img alt="Python" src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white">
   <img alt="Raspberry Pi" src="https://img.shields.io/badge/Raspberry%20Pi-OS-A22846?logo=raspberrypi&logoColor=white">
   <img alt="BLE" src="https://img.shields.io/badge/Bluetooth-BLE-0082FC?logo=bluetooth&logoColor=white">
-  <img alt="Licencia" src="https://img.shields.io/badge/licencia-pendiente-lightgrey">
+  <img alt="Licencia" src="https://img.shields.io/badge/licencia-Apache%202.0-blue">
 </p>
 
 Manual técnico de la capa de procesamiento: recibe las alertas BLE de los nodos ESP32, las persiste en PostgreSQL y las publica hacia AWS IoT y Telegram. Corre en una Raspberry Pi, fuera del conjunto de servicios web en Docker.
@@ -205,4 +205,4 @@ Salida esperada:
 
 ## Licencia
 
-Licencia pendiente de definición. Se establecerá antes de la publicación pública definitiva.
+Código y documentación propia bajo licencia Apache 2.0. Ver [LICENSE](../LICENSE) y [NOTICE](../NOTICE) en la raíz del repositorio.

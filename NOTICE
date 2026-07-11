@@ -1,0 +1,22 @@
+Deauth-Alert
+Copyright 2025-2026 Eberth Gabriel Alarcón González
+
+Este producto incluye software desarrollado por Eberth Gabriel Alarcón
+González como Trabajo Final de la Especialización en Internet de las Cosas
+(IoT) de la Universidad de Buenos Aires (UBA / FIUBA).
+
+"Deauth-Alert" es el nombre del proyecto. La licencia Apache 2.0 no concede
+derechos sobre este nombre ni sobre marcas de terceros.
+
+Materiales NO cubiertos por la licencia Apache 2.0 de este repositorio:
+
+- Tesis, presentación y video de defensa: material académico del autor. Se
+  enlazan como evidencia; no se redistribuyen bajo esta licencia.
+
+- Los logotipos, nombres institucionales y marcas de la Universidad de Buenos
+  Aires y FIUBA pertenecen a sus respectivos titulares. Su presencia en este
+  repositorio tiene finalidad informativa y de referencia académica, y no
+  implica patrocinio, aval ni transferencia de derechos.
+
+Uso autorizado: esta herramienta configura interfaces Wi-Fi en modo promiscuo.
+Úsela únicamente en redes propias o con autorización explícita.
