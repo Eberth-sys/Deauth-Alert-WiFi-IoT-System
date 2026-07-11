@@ -183,6 +183,39 @@ docker compose up --build
 
 > La capa `processing-layer` (BLE) y el firmware ESP32 **no** están en este `docker compose`: requieren hardware (Raspberry Pi + nodos ESP32) y se ejecutan aparte (ver Opción B y el laboratorio).
 
+### Probar sin hardware (simulador de nodos ESP32)
+
+¿Todavía no tiene el hardware, o quiere evaluar el proyecto antes de invertir en los equipos? La herramienta [`tools/simulate_esp32.py`](tools/simulate_esp32.py) le permite probar Deauth-Alert de punta a punta sin comprar nada. Genera las mismas alertas que produciría un nodo ESP32 al detectar un ataque y las inserta en la base de datos, con las mismas columnas que usa la capa de procesamiento. Así ve el panel, las alertas y el flujo completo en funcionamiento antes de montar el laboratorio físico.
+
+> **Es una simulación para demostración y desarrollo (tipo _mock_).** No ejecuta ni reproduce un ataque real: inyecta las alertas directamente en la capa de datos, sin el firmware ESP32, la captura en modo promiscuo ni el transporte BLE. La detección frente a ataques reales de desautenticación (por ejemplo, con `aireplay-ng`) se validó en laboratorio con hardware físico; puede verla en la [demostración del sistema](https://youtu.be/P1Kr70pG77Y).
+
+Con el conjunto de servicios web ya levantado (Opción A), desde la raíz del repositorio:
+
+```bash
+# Linux / macOS: variables de conexión (las mismas del .env del web-stack)
+export PG_HOST=localhost PG_PORT=5432 PG_DB=deauth_alerts \
+       PG_USER=<usuario> PG_PASSWORD=<contraseña>
+
+pip install psycopg2-binary          # solo la primera vez, si no está instalado
+python tools/simulate_esp32.py --count 10 --interval 2
+```
+
+```powershell
+# Windows PowerShell: variables de conexión
+$env:PG_HOST="localhost"; $env:PG_PORT="5432"; $env:PG_DB="deauth_alerts"
+$env:PG_USER="<usuario>"; $env:PG_PASSWORD="<contraseña>"
+
+pip install psycopg2-binary
+python tools/simulate_esp32.py --count 10 --interval 2
+```
+
+| Parámetro | Descripción | Valor por defecto |
+| --- | --- | --- |
+| `--count` | Número de alertas a enviar | 6 |
+| `--interval` | Segundos entre cada alerta | 2.0 |
+
+Luego inicie sesión en el panel (`http://localhost:8080`) y verá las alertas aparecer en tiempo real. Las direcciones MAC generadas son de ejemplo (prefijos `DE:AD:BE:EF` y `02:00:00`); no corresponden a hardware real.
+
 ### Opción B. Ejecución manual y desarrollo por capa
 
 > El detalle completo de cada capa está en su `README.md`. Comandos por capa:
