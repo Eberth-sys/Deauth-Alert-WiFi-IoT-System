@@ -6,7 +6,7 @@ Este proyecto detecta ataques de deautenticación 802.11 poniendo interfaces Wi-
 
 ## Estado del proyecto
 
-Este es un **prototipo académico** (trabajo de tesis), **no endurecido para producción**. A la fecha existen limitaciones de seguridad conocidas, principalmente en la capa de backend (endpoints sin autenticación y validaciones pendientes). **No despliegues el backend expuesto a una red no confiable** sin revisar y corregir estos puntos primero. Ver el estado actual en el [README](README.md#estado-del-proyecto-y-limitaciones-conocidas).
+Este es un **prototipo académico** (trabajo de tesis), **no endurecido para producción**. A la fecha existen limitaciones de seguridad conocidas, principalmente en la capa de backend (endpoints sin autenticación y validaciones pendientes). **No despliegues el backend expuesto a una red no confiable** sin revisar y corregir estos puntos primero. Ver el estado actual en el [README](README.md#estado-del-proyecto).
 
 ## Reportar una vulnerabilidad
 
