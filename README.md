@@ -272,18 +272,24 @@ Si este trabajo le resulta útil, puede colaborar de varias formas:
 ## Sobre el autor
 
 **Esp. Ing. Eberth Gabriel Alarcón González**
+
 Ingeniero Electrónico, mención Telecomunicaciones · Especialista en Internet de las Cosas
 
 ### 👤 Perfil profesional
 
-Ingeniero Electrónico con mención en Telecomunicaciones (URBE, 2014) y especialista en Internet de las Cosas (Universidad de Buenos Aires). Más de diez años de trayectoria en tecnologías de la información, con base en telecomunicaciones, redes e infraestructura, y los últimos años con foco en ciberseguridad.
+Ingeniero Electrónico con mención en Telecomunicaciones por la **Universidad Rafael Belloso Chacín (URBE, 2014)** y especialista en **Internet de las Cosas** por la **Universidad de Buenos Aires (UBA)**. Cuenta con más de diez años de experiencia en tecnologías de la información, con una base sólida en telecomunicaciones, redes e infraestructura, y una evolución profesional enfocada en ciberseguridad.
 
-Actualmente trabaja como ingeniero de ciberseguridad. Su foco combina la seguridad de sistemas de inteligencia artificial y modelos de lenguaje (IA y LLM), la seguridad de IoT, las pruebas de penetración, la seguridad de redes y la respuesta a incidentes. Deauth-Alert es el Trabajo Final de su especialización en IoT y refleja ese cruce entre redes, dispositivos conectados y seguridad.
+Actualmente se desempeña como **ingeniero de ciberseguridad**, con foco en seguridad aplicada a sistemas de inteligencia artificial y modelos de lenguaje (**IA y LLM**), seguridad en entornos **IoT**, pruebas de penetración, seguridad de redes y respuesta a incidentes.
+
+**Deauth-Alert** corresponde al Trabajo Final de su especialización en Internet de las Cosas y representa la convergencia entre redes inalámbricas, dispositivos conectados y ciberseguridad aplicada.
 
 ### 🎓 Formación académica
 
-- **Especialización en Internet de las Cosas** · Universidad de Buenos Aires, Argentina (2025). Deauth-Alert corresponde al Trabajo Final de esta carrera.
-- **Ingeniería Electrónica, mención Telecomunicaciones** · Universidad Rafael Belloso Chacín, Venezuela (2014).
+* **Especialización en Internet de las Cosas** · Universidad de Buenos Aires, Argentina (**2025**)
+  Trabajo Final: **Deauth-Alert**
+
+* **Ingeniería Electrónica, mención Telecomunicaciones** · Universidad Rafael Belloso Chacín, Venezuela (**2014**)
+
 
 ### 🛡️ Áreas de especialidad
 
