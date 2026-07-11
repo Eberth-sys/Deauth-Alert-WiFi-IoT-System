@@ -19,6 +19,7 @@ Manual técnico de la capa de procesamiento: recibe las alertas BLE de los nodos
 - [Instalación en Raspberry Pi](#instalación-en-raspberry-pi)
 - [Detección de ESP32 mediante Bluetooth](#detección-de-esp32-mediante-bluetooth)
 - [Ejecución del proyecto](#ejecución-del-proyecto)
+- [Simulador de nodos ESP32 (sin hardware)](#simulador-de-nodos-esp32-sin-hardware)
 - [Estado de validación](#estado-de-validación)
 - [Autor](#autor)
 - [Licencia](#licencia)
@@ -192,6 +193,12 @@ Salida esperada:
 [CONNECTED] Conectado a ESP32_1_CH_01
 [INFO] Esperando datos de ESP32_1_CH_01...
 ```
+
+## Simulador de nodos ESP32 (sin hardware)
+
+El repositorio incluye la herramienta `tools/simulate_esp32.py` (en la raíz), que reproduce la escritura de alertas que hace esta capa al recibir un evento BLE: inserta alertas de desautenticación en la tabla `alerts` de PostgreSQL, con las mismas columnas que la función `guardar_alerta`, y marca los cuatro nodos como conectados. Es una simulación de datos (tipo _mock_) para probar el sistema de punta a punta sin los nodos ESP32 ni la Raspberry Pi; no ejecuta un ataque real ni emula el firmware ni el transporte BLE.
+
+Las instrucciones de ejecución están en el [README principal](../README.md#probar-sin-hardware-simulador-de-nodos-esp32).
 
 ## Estado de validación
 
