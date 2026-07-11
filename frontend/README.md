@@ -7,7 +7,7 @@
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white">
   <img alt="Vite" src="https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white">
   <img alt="Tailwind" src="https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white">
-  <img alt="Licencia" src="https://img.shields.io/badge/licencia-pendiente-lightgrey">
+  <img alt="Licencia" src="https://img.shields.io/badge/licencia-Apache%202.0-blue">
 </p>
 
 Manual técnico del frontend: panel en React que muestra en tiempo real las alertas de desautenticación capturadas por los nodos ESP32.
@@ -138,4 +138,4 @@ npm run build
 
 ## Licencia
 
-Licencia pendiente de definición. Se establecerá antes de la publicación pública definitiva.
+Código y documentación propia bajo licencia Apache 2.0. Ver [LICENSE](../LICENSE) y [NOTICE](../NOTICE) en la raíz del repositorio.

@@ -3,8 +3,12 @@
 </p>
 
 <p align="center">
+  <i>Sistema IoT para el monitoreo y detección de ataques de desautenticación en redes Wi-Fi</i>
+</p>
+
+<p align="center">
   <img alt="Estado" src="https://img.shields.io/badge/estado-prototipo%20de%20tesis-1e293b">
-  <img alt="Licencia" src="https://img.shields.io/badge/licencia-pendiente-lightgrey">
+  <img alt="Licencia" src="https://img.shields.io/badge/licencia-Apache%202.0-blue">
   <img alt="ESP32" src="https://img.shields.io/badge/ESP32-WROOM--32U-E7352C?logo=espressif&logoColor=white">
   <img alt="Raspberry Pi" src="https://img.shields.io/badge/Raspberry%20Pi-OS-A22846?logo=raspberrypi&logoColor=white">
   <img alt="Python" src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white">
@@ -15,7 +19,7 @@
 </p>
 
 <p align="center">
-  <b>Sistema IoT distribuido que detecta ataques de desautenticación 802.11 en tiempo real, con nodos ESP32 de bajo costo y una Raspberry Pi.</b>
+  <b>Vigilancia distribuida del espectro Wi-Fi de 2,4 GHz con nodos ESP32, Raspberry Pi, alertas en tiempo real y panel web.</b>
 </p>
 
 <p align="center">
@@ -28,38 +32,23 @@
 
 > **Trabajo de tesis** · Especialización en Internet de las Cosas (IoT) · Facultad de Ingeniería · Universidad de Buenos Aires (UBA).
 
-| ⚠️ **Uso responsable y autorizado** |
-| :--- |
-| Este sistema configura interfaces Wi-Fi en modo promiscuo para detectar ataques de desautenticación 802.11. Úselo únicamente en redes propias o con autorización explícita. La captura de tráfico de terceros puede infringir la legislación aplicable. El autor no se responsabiliza por usos indebidos. |
-
 ---
 
 ## En resumen
 
-Los ataques de *desautenticación* aprovechan las tramas de gestión del estándar Wi-Fi (802.11): en redes sin Protección de Tramas de Gestión (PMF), o con una configuración insuficiente, un atacante puede falsificar esas tramas y forzar la desconexión de los dispositivos. Muchas redes, además, carecen de visibilidad para advertir que están bajo ataque.
-
-**Deauth-Alert** aporta esa visibilidad. Es un sistema **autónomo, distribuido y de bajo costo** que vigila el espectro de 2,4 GHz de forma continua, detecta el ataque en el momento en que ocurre y **avisa por múltiples canales** (panel web, Telegram y nube), sobre una arquitectura académica, accesible y reproducible.
-
-- 🎯 **Qué hace:** detecta en tiempo real ataques de desautenticación 802.11 en redes Wi-Fi de 2,4 GHz.
-- 🧩 **Qué resuelve:** automatiza la detección y la alerta, sin la vigilancia manual continua que exigen *Aircrack-ng* o *Wireshark*, y sin el costo de una solución comercial de detección de intrusiones (*WIDS/IPS*).
-- 🛰️ **Cómo funciona:** ESP32 en modo promiscuo → Raspberry Pi (BLE) → PostgreSQL · AWS IoT · Telegram → backend FastAPI → panel React en vivo.
-
-### Características principales
-
-| | |
-| --- | --- |
-| 📡 **Detección en tiempo real** | Captura y clasifica *tramas* de desautenticación 802.11 en el momento en que ocurren. |
-| 🌐 **Arquitectura distribuida** | Nodos ESP32 que cubren los canales 1, 6 y 11, más un nodo de barrido. |
-| 🔔 **Alertas multicanal** | Panel web en vivo, Telegram y nube (AWS IoT) ante cada evento. |
-| 💰 **Bajo costo** | Hardware accesible (ESP32 + Raspberry Pi), sin licencias propietarias. |
-| 🧱 **Despliegue reproducible** | Conjunto de servicios web completo con `docker compose up` (postgres + backend + frontend). |
-| 🔒 **Seguridad aplicada** | Autenticación JWT, rutas y WebSocket protegidos, credencial máquina-a-máquina. |
+> **Los ataques de desautenticación suelen ocurrir sin visibilidad real para quien administra y protege una red. Deauth-Alert fue creado para resolver este problema.**
+>
+> En muchos entornos Wi-Fi, estos eventos no se detectan a tiempo, no quedan registrados de forma estructurada y solo se evidencian cuando la desconexión ya afecta la operación. Este trabajo convierte ese punto ciego en una señal visible, registrable y accionable.
+>
+> Para quien administra y protege una red, esto significa mayor capacidad de monitoreo y respuesta. Para quien intenta vulnerarla, significa una menor posibilidad de actuar sin dejar evidencia.
+>
+> **Tres pilares de Deauth-Alert:**<br>📡 **Detectar** · 🗂️ **Registrar** · 🔔 **Alertar**
 
 ---
 
-| 🛡️ **Por qué esta protección importa** |
+| ⚠️ **Uso responsable y autorizado** |
 | :--- |
-| Una red Wi-Fi puede permanecer operativa y carecer de visibilidad ante ataques de desautenticación. En redes sin Protección de Tramas de Gestión (PMF), o con una configuración insuficiente, un atacante puede falsificar tramas de gestión y provocar desconexiones en cámaras, terminales de venta, sensores IoT y otros servicios críticos.<br><br>Estas interrupciones afectan la continuidad operativa y pueden facilitar ataques posteriores, como la suplantación de puntos de acceso y la captura de credenciales. La detección temprana reduce el tiempo de respuesta y permite actuar antes de que el incidente alcance un impacto mayor.<br><br>Deauth-Alert acerca esta capacidad a laboratorios, instituciones y organizaciones mediante una arquitectura distribuida, reproducible y de bajo costo. |
+| Este sistema configura interfaces Wi-Fi en modo promiscuo para detectar ataques de desautenticación 802.11. Úselo únicamente en redes propias o con autorización explícita. La captura de tráfico de terceros puede infringir la legislación aplicable. El autor no se responsabiliza por usos indebidos. |
 
 ---
 
@@ -128,11 +117,11 @@ El sistema se organiza en cuatro capas, desde la captura del ataque hasta la vis
 | Componente | Versión |
 | --- | --- |
 | Python | 3.11 |
-| FastAPI · Uvicorn | 0.139 · 0.50 |
+| FastAPI · Uvicorn | 0.139 · 0.51 |
 | SQLAlchemy · Pydantic | 2.0 · 2.13 |
 | PostgreSQL | 16 |
 | React · Vite · TypeScript | 19 · 6 · 5.7 |
-| Node (compilación) · nginx | 22 · 1.27 |
+| Node (compilación) · nginx | 22 · 1.31 |
 
 > Cada manual técnico detalla la instalación y configuración de su capa.
 
@@ -276,7 +265,7 @@ Si este trabajo le resulta útil, puede colaborar de varias formas:
 - 🔧 Proponga mejoras a través de **solicitudes de incorporación**.
 - 📢 Comparta el enlace del proyecto con comunidades académicas, técnicas y de investigación.
 
-> La autorización para modificar, reutilizar o adaptar el código se definirá cuando se apruebe la licencia.
+> El uso, modificación y distribución del código y de la documentación propia se rigen por la licencia Apache 2.0.
 
 ---
 
@@ -315,7 +304,8 @@ Facultad de Ingeniería (FIUBA), Universidad de Buenos Aires · Carrera de Espec
 
 ## Licencia
 
-**Licencia pendiente de definición.** Se establecerá antes de la publicación pública definitiva.
-Hasta entonces: © 2025-2026 Eberth Alarcón. Todos los derechos reservados.
+El código y la documentación propia de este repositorio se distribuyen bajo la licencia Apache 2.0. Consulte [LICENSE](LICENSE) para los términos de uso y [NOTICE](NOTICE) para la atribución, marcas y materiales excluidos.
+
+© 2025-2026 Esp. Ing. Eberth Gabriel Alarcón González.
 
 ---
