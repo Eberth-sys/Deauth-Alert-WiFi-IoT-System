@@ -1,3 +1,5 @@
+> 🌐 **[English](README.en.md)** · **Español**
+
 # Backend
 
 ⬅ Parte de [Deauth-Alert](../README.md)

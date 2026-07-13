@@ -1,3 +1,5 @@
+> 🌐 **[English](README.en.md)** · **Español**
+
 <p align="center">
   <img src="docs/img/banner.svg" alt="Deauth-Alert, detección en tiempo real de ataques de desautenticación Wi-Fi 802.11" width="100%">
 </p>

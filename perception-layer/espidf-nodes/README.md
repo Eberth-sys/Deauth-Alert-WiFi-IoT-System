@@ -1,3 +1,5 @@
+> 🌐 **[English](README.en.md)** · **Español**
+
 # Nodos ESP32 (ESP-IDF): capa de percepción
 
 ⬅ Parte de [Deauth-Alert](../../README.md)

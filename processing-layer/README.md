@@ -1,3 +1,5 @@
+> 🌐 **[English](README.en.md)** · **Español**
+
 # Capa de procesamiento
 
 ⬅ Parte de [Deauth-Alert](../README.md)
