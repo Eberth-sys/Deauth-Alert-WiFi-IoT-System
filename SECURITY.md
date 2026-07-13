@@ -6,7 +6,11 @@ Este proyecto detecta ataques de deautenticación 802.11 poniendo interfaces Wi-
 
 ## Estado del proyecto
 
-Este es un **prototipo académico** (trabajo de tesis), **no endurecido para producción**. A la fecha existen limitaciones de seguridad conocidas, principalmente en la capa de backend (endpoints sin autenticación y validaciones pendientes). **No despliegues el backend expuesto a una red no confiable** sin revisar y corregir estos puntos primero. Ver el estado actual en el [README](README.md#estado-del-proyecto).
+Este es un **prototipo académico** (trabajo de tesis), **no preparado para producción**. El backend aplica controles de autenticación: JWT en endpoints de usuario, acceso restringido a administrador para logs y rutas administrativas, autenticación de servicio mediante clave máquina a máquina para la ingesta de la capa de procesamiento, y validación JWT en el canal WebSocket antes de aceptar la conexión.
+
+Aun así, antes de exponerlo en un entorno productivo, revise la configuración de despliegue: HTTPS/WSS, CORS y orígenes permitidos, rotación de secretos, variables de entorno, certificados, monitoreo, políticas de respaldo y endurecimiento del sistema operativo.
+
+Ver el estado del proyecto en el [README](README.md#estado-del-proyecto).
 
 ## Reportar una vulnerabilidad
 
