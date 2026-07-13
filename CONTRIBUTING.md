@@ -1,10 +1,10 @@
+> 🌐 **[English](CONTRIBUTING.en.md)** · **Español**
+
 # Guía de contribución
 
 ¡Gracias por tu interés en **Deauth-Alert**! Este proyecto es un **prototipo académico**
 (trabajo final de la Especialización en IoT, FIUBA / UBA) publicado bajo licencia
 **[Apache 2.0](LICENSE)**. Esta guía explica cómo colaborar de forma ordenada y responsable.
-
-> 🇬🇧 An English version (`CONTRIBUTING.en.md`) is planned.
 
 ## Propósito
 
