@@ -13,6 +13,12 @@ updates:
     groups:
       frontend-minor-patch:
         update-types: ["minor", "patch"]   # los majors quedan como PR individual (revisión manual)
+    ignore:
+      # TypeScript 7 (port nativo) diferido: typescript-eslint 8.x aún no lo soporta.
+      # Revisar/quitar esta regla cuando typescript-eslint publique soporte para TS 7.
+      # Solo bloquea el major; minor/patch y las security updates siguen habilitados.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # -------------------- Backend (pip) --------------------
   # requirements.txt vive en /backend/src, no en /backend.
@@ -37,6 +43,14 @@ updates:
     groups:
       processing-minor-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # bleak 3.x y paho-mqtt 2.x rompen la API usada con ESP32 / AWS IoT
+      # (rationale detallado en processing-layer/requirements.txt). Pineados 0.22.3 / 1.6.1.
+      # Solo bloquea el major; minor/patch y las security updates siguen habilitados.
+      - dependency-name: "bleak"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "paho-mqtt"
+        update-types: ["version-update:semver-major"]
 
   # -------------------- Imágenes base de los Dockerfiles --------------------
   - package-ecosystem: "docker"
