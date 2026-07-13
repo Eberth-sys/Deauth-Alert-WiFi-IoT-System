@@ -13,6 +13,12 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);                 // Estado para el usuario autenticado
   const [loading, setLoading] = useState(true);                        // Estado para controlar la carga inicial
 
+  // -------------------- Cerrar sesión --------------------
+  const logout = () => {
+    localStorage.removeItem(TOKEN_KEY);                                // Elimina el token
+    setUser(null);                                                     // Limpia el usuario
+  };
+
   // -------------------- Al iniciar la app, valida el token (si existe) --------------------
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);                     // Busca el token almacenado
@@ -44,12 +50,6 @@ export const useAuth = () => {
   const register = async (username: string, email: string, password: string) => {
     const newUser = await registerUser(username, email, password);     // Llama a la API de registro
     return newUser;                                                    // Devuelve el nuevo usuario (puede usarse para confirmar)
-  };
-
-  // -------------------- Cerrar sesión --------------------
-  const logout = () => {
-    localStorage.removeItem(TOKEN_KEY);                                // Elimina el token
-    setUser(null);                                                     // Limpia el usuario
   };
 
   // -------------------- Obtener token actual --------------------
