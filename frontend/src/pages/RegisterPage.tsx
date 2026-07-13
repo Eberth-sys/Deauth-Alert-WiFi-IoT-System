@@ -41,8 +41,8 @@ const RegisterPage = () => {
       await register(username, email, password);               // Intenta registrar al usuario
       alert("✅ Registro exitoso. ¡Ahora inicia sesión!");
       navigate("/login");                                      // Redirige al login tras éxito
-    } catch (err: any) {
-      setError(err.message || "❌ Error al registrarse");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "❌ Error al registrarse");
     }
   };
 

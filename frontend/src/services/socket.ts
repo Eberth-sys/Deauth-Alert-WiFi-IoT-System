@@ -17,8 +17,8 @@ let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
  * @returns WebSocket - Instancia del WebSocket conectado
  */
 export const connectToWebSocket = (
-  onMessage: (data: any) => void,
-  onError?: (err: any) => void,
+  onMessage: (data: unknown) => void,
+  onError?: (err: Event) => void,
   setConnectionStatus?: (status: 'connected' | 'disconnected' | 'reconnecting') => void
 ): WebSocket => {
 

@@ -8,7 +8,7 @@
  * @param filename - Nombre del archivo CSV a guardar
  */
 
-export const downloadCSV = (data: any[], filename: string) => {
+export const downloadCSV = <T extends object>(data: T[], filename: string) => {
     // Si no hay datos, se detiene la función
     if (!data.length) return
   
@@ -20,7 +20,7 @@ export const downloadCSV = (data: any[], filename: string) => {
       headers.join(','), // primera fila: encabezado con nombres de columnas
       ...data.map((row) =>
         // cada fila: se convierte en una cadena CSV respetando el orden de los headers
-        headers.map((field) => JSON.stringify(row[field], (_, v) => v ?? '')).join(',')
+        headers.map((field) => JSON.stringify((row as Record<string, unknown>)[field], (_, v) => v ?? '')).join(',')
       )
     ]
   

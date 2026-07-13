@@ -47,8 +47,8 @@ const ResetPasswordPage = () => {
       await resetPassword(token, password);                // Envío al backend
       setMessage("✅ Contraseña actualizada correctamente. Redirigiendo al login...");
       setTimeout(() => navigate("/login"), 3000);          // Redirige tras 3 segundos
-    } catch (err: any) {
-      setError(err.message || "❌ Error al actualizar la contraseña");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "❌ Error al actualizar la contraseña");
     }
   };
 

@@ -9,7 +9,7 @@ const PasswordRequirements = ({ password }: { password: string }) => {
       { test: /[A-Z]/.test(password), label: "Una letra mayúscula" },
       { test: /[a-z]/.test(password), label: "Una letra minúscula" },
       { test: /[0-9]/.test(password), label: "Un número" },
-      { test: /[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]/.test(password), label: "Un carácter especial" },
+      { test: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password), label: "Un carácter especial" },
     ];
   
     // -------------------- Renderizado --------------------
