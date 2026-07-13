@@ -13,7 +13,7 @@
   <img alt="Licencia" src="https://img.shields.io/badge/licencia-Apache%202.0-blue">
   <img alt="ESP32" src="https://img.shields.io/badge/ESP32-WROOM--32U-E7352C?logo=espressif&logoColor=white">
   <img alt="Raspberry Pi" src="https://img.shields.io/badge/Raspberry%20Pi-OS-A22846?logo=raspberrypi&logoColor=white">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white">
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.139-009688?logo=fastapi&logoColor=white">
   <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black">
   <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white">
@@ -129,7 +129,7 @@ Tomadas de `requirements.txt`, `package.json`, los Dockerfiles y `docker-compose
 
 | Componente | Versión |
 | --- | --- |
-| Python | 3.11 |
+| Python | 3.12 |
 | FastAPI · Uvicorn | 0.139 · 0.51 |
 | SQLAlchemy · Pydantic | 2.0 · 2.13 |
 | PostgreSQL | 16 |

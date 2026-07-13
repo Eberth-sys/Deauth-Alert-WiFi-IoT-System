@@ -1,7 +1,7 @@
 # backend/Dockerfile — imagen del backend FastAPI (D2)
 # Contexto de build: ./backend  (usa backend/.dockerignore para NO hornear .env/certs)
 
-FROM python:3.11-slim-bookworm
+FROM python:3.12-slim-bookworm
 
 # No escribir .pyc; salida sin buffer (logs inmediatos); logs dentro del contenedor.
 ENV PYTHONDONTWRITEBYTECODE=1 \

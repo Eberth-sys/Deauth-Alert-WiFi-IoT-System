@@ -5,7 +5,7 @@
 ⬅ Part of [Deauth-Alert](../README.en.md)
 
 <p align="left">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white">
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-0.139-009688?logo=fastapi&logoColor=white">
   <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white">
   <img alt="JWT" src="https://img.shields.io/badge/Auth-JWT-000000?logo=jsonwebtokens&logoColor=white">
@@ -69,7 +69,7 @@ backend/
 
 ### Prerequisites
 
-- Python 3.11, the version validated by the backend's Docker image.
+- Python 3.12, the version validated by the backend's Docker image.
 - Git.
 - A running PostgreSQL instance (local or via the Docker Compose in the [main README](../README.en.md)).
 
