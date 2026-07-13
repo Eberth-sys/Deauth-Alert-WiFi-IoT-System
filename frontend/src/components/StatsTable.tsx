@@ -7,7 +7,7 @@
 type Props = {
   title: string
   headers: string[]
-  data: { [key: string]: any }[]  // Diccionario de clave/valor por fila
+  data: { [key: string]: string | number }[]  // Diccionario de clave/valor por fila
 }
 
 // Componente para mostrar estadísticas tabulares con estilo visual atractivo

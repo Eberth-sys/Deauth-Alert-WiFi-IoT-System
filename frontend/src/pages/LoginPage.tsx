@@ -25,8 +25,8 @@ const LoginPage = () => {
     try {
       await login(email, password);                        // Intenta autenticación
       navigate("/");                                       // Redirige al dashboard
-    } catch (err: any) {
-      setError(err.message || "❌ Error al iniciar sesión");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "❌ Error al iniciar sesión");
     }
   };
 

@@ -3,12 +3,13 @@
 // -------------------- Importaciones --------------------
 import { createContext, useContext, ReactNode } from "react";  // React y tipos necesarios para contexto
 import { useAuth } from "../hooks/useAuth";                    // Hook personalizado que maneja lógica de autenticación
+import type { User } from "../types/auth";                     // Tipo del usuario autenticado
 
 // -------------------- Definición del tipo del contexto --------------------
 interface AuthContextType {
-  user: any;                                                             // Usuario autenticado (puede mejorarse con un tipo específico)
+  user: User | null;                                                     // Usuario autenticado
   login: (email: string, password: string) => Promise<void>;             // Función para iniciar sesión
-  register: (username: string, email: string, password: string) => Promise<any>; // Función para registrar nuevo usuario
+  register: (username: string, email: string, password: string) => Promise<User>; // Función para registrar nuevo usuario
   logout: () => void;                                                    // Función para cerrar sesión
   getToken: () => string | null;                                         // Devuelve el token JWT actual
   isAuthenticated: boolean;                                              // true si hay sesión activa

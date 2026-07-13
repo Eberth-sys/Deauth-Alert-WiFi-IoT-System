@@ -7,7 +7,7 @@ export const validatePasswordStrength = (password: string): string | null => {
     if (!/[A-Z]/.test(password)) return "Debe contener al menos una letra mayúscula.";                       // Verifica presencia de mayúscula
     if (!/[a-z]/.test(password)) return "Debe contener al menos una letra minúscula.";                       // Verifica presencia de minúscula
     if (!/[0-9]/.test(password)) return "Debe contener al menos un número.";                                 // Verifica presencia de número
-    if (!/[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]/.test(password)) return "Debe tener un carácter especial."; // Verifica presencia de símbolo
+    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) return "Debe tener un carácter especial."; // Verifica presencia de símbolo
   
     const COMMON_PASSWORDS = [                                                                               // Lista de contraseñas comunes
       "123456", "password", "12345678", "qwerty",

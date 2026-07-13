@@ -3,13 +3,14 @@
 // -------------------- Importaciones --------------------
 import { useState, useEffect } from "react";                            // Hooks de React
 import { loginUser, registerUser, getProfile } from "../services/auth"; // Funciones del servicio de autenticación
+import type { User } from "../types/auth";                              // Tipo del usuario autenticado
 
 // -------------------- Clave del token en localStorage --------------------
 const TOKEN_KEY = "auth_token";
 
 // -------------------- Hook personalizado: useAuth --------------------
 export const useAuth = () => {
-  const [user, setUser] = useState<any | null>(null);                  // Estado para el usuario autenticado
+  const [user, setUser] = useState<User | null>(null);                 // Estado para el usuario autenticado
   const [loading, setLoading] = useState(true);                        // Estado para controlar la carga inicial
 
   // -------------------- Al iniciar la app, valida el token (si existe) --------------------
