@@ -89,22 +89,39 @@ def mark_nodes_connected(cur):
         )
 
 
-def insert_alert(cur):
-    """Inserta una alerta de desautenticacion de ejemplo. Devuelve sus datos."""
+def insert_alert(cur, ratio):
+    """Inserta un evento de ejemplo. `ratio` = fraccion de disassoc (0.0-1.0).
+    Devuelve sus datos, incluyendo event_type."""
     node, channels = random.choice(NODES)
     canal = random.choice(channels)
     bssid = fake_ap_bssid()            # BSSID legitimo del AP atacado
     spoofed_bssid = bssid              # el atacante suplanta ese mismo BSSID
-    # ~70% broadcast (deauth a todos los clientes), ~30% a un cliente concreto.
+    # ~70% broadcast (a todos los clientes), ~30% a un cliente concreto.
     target_mac = "FF:FF:FF:FF:FF:FF" if random.random() < 0.7 else fake_client_mac()
+    # Tipo de evento 802.11 (F1, DEC-0003): ratio=0.0 => solo deauth; ratio=1.0 => solo disassoc.
+    # random() devuelve [0.0, 1.0): con 0.0 nunca es disassoc; con 1.0 siempre es disassoc.
+    event_type = "disassoc" if random.random() < ratio else "deauth"
     cur.execute(
         """
-        INSERT INTO alerts (nodo_iot, spoofed_bssid, bssid, target_mac, canal, timestamp)
-        VALUES (%s, %s, %s, %s, %s, NOW())
+        INSERT INTO alerts (nodo_iot, spoofed_bssid, bssid, target_mac, canal, event_type, timestamp)
+        VALUES (%s, %s, %s, %s, %s, %s, NOW())
         """,
-        (node, spoofed_bssid, bssid, target_mac, canal),
+        (node, spoofed_bssid, bssid, target_mac, canal, event_type),
     )
-    return node, canal, bssid, target_mac
+    return node, canal, bssid, target_mac, event_type
+
+
+def ratio_arg(value):
+    """Valida --disassoc-ratio: numero flotante en el rango [0.0, 1.0]."""
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError(
+            "--disassoc-ratio debe ser un numero entre 0.0 y 1.0 (recibido: %r)" % value)
+    if not 0.0 <= f <= 1.0:
+        raise argparse.ArgumentTypeError(
+            "--disassoc-ratio debe estar entre 0.0 y 1.0 (recibido: %s)" % f)
+    return f
 
 
 def main():
@@ -114,6 +131,9 @@ def main():
                         help="numero de alertas a enviar (por defecto 6)")
     parser.add_argument("--interval", type=float, default=2.0,
                         help="segundos entre alertas (por defecto 2.0)")
+    parser.add_argument("--disassoc-ratio", type=ratio_arg, default=0.2,
+                        help="fraccion de eventos disassoc, 0.0-1.0 "
+                             "(0.0=solo deauth, 1.0=solo disassoc; por defecto 0.2)")
     args = parser.parse_args()
 
     try:
@@ -127,13 +147,13 @@ def main():
 
     mark_nodes_connected(cur)
     print("[SIM] %d nodos marcados como 'connected'." % len(NODES))
-    print("[SIM] Enviando %d alertas de desautenticacion (cada %ss)..."
-          % (args.count, args.interval))
+    print("[SIM] Enviando %d eventos (cada %ss, disassoc-ratio=%.2f)..."
+          % (args.count, args.interval, args.disassoc_ratio))
 
     for i in range(1, args.count + 1):
-        node, canal, bssid, target = insert_alert(cur)
-        print("[SIM] %d/%d  nodo=%s  canal=%s  BSSID=%s  destino=%s"
-              % (i, args.count, node, canal, bssid, target))
+        node, canal, bssid, target, ev = insert_alert(cur, args.disassoc_ratio)
+        print("[SIM] %d/%d  nodo=%s  canal=%s  tipo=%s  BSSID=%s  destino=%s"
+              % (i, args.count, node, canal, ev, bssid, target))
         if i < args.count:
             time.sleep(args.interval)
 
