@@ -8,20 +8,10 @@ import BackToHomeButton from '../components/BackToHomeButton'
 import { downloadCSV } from '../components/utils/download'
 import DownloadButton from '../components/DownloadButton' // reutilizamos el del LogsPage
 import Footer from '../components/Footer'
-
-// Definición del tipo de datos que representa una alerta
-type AlertData = {
-  id: number
-  nodo_iot: string
-  spoofed_bssid: string
-  target_mac: string
-  bssid: string
-  canal: number
-  timestamp: string
-}
+import type { AlertEvent } from '../components/types'
 
 const ReportsPage = () => {
-  const [alerts, setAlerts] = useState<AlertData[]>([])
+  const [alerts, setAlerts] = useState<AlertEvent[]>([])
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [error, setError] = useState('')

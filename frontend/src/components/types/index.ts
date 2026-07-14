@@ -26,4 +26,19 @@ export type AlertSummary = {
     isConnected: boolean
     lastConnection: string
   }
-  
+
+// -------------------- Evento de alerta (por-evento) --------------------
+// Tipo de evento 802.11 detectado (F2, DEC-0003).
+export type EventType = 'deauth' | 'disassoc'
+
+// Alerta individual tal como la devuelve el backend (AlertResponse / SELECT * FROM alerts).
+export type AlertEvent = {
+  id: number
+  nodo_iot: string
+  spoofed_bssid: string
+  target_mac: string
+  bssid: string
+  canal: number
+  event_type: EventType
+  timestamp: string
+}
