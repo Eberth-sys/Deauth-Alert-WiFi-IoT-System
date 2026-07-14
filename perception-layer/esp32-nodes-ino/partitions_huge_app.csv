@@ -1,0 +1,8 @@
+# partitions_huge_app.csv — Huge APP (~3 MB de aplicacion, sin OTA) para flash de 4 MB.
+# Compartido por los 4 nodos (referenciado desde pio_common.ini).
+# Total = 0x400000 (4 MB). app0 = 0x300000 (3 MB). Sin OTA (una sola particion de app).
+# Name,     Type, SubType,  Offset,   Size,     Flags
+nvs,        data, nvs,      0x9000,   0x5000,
+otadata,    data, ota,      0xe000,   0x2000,
+app0,       app,  ota_0,    0x10000,  0x300000,
+spiffs,     data, spiffs,   0x310000, 0xF0000,

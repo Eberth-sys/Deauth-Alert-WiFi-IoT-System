@@ -124,7 +124,7 @@ Confirmar que `config.h` está listado en `.gitignore` antes de compilar.
 
 ### 3. Cargar el firmware con Arduino IDE
 
-Este repositorio no incluye configuración de PlatformIO; la vía documentada y probada es Arduino IDE.
+La vía con **validación física** (hardware) es Arduino IDE. El repositorio **también incluye configuración de PlatformIO** (ver *Compilación reproducible con PlatformIO*), validada **solo por compilación**.
 
 1. Abrir `main.ino` desde **Archivo > Abrir** en Arduino IDE.
 2. Verificar que la línea `#include "config.h"` esté activa (el archivo debe existir según el paso anterior).
@@ -152,6 +152,35 @@ arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app <carpeta_d
 ```
 
 > **Compilación vs. validación física:** esta vía (Arduino CLI + core 3.2.0) valida que el firmware **compila**. La **validación física con hardware** se realizó únicamente por **Arduino IDE** (ver *Estado de validación*).
+
+### Compilación reproducible con PlatformIO
+
+Cada nodo es un **proyecto PlatformIO independiente** (un `platformio.ini` mínimo por carpeta) que hereda la configuración común de [`pio_common.ini`](pio_common.ini) (plataforma, board, framework y partición). Los `main.ino` **no se mueven ni se modifican**, por lo que Arduino IDE sigue funcionando igual.
+
+- **Plataforma FIJADA:** `pioarduino 54.03.20` → **Arduino Core ESP32 3.2.0** (validado). No usar `stable`/`latest`.
+- **Partición Huge APP compartida:** [`partitions_huge_app.csv`](partitions_huge_app.csv) (app ~3 MB, sin OTA, para flash de 4 MB). La partición **por defecto no alcanza** (firmware ~1,65 MB).
+- **Validado por compilación** con **PlatformIO Core 6.1.16** (4/4 nodos: `Flash 52,4%` de 3 MB, RAM 18,1%). No es validación física.
+
+Instalar la versión fijada de PlatformIO Core y ejecutar los comandos **desde `perception-layer/esp32-nodes-ino/`**:
+
+```bash
+# Instalación reproducible (versión fijada):
+python -m pip install platformio==6.1.16
+
+# Compilar un nodo (crear antes su config.h desde config_template.h):
+pio run -d ESP32_01_Deauth_Detector_CH_01
+
+# Compilar los cuatro (secuencia, Bash):
+for d in ESP32_0*/; do pio run -d "$d"; done
+```
+
+Secuencia equivalente en PowerShell:
+
+```powershell
+Get-ChildItem -Directory ESP32_0* | ForEach-Object { pio run -d $_.FullName }
+```
+
+> **Windows — rutas largas:** el paso `checkprogsize` puede fallar (*"filename or extension is too long"*) si el proyecto está en una ruta muy larga (p.ej. OneDrive). Compilar desde una ruta corta, habilitar *long paths*, o fijar `PLATFORMIO_CORE_DIR`/`PLATFORMIO_BUILD_DIR` a rutas cortas (sin guardarlas en el repo).
 
 ## Parámetros de configuración recomendados
 
