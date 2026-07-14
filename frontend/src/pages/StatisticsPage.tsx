@@ -18,6 +18,7 @@ import LatestAlertsTable from '../components/LatestAlertsTable'
 import BackToHomeButton from '../components/BackToHomeButton'
 import { connectToWebSocket } from '../services/socket'
 import Footer from '../components/Footer'
+import type { AlertEvent } from '../components/types'
 
 // Componente principal del panel de estadísticas
 const StatisticsPage = () => {
@@ -25,7 +26,7 @@ const StatisticsPage = () => {
   const [total, setTotal] = useState(0)
   const [porNodo, setPorNodo] = useState([])
   const [porCanal, setPorCanal] = useState([])
-  const [ultimas, setUltimas] = useState([])
+  const [ultimas, setUltimas] = useState<AlertEvent[]>([])
 
   // Estado para mostrar si el WebSocket está activo
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'reconnecting'>('disconnected')

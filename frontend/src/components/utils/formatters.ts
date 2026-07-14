@@ -4,6 +4,7 @@
 import dayjs from 'dayjs'
 import 'dayjs/locale/es' // Localización en español
 import localizedFormat from 'dayjs/plugin/localizedFormat' // Formato más amigable
+import type { EventType } from '../types' // Tipo de evento (F2)
 
 // Aplicamos las configuraciones a dayjs
 dayjs.extend(localizedFormat)
@@ -62,3 +63,20 @@ export const getAlertIndicatorColor = (count: number): string =>
  */
 export const getAlertIndicatorText = (count: number): string =>
   count > 0 ? 'Alerta' : 'Ok'
+
+/**
+ * Devuelve la etiqueta y las clases para el badge del tipo de evento (F2).
+ * El significado lo transmite el texto (label); el color es secundario
+ * (no depende únicamente del color).
+ * @param event_type - 'deauth' | 'disassoc'
+ * @returns { label, className }
+ */
+export const getEventTypeBadge = (
+  event_type: EventType
+): { label: string; className: string } => {
+  const base = 'text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap'
+  if (event_type === 'disassoc') {
+    return { label: 'Desasociación', className: `${base} bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40` }
+  }
+  return { label: 'Desautenticación', className: `${base} bg-red-500/20 text-red-300 ring-1 ring-red-500/40` }
+}

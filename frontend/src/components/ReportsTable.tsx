@@ -1,19 +1,11 @@
 // frontend\src\components\ReportsTable.tsx
 
-// Tipo que representa una alerta individual utilizada en los reportes personalizados
-type AlertData = {
-  id: number                    // Identificador único de la alerta
-  nodo_iot: string              // Nodo IoT que reportó la alerta
-  spoofed_bssid: string         // Dirección BSSID suplantada
-  target_mac: string            // Dirección MAC del objetivo
-  bssid: string                 // Dirección BSSID original
-  canal: number                 // Canal en el que se detectó la actividad
-  timestamp: string             // Fecha y hora del evento
-}
+import type { AlertEvent } from './types'
+import { getEventTypeBadge } from './utils/formatters'
 
-// Definición de las propiedades (props) que recibe el componente: un array de alertas
+// Definición de las propiedades (props) que recibe el componente: un array de alertas por-evento
 type Props = {
-  alerts: AlertData[]          // Lista de alertas a mostrar
+  alerts: AlertEvent[]          // Lista de alertas a mostrar
 }
 
 // Componente que renderiza una tabla con los datos de alerta recibidos por props
@@ -30,6 +22,7 @@ const ReportsTable = ({ alerts }: Props) => {
           <tr>
             <th className="px-4 py-2">ID</th>
             <th className="px-4 py-2">Nodo</th>
+            <th className="px-4 py-2">Tipo</th>
             <th className="px-4 py-2">Canal</th>
             <th className="px-4 py-2">MAC objetivo</th>
             <th className="px-4 py-2">BSSID suplantado</th>
@@ -39,10 +32,13 @@ const ReportsTable = ({ alerts }: Props) => {
 
         {/* Cuerpo de la tabla: filas de alertas */}
         <tbody>
-          {alerts.map((alert) => (
+          {alerts.map((alert) => {
+            const badge = getEventTypeBadge(alert.event_type)
+            return (
             <tr key={alert.id} className="odd:bg-gray-800 even:bg-gray-700">
               <td className="px-4 py-2">{alert.id}</td>
               <td className="px-4 py-2">{alert.nodo_iot}</td>
+              <td className="px-4 py-2"><span className={badge.className}>{badge.label}</span></td>
               <td className="px-4 py-2">{alert.canal}</td>
               <td className="px-4 py-2">{alert.target_mac}</td>
               <td className="px-4 py-2">{alert.spoofed_bssid}</td>
@@ -50,7 +46,8 @@ const ReportsTable = ({ alerts }: Props) => {
               {/* Formateo de la fecha en formato local legible */}
               <td className="px-4 py-2">{new Date(alert.timestamp).toLocaleString()}</td>
             </tr>
-          ))}
+            )
+          })}
         </tbody>
 
       </table>

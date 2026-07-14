@@ -1,18 +1,11 @@
 //frontend\src\components\LatestAlertsTable.tsx
 
-// Definimos el tipo de dato que representa una alerta individual
-type Alert = {
-  id: number                     // ID único de la alerta
-  nodo_iot: string               // Nombre del nodo IoT que detectó la alerta
-  canal: number                 // Canal WiFi donde se detectó la actividad
-  target_mac: string           // MAC del dispositivo objetivo del ataque
-  spoofed_bssid: string        // BSSID que fue suplantado (spoofed)
-  timestamp: string            // Fecha y hora del evento
-}
+import type { AlertEvent } from './types'
+import { getEventTypeBadge } from './utils/formatters'
 
-// Props que recibe el componente: una lista de alertas
+// Props que recibe el componente: una lista de alertas por-evento
 type Props = {
-  alerts: Alert[]              // Arreglo de objetos tipo Alert
+  alerts: AlertEvent[]
 }
 
 // Componente funcional que renderiza una tabla con las últimas alertas registradas
@@ -36,6 +29,7 @@ const LatestAlertsTable = ({ alerts }: Props) => {
             <tr className="bg-gradient-to-r from-purple-700 via-pink-700 to-red-600 text-white text-xs uppercase tracking-wider">
               <th className="px-4 py-3 whitespace-nowrap">ID</th>
               <th className="px-4 py-3 whitespace-nowrap">Nodo IoT</th>
+              <th className="px-4 py-3 whitespace-nowrap">Tipo</th>
               <th className="px-4 py-3 whitespace-nowrap">Canal</th>
               <th className="px-4 py-3 whitespace-nowrap">Target MAC</th>
               <th className="px-4 py-3 whitespace-nowrap">BSSID suplantado</th>
@@ -45,13 +39,16 @@ const LatestAlertsTable = ({ alerts }: Props) => {
 
           {/* Cuerpo de la tabla, recorriendo cada alerta recibida por props */}
           <tbody>
-            {alerts.map((a) => (
+            {alerts.map((a) => {
+              const badge = getEventTypeBadge(a.event_type)
+              return (
               <tr
                 key={a.id} // Clave única por cada alerta
                 className="transition hover:bg-gray-700/50 even:bg-gray-800/40 odd:bg-gray-700/20"
               >
                 <td className="px-4 py-3">{a.id}</td>
                 <td className="px-4 py-3">{a.nodo_iot}</td>
+                <td className="px-4 py-3"><span className={badge.className}>{badge.label}</span></td>
                 <td className="px-4 py-3">{a.canal}</td>
                 <td className="px-4 py-3">{a.target_mac}</td>
                 <td className="px-4 py-3">{a.spoofed_bssid}</td>
@@ -61,7 +58,8 @@ const LatestAlertsTable = ({ alerts }: Props) => {
                   {new Date(a.timestamp).toLocaleString()}
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
 
         </table>
