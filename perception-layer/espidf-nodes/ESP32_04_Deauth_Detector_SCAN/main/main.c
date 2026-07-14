@@ -35,6 +35,10 @@ static uint16_t char_handle;
 static esp_gatt_srvc_id_t service_id;
 static esp_bt_uuid_t char_uuid = { .len = ESP_UUID_LEN_128 };
 
+// UUID de servicio/caracteristica ya convertidos y validados en app_main (F4a).
+static uint8_t g_service_uuid128[16];
+static uint8_t g_char_uuid128[16];
+
 static esp_ble_adv_params_t adv_params = {
     .adv_int_min = 0x20,
     .adv_int_max = 0x40,
@@ -44,18 +48,33 @@ static esp_ble_adv_params_t adv_params = {
     .adv_filter_policy = ADV_FILTER_ALLOW_SCAN_ANY_CON_ANY,
 };
 
-// Convierte UUID de texto a formato binario de 128 bits
-static void string_to_uuid(const char* uuid_str, uint8_t* uuid128) {
+// Convierte un UUID canonico (36 chars: 32 hex + 4 guiones) a binario de 128 bits.
+// Devuelve false si el UUID es invalido (no continuar con UUID parcial).
+static bool string_to_uuid(const char* uuid_str, uint8_t* uuid128) {
+    if (uuid_str == NULL) return false;
+    if (strlen(uuid_str) != 36) return false;                 // longitud canonica
+
     char hex_str[33];
     int j = 0;
-    for (int i = 0; i < strlen(uuid_str); i++) {
-        if (uuid_str[i] != '-') hex_str[j++] = uuid_str[i];
+    for (int i = 0; uuid_str[i] != '\0'; i++) {
+        char c = uuid_str[i];
+        if (c == '-') {
+            if (i != 8 && i != 13 && i != 18 && i != 23) return false;  // guiones canonicos
+            continue;
+        }
+        bool is_hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+        if (!is_hex) return false;                            // solo hexadecimal
+        if (j >= (int)sizeof(hex_str) - 1) return false;      // limite del buffer
+        hex_str[j++] = c;
     }
+    if (j != 32) return false;                                // exactamente 32 hex
     hex_str[j] = '\0';
+
     for (int i = 0; i < 16; i++) {
         char byte_str[3] = { hex_str[30 - i*2], hex_str[31 - i*2], '\0' };
         uuid128[i] = (uint8_t)strtol(byte_str, NULL, 16);
     }
+    return true;
 }
 
 // Configura seguridad BLE
@@ -90,30 +109,38 @@ static void send_alert(const char* src_mac, const char* dest_mac, const char* bs
 
 // Análisis de cada paquete capturado
 static void wifi_sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
-    wifi_promiscuous_pkt_t* pkt = (wifi_promiscuous_pkt_t*)buf;
-    uint8_t* data = pkt->payload;
+    // (B) Solo tramas de management, antes de interpretar buf.
+    if (type != WIFI_PKT_MGMT) return;
 
+    const wifi_promiscuous_pkt_t* pkt = (const wifi_promiscuous_pkt_t*)buf;
+
+    // (A) Longitud real de la trama, descontando el FCS de 4 bytes.
+    uint16_t sig_len = pkt->rx_ctrl.sig_len;
+    if (sig_len < 4) return;
+    size_t frame_len = (size_t)sig_len - 4;
+    if (frame_len < 24) return;   // cabecera MAC de management (data[0..23])
+
+    const uint8_t* data = pkt->payload;
+
+    // (orden seguro) Verificar tipo/subtipo 802.11 antes de leer direcciones.
+    uint8_t frame_type = (data[0] & 0x0C) >> 2;
+    uint8_t frame_subtype = (data[0] & 0xF0) >> 4;
+    if (frame_type != 0 || frame_subtype != 0x0C) return;   // solo deauth (0x0C)
+
+    // BSSID objetivo (data[10..15]); tipo y longitud ya validados.
     char bssid[18];
     snprintf(bssid, sizeof(bssid), "%02X:%02X:%02X:%02X:%02X:%02X",
              data[10], data[11], data[12], data[13], data[14], data[15]);
+    if (strcmp(bssid, TARGET_BSSID) != 0) return;
 
-    if (strcmp(bssid, TARGET_BSSID) == 0) {
-        uint8_t pkt_type = (data[0] & 0x0C) >> 2;
-        uint8_t pkt_subtype = (data[0] & 0xF0) >> 4;
+    char src_mac[18], dst_mac[18];
+    snprintf(src_mac, sizeof(src_mac), "%02X:%02X:%02X:%02X:%02X:%02X",
+             data[16], data[17], data[18], data[19], data[20], data[21]);
+    snprintf(dst_mac, sizeof(dst_mac), "%02X:%02X:%02X:%02X:%02X:%02X",
+             data[4], data[5], data[6], data[7], data[8], data[9]);
 
-        if (pkt_type == 0 && pkt_subtype == 0x0C) {
-            char src_mac[18], dst_mac[18];
-            snprintf(src_mac, sizeof(src_mac), "%02X:%02X:%02X:%02X:%02X:%02X",
-                     data[16], data[17], data[18], data[19], data[20], data[21]);
-            snprintf(dst_mac, sizeof(dst_mac), "%02X:%02X:%02X:%02X:%02X:%02X",
-                     data[4], data[5], data[6], data[7], data[8], data[9]);
-
-            uint8_t current_channel;
-            wifi_second_chan_t second;
-            esp_wifi_get_channel(&current_channel, &second);
-            send_alert(src_mac, dst_mac, bssid, current_channel);
-        }
-    }
+    // (C) Canal desde los metadatos de recepcion (sin esp_wifi_get_channel en el hot path).
+    send_alert(src_mac, dst_mac, bssid, pkt->rx_ctrl.channel);
 }
 
 // BLE GAP handler (publicidad)
@@ -133,13 +160,13 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatt_i
             service_id.id.inst_id = 0x00;
             service_id.is_primary = true;
             service_id.id.uuid.len = ESP_UUID_LEN_128;
-            string_to_uuid(SERVICE_UUID, service_id.id.uuid.uuid.uuid128);
+            memcpy(service_id.id.uuid.uuid.uuid128, g_service_uuid128, sizeof(g_service_uuid128));
             esp_ble_gatts_create_service(gatt_if, &service_id, 4);
             break;
 
         case ESP_GATTS_CREATE_EVT:
             esp_ble_gatts_start_service(param->create.service_handle);
-            string_to_uuid(CHARACTERISTIC_UUID, char_uuid.uuid.uuid128);
+            memcpy(char_uuid.uuid.uuid128, g_char_uuid128, sizeof(g_char_uuid128));
             esp_ble_gatts_add_char(param->create.service_handle, &char_uuid,
                                    ESP_GATT_PERM_READ,
                                    ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY,
@@ -168,6 +195,14 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatt_i
 
 // Función principal del nodo scanner
 void app_main() {
+    // (F4a) Validar SERVICE_UUID y CHARACTERISTIC_UUID ANTES de toda inicializacion
+    // (evita dejar un servicio BLE parcialmente creado con un UUID invalido).
+    if (!string_to_uuid(SERVICE_UUID, g_service_uuid128) ||
+        !string_to_uuid(CHARACTERISTIC_UUID, g_char_uuid128)) {
+        ESP_LOGE(TAG, "SERVICE_UUID o CHARACTERISTIC_UUID invalido; se aborta la inicializacion");
+        return;
+    }
+
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
@@ -175,8 +210,17 @@ void app_main() {
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
-    ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));
+    // (D) Configurar el filtro de management ANTES de habilitar el modo promiscuo.
+    wifi_promiscuous_filter_t filter = {0};
+    filter.filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT;
+    esp_err_t filt_err = esp_wifi_set_promiscuous_filter(&filter);
+    if (filt_err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_wifi_set_promiscuous_filter fallo (%d); no se habilita el modo promiscuo", filt_err);
+        return;
+    }
     ESP_ERROR_CHECK(esp_wifi_set_promiscuous_rx_cb(wifi_sniffer_callback));
+    ESP_ERROR_CHECK(esp_wifi_set_channel(scan_channels[0], WIFI_SECOND_CHAN_NONE));   // canal inicial ANTES de habilitar
+    ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));                                   // habilitar al final
 
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_bt_controller_init(&bt_cfg));

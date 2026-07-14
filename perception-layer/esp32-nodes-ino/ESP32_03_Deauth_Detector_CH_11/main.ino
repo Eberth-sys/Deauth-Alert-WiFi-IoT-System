@@ -70,41 +70,44 @@ String getPacketType(const uint8_t *data) {
 
 // Callback para manejar paquetes capturados
 void sniffer_callback(void *buf, wifi_promiscuous_pkt_type_t type) {
-    const wifi_promiscuous_pkt_t *ppkt = (wifi_promiscuous_pkt_t *)buf;
+    // (B) Solo tramas de management, antes de interpretar buf.
+    if (type != WIFI_PKT_MGMT) return;
+
+    const wifi_promiscuous_pkt_t *ppkt = (const wifi_promiscuous_pkt_t *)buf;
+
+    // (A) Longitud real de la trama, descontando el FCS de 4 bytes.
+    uint16_t sig_len = ppkt->rx_ctrl.sig_len;
+    if (sig_len < 4) return;
+    size_t frame_len = (size_t)sig_len - 4;
+    if (frame_len < 24) return;   // cabecera MAC de management (data[0..23])
+
     const uint8_t *data = ppkt->payload;
 
-    // Extraer el BSSID del paquete
+    // (orden seguro) Verificar tipo/subtipo antes de leer direcciones.
+    if (getPacketType(data) != "Deauthentication") return;   // solo deauth (0x0C)
+
+    // BSSID objetivo (data[10..15]); tipo y longitud ya validados.
     char bssid[18];
     snprintf(bssid, sizeof(bssid), "%02X:%02X:%02X:%02X:%02X:%02X",
              data[10], data[11], data[12], data[13], data[14], data[15]);
+    if (strcmp(bssid, TARGET_BSSID) != 0) return;
 
-    // Filtrar solo paquetes relacionados con el BSSID objetivo
-    if (strcmp(bssid, TARGET_BSSID) == 0) {
-        // Identificar tipo de paquete
-        String packetType = getPacketType(data);
+    char srcMac[18], destMac[18];
+    snprintf(srcMac, sizeof(srcMac), "%02X:%02X:%02X:%02X:%02X:%02X",
+             data[16], data[17], data[18], data[19], data[20], data[21]);
+    snprintf(destMac, sizeof(destMac), "%02X:%02X:%02X:%02X:%02X:%02X",
+             data[4], data[5], data[6], data[7], data[8], data[9]);
 
-        // Mostrar solo paquetes de Deauthentication
-        if (packetType == "Deauthentication") {
-            // Extraer direcciones MAC de origen y destino
-            char srcMac[18], destMac[18];
-            snprintf(srcMac, sizeof(srcMac), "%02X:%02X:%02X:%02X:%02X:%02X",
-                     data[16], data[17], data[18], data[19], data[20], data[21]);
-            snprintf(destMac, sizeof(destMac), "%02X:%02X:%02X:%02X:%02X:%02X",
-                     data[4], data[5], data[6], data[7], data[8], data[9]);
+    // (C) Canal desde los metadatos de recepcion.
+    String mensaje = "[ALERT] Ataque de Deauthentication detectado | Origen: " + String(srcMac) +
+                     " | Destino: " + String(destMac) +
+                     " | BSSID: " + String(bssid) +
+                     " | Canal: " + String(ppkt->rx_ctrl.channel);
+    Serial.println(mensaje);
 
-            // Preparar el mensaje con etiquetas mejoradas
-            String mensaje = "[ALERT] Ataque de Deauthentication detectado | Origen: " + String(srcMac) +
-                             " | Destino: " + String(destMac) + 
-                             " | BSSID: " + String(bssid) +
-                             " | Canal: " + String(MONITOR_CHANNEL);
-            Serial.println(mensaje);
-
-            // Enviar el mensaje como notificación BLE si hay un cliente conectado
-            if (deviceConnected) {
-                pCharacteristic->setValue(mensaje.c_str());
-                pCharacteristic->notify();
-            }
-        }
+    if (deviceConnected) {
+        pCharacteristic->setValue(mensaje.c_str());
+        pCharacteristic->notify();
     }
 }
 
@@ -136,12 +139,17 @@ void setup() {
     // Configurar Wi-Fi en modo STA
     WiFi.mode(WIFI_MODE_STA);
 
-    // Activar modo promiscuo
-    esp_wifi_set_promiscuous(true);
-    esp_wifi_set_promiscuous_rx_cb(sniffer_callback);
-
-    // Configurar el ESP32 para escuchar en el canal 11
-    esp_wifi_set_channel(MONITOR_CHANNEL, WIFI_SECOND_CHAN_NONE);
+    // (D) Configurar el filtro de management ANTES de habilitar el modo promiscuo.
+    wifi_promiscuous_filter_t filter = {0};
+    filter.filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT;
+    esp_err_t err = esp_wifi_set_promiscuous_filter(&filter);
+    if (err != ESP_OK) { Serial.printf("[ERROR] esp_wifi_set_promiscuous_filter fallo (%d); se aborta setup\n", err); return; }
+    err = esp_wifi_set_promiscuous_rx_cb(sniffer_callback);
+    if (err != ESP_OK) { Serial.printf("[ERROR] esp_wifi_set_promiscuous_rx_cb fallo (%d); se aborta setup\n", err); return; }
+    err = esp_wifi_set_channel(MONITOR_CHANNEL, WIFI_SECOND_CHAN_NONE);   // canal ANTES de habilitar
+    if (err != ESP_OK) { Serial.printf("[ERROR] esp_wifi_set_channel fallo (%d); se aborta setup\n", err); return; }
+    err = esp_wifi_set_promiscuous(true);                       // habilitar al final
+    if (err != ESP_OK) { Serial.printf("[ERROR] esp_wifi_set_promiscuous fallo (%d); se aborta setup\n", err); return; }
 
     // Mensaje de inicio
     Serial.println(" ");
