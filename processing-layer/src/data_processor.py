@@ -48,8 +48,18 @@ if _problema_key:
 alerta_reciente = {}  # Diccionario para evitar el envío repetido de alertas en un corto período de tiempo
 estado_nodos_previos = {}  # Diccionario para almacenar el estado previo de los nodos ESP32
 
-# -------------------- Función: Guardar alerta de desautenticación --------------------
-def guardar_alerta(nodo_iot, spoofed_bssid, bssid, target_mac, canal):
+# -------------------- Etiquetas legibles por tipo de evento (F3, DEC-0003) --------------------
+# Coinciden con las etiquetas del panel (getEventTypeBadge, F2) para consistencia
+# entre el mensaje de Telegram y la interfaz web.
+EVENT_TYPE_LABELS = {
+    "deauth": "Desautenticación",
+    "disassoc": "Desasociación",
+}
+
+# -------------------- Función: Guardar alerta (deauth/disassoc) --------------------
+def guardar_alerta(nodo_iot, spoofed_bssid, bssid, target_mac, canal, event_type="deauth"):
+    # event_type se recibe como argumento con nombre (DEC-0003). El default 'deauth'
+    # conserva la compatibilidad con el formato legacy, que no transporta el tipo.
     conn = get_db_connection()  # Obtener conexión a la base de datos
     if conn is None:
         print("[ALERT] - No se pudo conectar a la base de datos.")
@@ -57,11 +67,11 @@ def guardar_alerta(nodo_iot, spoofed_bssid, bssid, target_mac, canal):
 
     try:
         cursor = conn.cursor()
-        # Guardar la alerta en la base de datos
-        cursor.execute(""" 
-            INSERT INTO alerts (nodo_iot, spoofed_bssid, bssid, target_mac, canal, timestamp) 
-            VALUES (%s, %s, %s, %s, %s, NOW())
-        """, (nodo_iot, spoofed_bssid, bssid, target_mac, int(canal)))
+        # Guardar la alerta en la base de datos (incluye event_type)
+        cursor.execute("""
+            INSERT INTO alerts (nodo_iot, spoofed_bssid, bssid, target_mac, canal, event_type, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+        """, (nodo_iot, spoofed_bssid, bssid, target_mac, int(canal), event_type))
         conn.commit()  # Confirmar la transacción
         cursor.close() # Cerrar cursor
         conn.close()   # Cerrar conexión
@@ -73,24 +83,28 @@ def guardar_alerta(nodo_iot, spoofed_bssid, bssid, target_mac, canal):
             "bssid": bssid,
             "target_mac": target_mac,
             "canal": canal,
+            "event_type": event_type,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         publish_alert(alert_data)  # Publica la alerta en AWS IoT Core (MQTT)
 
         # -------------------- Filtro de alertas duplicadas --------------------
-        clave_alerta = f"{nodo_iot}_{target_mac}_{canal}"  # Crea una clave única por alerta
+        # La clave incluye event_type: deauth y disassoc sobre el mismo
+        # nodo/target/canal son eventos distintos y no deben deduplicarse entre sí.
+        clave_alerta = f"{nodo_iot}_{target_mac}_{canal}_{event_type}"  # Clave única por alerta
         ahora = datetime.now()
 
         if clave_alerta in alerta_reciente:
             ultima_vez = alerta_reciente[clave_alerta]  # Fecha de la última alerta con la misma clave
-            if (ahora - ultima_vez).total_seconds() < 30:  # Si la alerta se repite en menos de 10 segundos, se ignora
+            if (ahora - ultima_vez).total_seconds() < 30:  # Si la alerta se repite en menos de 30 segundos, se ignora
                 print("[INFO] ⏳ Alerta ignorada por repetición reciente.")
                 return
         alerta_reciente[clave_alerta] = ahora  # Actualiza la última vez que se recibió la alerta
 
         # -------------------- Enviar alerta a Telegram --------------------
+        etiqueta = EVENT_TYPE_LABELS.get(event_type, EVENT_TYPE_LABELS["deauth"])  # Etiqueta legible
         mensaje = (
-            f"🚨 Alerta de Desautenticación Detectada\n"
+            f"🚨 Alerta de {etiqueta} Detectada\n"
             f"🔹 Nodo: {nodo_iot}\n"
             f"📡 Canal: {canal}\n"
             f"🎯 MAC objetivo: {target_mac}\n"
