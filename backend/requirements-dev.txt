@@ -1,5 +1,0 @@
-# backend/requirements-dev.txt
-# Dependencias solo para desarrollo/tests (no van en la imagen de producción).
-# Instalar:  pip install -r requirements-dev.txt   (desde backend/)
--r src/requirements.txt
-pytest==8.4.2
