@@ -124,7 +124,7 @@ Confirm that `config.h` is listed in `.gitignore` before compiling.
 
 ### 3. Upload the Firmware with the Arduino IDE
 
-This repository does not include a PlatformIO configuration; the documented and tested path is the Arduino IDE.
+The path with **physical validation** (hardware) is the Arduino IDE. The repository **also includes a PlatformIO configuration** (see *Reproducible build with PlatformIO*), validated **by compilation only**.
 
 1. Open `main.ino` via **File > Open** in the Arduino IDE.
 2. Verify that the `#include "config.h"` line is active (the file must exist, as set up in the previous step).
@@ -152,6 +152,35 @@ arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app <sketch_fo
 ```
 
 > **Build vs. physical validation:** this path (Arduino CLI + core 3.2.0) validates that the firmware **compiles**. **Physical validation on hardware** was done only via the **Arduino IDE** (see *Validation Status*).
+
+### Reproducible build with PlatformIO
+
+Each node is a **standalone PlatformIO project** (a minimal `platformio.ini` per folder) that inherits the shared configuration from [`pio_common.ini`](pio_common.ini) (platform, board, framework, and partition). The `main.ino` files are **not moved or modified**, so the Arduino IDE keeps working the same.
+
+- **PINNED platform:** `pioarduino 54.03.20` -> **Arduino Core ESP32 3.2.0** (validated). Do not use `stable`/`latest`.
+- **Shared Huge APP partition:** [`partitions_huge_app.csv`](partitions_huge_app.csv) (~3 MB app, no OTA, for 4 MB flash). The default partition **is not enough** (firmware ~1.65 MB).
+- **Compilation-validated** with **PlatformIO Core 6.1.16** (4/4 nodes: `Flash 52.4%` of 3 MB, RAM 18.1%). This is not physical validation.
+
+Install the pinned PlatformIO Core version and run the commands **from `perception-layer/esp32-nodes-ino/`**:
+
+```bash
+# Reproducible install (pinned version):
+python -m pip install platformio==6.1.16
+
+# Build one node (create its config.h from config_template.h first):
+pio run -d ESP32_01_Deauth_Detector_CH_01
+
+# Build all four (sequence, Bash):
+for d in ESP32_0*/; do pio run -d "$d"; done
+```
+
+Equivalent PowerShell sequence:
+
+```powershell
+Get-ChildItem -Directory ESP32_0* | ForEach-Object { pio run -d $_.FullName }
+```
+
+> **Windows — long paths:** the `checkprogsize` step may fail (*"filename or extension is too long"*) if the project sits in a very long path (e.g., OneDrive). Build from a short path, enable *long paths*, or set `PLATFORMIO_CORE_DIR`/`PLATFORMIO_BUILD_DIR` to short paths (not stored in the repo).
 
 ## Recommended Configuration Parameters
 
