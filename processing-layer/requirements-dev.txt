@@ -1,0 +1,7 @@
+# Dependencias de desarrollo/test de la capa de procesamiento (Raspberry Pi).
+# Instalar junto a las de runtime:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# Los tests stubean los servicios externos (PostgreSQL, AWS IoT/MQTT y Telegram),
+# por lo que no requieren certificados ni conectividad de red.
+pytest>=7.4,<9
