@@ -1,3 +1,5 @@
+> 🌐 **[English](SECURITY.en.md)** · **Español**
+
 # Política de Seguridad
 
 ## ⚠️ Uso autorizado
@@ -12,6 +14,15 @@ Aun así, antes de exponerlo en un entorno productivo, revise la configuración 
 
 Ver el estado del proyecto en el [README](README.md#estado-del-proyecto).
 
+## Versiones con soporte
+
+Al ser un prototipo académico, se mantiene una única línea activa: las correcciones de seguridad se aplican sobre la última versión publicada.
+
+| Versión | Soporte |
+| --- | --- |
+| `1.0.x` (última / `main`) | ✅ |
+| Versiones anteriores | ❌ |
+
 ## Reportar una vulnerabilidad
 
 Si encontrás una vulnerabilidad de seguridad, por favor **no la publiques en un issue público**. En su lugar:
@@ -19,7 +30,7 @@ Si encontrás una vulnerabilidad de seguridad, por favor **no la publiques en un
 1. Usá la función de **avisos de seguridad privados** de GitHub (*Security Advisories*), o
 2. Contactá al autor de forma privada a través del perfil de [LinkedIn](https://www.linkedin.com/in/eberthalarcon90) enlazado en el README.
 
-Incluí, si es posible: descripción del problema, pasos para reproducirlo, impacto potencial y cualquier mitigación sugerida. Se responderá a la brevedad.
+Incluí, si es posible: descripción del problema, pasos para reproducirlo, impacto potencial y cualquier mitigación sugerida. El reporte será revisado a la brevedad.
 
 ## Manejo de secretos
 
