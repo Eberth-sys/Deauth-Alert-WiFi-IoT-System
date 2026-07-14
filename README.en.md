@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Eberth-sys/Deauth-Alert-WiFi-IoT-System/releases/tag/v1.0.0"><img alt="Release" src="https://img.shields.io/github/v/release/Eberth-sys/Deauth-Alert-WiFi-IoT-System?label=release"></a>
   <img alt="Status" src="https://img.shields.io/badge/status-thesis%20prototype-1e293b">
   <img alt="License" src="https://img.shields.io/badge/license-Apache%202.0-blue">
   <img alt="ESP32" src="https://img.shields.io/badge/ESP32-WROOM--32U-E7352C?logo=espressif&logoColor=white">
