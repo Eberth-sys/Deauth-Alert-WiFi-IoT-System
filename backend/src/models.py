@@ -16,6 +16,7 @@ class Alert(Base):
     target_mac = Column(String(17), nullable=False)                     # MAC objetivo del ataque
     bssid = Column(String(17), nullable=False)                          # BSSID legítimo
     canal = Column(Integer, nullable=False)                             # Canal en que se detectó el ataque
+    event_type = Column(String(16), nullable=False, server_default="'deauth'")  # Tipo de evento 802.11 (deauth/disassoc) — F1, DEC-0003
     timestamp = Column(TIMESTAMP, server_default=func.now())            # Fecha y hora del evento
 
 # -------------------- Modelo: Estado de nodos ESP32 --------------------
