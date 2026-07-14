@@ -1,0 +1,46 @@
+name: 📖 Documentation
+description: Report a documentation problem or improvement.
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve the **Deauth-Alert** documentation.
+  - type: input
+    id: location
+    attributes:
+      label: Document or section
+      description: Affected file or page (for example README.md, CONTRIBUTING.md, docs/...).
+    validations:
+      required: true
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - Error or incorrect information
+        - Lack of clarity
+        - Missing content
+        - Translation (ES / EN)
+        - Broken link
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is wrong or missing, with a suggestion if you have one.
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - Spanish (ES)
+        - English (EN)
+        - Both
+    validations:
+      required: false

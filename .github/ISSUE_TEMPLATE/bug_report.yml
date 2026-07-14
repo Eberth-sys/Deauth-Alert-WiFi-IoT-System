@@ -1,0 +1,82 @@
+name: 🐞 Bug report
+description: Report an incorrect, reproducible behavior.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing to **Deauth-Alert** (a defensive, academic project).
+
+        ⚠️ **Do not report security vulnerabilities here.** Follow the private process described in [SECURITY.md](https://github.com/Eberth-sys/Deauth-Alert-WiFi-IoT-System/blob/main/SECURITY.md).
+
+        Use **synthetic data**: never include real MAC/BSSID/SSID, tokens or credentials.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug description
+      description: What happens and why it is incorrect.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: false
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - Firmware / ESP32 (perception-layer)
+        - Processing layer (Raspberry Pi / BLE / MQTT)
+        - Backend (FastAPI)
+        - Frontend (React)
+        - Docker / deployment
+        - Documentation
+        - Other / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, versions (Node, Python, browser, Docker), branch or commit.
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or evidence (optional)
+      description: Paste relevant logs. Remember to anonymize any sensitive data.
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: This is NOT a security vulnerability (those go through SECURITY.md).
+          required: true
+        - label: I did not include real sensitive data (MAC/BSSID/SSID, tokens or credentials).
+          required: true
+        - label: My report is part of a legitimate, educational and defensive use of the project.
+          required: true
