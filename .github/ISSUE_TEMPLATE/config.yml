@@ -1,0 +1,13 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 🔒 Security vulnerability (do NOT use public issues)
+    url: https://github.com/Eberth-sys/Deauth-Alert-WiFi-IoT-System/blob/main/SECURITY.md
+    about: >-
+      Report vulnerabilities privately as described in SECURITY.md
+      (GitHub Security Advisories or direct contact with the author).
+      Do not disclose them in a public issue.
+  - name: 💬 General question or request
+    url: https://github.com/Eberth-sys/Deauth-Alert-WiFi-IoT-System/blob/main/CONTRIBUTING.en.md
+    about: >-
+      For general questions or ideas that do not fit the templates,
+      open a blank issue or read the contributing guide first.

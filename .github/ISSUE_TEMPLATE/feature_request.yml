@@ -1,0 +1,62 @@
+name: ⚙️ Feature request
+description: Propose a technical or functional improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing an improvement to **Deauth-Alert** (a defensive, academic project).
+
+        Proposals must align with its purpose: **detection and defense**, never attacking third-party networks.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description: What need or limitation it would solve.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What change or feature you propose.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Firmware / ESP32 (perception-layer)
+        - Processing layer (Raspberry Pi / BLE / MQTT)
+        - Backend (FastAPI)
+        - Frontend (React)
+        - Docker / deployment
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: hardware
+    attributes:
+      label: Does it require physical hardware (ESP32 / Raspberry Pi) to validate?
+      options:
+        - No (verifiable in software or with the simulator)
+        - Yes (requires a lab with hardware)
+        - Not sure
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: The proposal aligns with the defensive and academic purpose of the project and does not enable offensive use.
+          required: true
