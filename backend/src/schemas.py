@@ -3,6 +3,7 @@
 # -------------------- Librerías externas --------------------
 from pydantic import BaseModel, EmailStr, validator         # Para definir y validar esquemas de datos
 from datetime import datetime                               # Para manejar fechas y horas
+from typing import Literal                                  # Para el enum de event_type (deauth/disassoc)
 import re                                                   # Para validación de contraseñas mediante expresiones regulares
 
 # -------------------- Esquemas para Alertas --------------------
@@ -14,6 +15,7 @@ class AlertCreate(BaseModel):
     target_mac: str                 # Dirección MAC objetivo del ataque
     bssid: str                      # BSSID original del entorno
     canal: int                      # Canal donde se detectó el ataque
+    event_type: Literal["deauth", "disassoc"] = "deauth"  # Tipo de evento; default legacy 'deauth' — F1, DEC-0003
 
 # Esquema de salida que extiende AlertCreate con ID y timestamp
 class AlertResponse(AlertCreate):
