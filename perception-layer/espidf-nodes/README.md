@@ -163,6 +163,19 @@ idf.py -p /dev/ttyUSB0 monitor
 
 `/dev/ttyUSB0` corresponde al puerto serie en Linux. En Windows suele aparecer como `COM3`, `COM4`, etc.; en macOS, como `/dev/cu.SLAB_USBtoUART`.
 
+### Compilación reproducible con el contenedor oficial (Docker)
+
+Además del entorno local, cada proyecto (uno por nodo) compila de forma reproducible con el **contenedor oficial de Espressif** y **ESP-IDF 5.1** (versión validada **por compilación**), sin instalar la toolchain localmente:
+
+```bash
+# Ejemplo reproducible (ESP-IDF 5.1). Ajustar la ruta montada al sistema operativo.
+docker run --rm -v <RUTA_espidf-nodes>:/project -w /project/<NODO> espressif/idf:release-v5.1 idf.py set-target esp32 build
+```
+
+> **Sintaxis de la ruta montada:** el argumento `-v <ruta>:/project` **varía según el sistema operativo** (las rutas de Windows/PowerShell, Linux y macOS difieren). Adaptar `<RUTA_espidf-nodes>` a la ruta local de `perception-layer/espidf-nodes`.
+
+El build usa el `partitions.csv` de esta carpeta; el binario (~1,09 MB) deja **~31 % libre de la partición de aplicación** (no de toda la memoria flash del ESP32).
+
 ## Alerta BLE al nodo centralizador
 
 Ejemplo de alerta generada:
@@ -188,7 +201,7 @@ Ejemplo de alerta generada:
 
 | Estado de validación |
 | :--- |
-| Este firmware se probó en laboratorio con hardware real (nodos ESP32-WROOM-32U) y funcionó como parte del prototipo de tesis. |
+| **Validación de compilación:** compila de forma reproducible con ESP-IDF 5.1 (contenedor oficial). Esta variante ESP-IDF es una **adaptación académica** y **no** tiene validación física con hardware; la ruta históricamente validada con hardware fue el firmware **Arduino IDE** (misma función; ver el README de la variante Arduino). |
 
 ## Autor
 

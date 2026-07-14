@@ -163,6 +163,19 @@ idf.py -p /dev/ttyUSB0 monitor
 
 `/dev/ttyUSB0` corresponds to the serial port on Linux. On Windows it usually appears as `COM3`, `COM4`, etc.; on macOS, as `/dev/cu.SLAB_USBtoUART`.
 
+### Reproducible build with the official container (Docker)
+
+Besides the local environment, each project (one per node) builds reproducibly with the **official Espressif container** and **ESP-IDF 5.1** (**compilation**-validated version), without installing the toolchain locally:
+
+```bash
+# Reproducible example (ESP-IDF 5.1). Adjust the mounted path to your operating system.
+docker run --rm -v <PATH_espidf-nodes>:/project -w /project/<NODE> espressif/idf:release-v5.1 idf.py set-target esp32 build
+```
+
+> **Mounted-path syntax:** the `-v <path>:/project` argument **varies by operating system** (Windows/PowerShell, Linux, and macOS paths differ). Adapt `<PATH_espidf-nodes>` to the local path of `perception-layer/espidf-nodes`.
+
+The build uses the `partitions.csv` in this folder; the binary (~1.09 MB) leaves **~31% free of the application partition** (not of the ESP32's entire flash memory).
+
 ## BLE alert to the central node
 
 Example of a generated alert:
@@ -188,7 +201,7 @@ Example of a generated alert:
 
 | Validation status |
 | :--- |
-| This firmware was tested in the lab with real hardware (ESP32-WROOM-32U nodes) and worked as part of the thesis prototype. |
+| **Build validation:** compiles reproducibly with ESP-IDF 5.1 (official container). This ESP-IDF variant is an **academic adaptation** and has **no** physical hardware validation; the path historically validated with hardware was the **Arduino IDE** firmware (same function; see the Arduino variant's README). |
 
 ## Author
 

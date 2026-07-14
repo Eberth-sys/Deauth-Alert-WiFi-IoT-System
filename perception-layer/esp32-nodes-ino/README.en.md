@@ -142,6 +142,17 @@ This repository does not include a PlatformIO configuration; the documented and 
 [ALERT] Origen: ... | Destino: ... | Canal: <N>
 ```
 
+### Reproducible build with the Arduino CLI
+
+Besides the IDE, the firmware builds reproducibly with the **Arduino CLI** and the **`esp32:esp32` core 3.2.0** (**compilation**-validated version). The **default partition scheme (~1.3 MB application) is not enough** for this firmware (~1.63 MB); use **Minimal SPIFFS (1.9 MB application)** or **Huge APP (3 MB application, no OTA)**.
+
+```bash
+# Validated core: esp32:esp32 3.2.0 · Arduino CLI 1.5.1
+arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app <sketch_folder>
+```
+
+> **Build vs. physical validation:** this path (Arduino CLI + core 3.2.0) validates that the firmware **compiles**. **Physical validation on hardware** was done only via the **Arduino IDE** (see *Validation Status*).
+
 ## Recommended Configuration Parameters
 
 | Parameter | Value |
