@@ -33,6 +33,7 @@ async def get_latest_alerts(limit: int = 10, db: Session = Depends(get_db)):
             "target_mac": last_alert.target_mac,
             "bssid": last_alert.bssid,
             "canal": last_alert.canal,
+            "event_type": last_alert.event_type,           # Tipo de evento (F1, DEC-0003)
             "timestamp": last_alert.timestamp.isoformat()  # Formato ISO para facilitar compatibilidad en frontend
         }
         await send_alert_to_clients(alert_data)  # Enviar alerta a los clientes conectados

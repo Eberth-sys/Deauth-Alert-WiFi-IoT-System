@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS alerts (
     target_mac VARCHAR(17) NOT NULL,     -- MAC de destino del ataque
     bssid VARCHAR(17) NOT NULL,          -- BSSID original
     canal INT NOT NULL,                  -- Canal en el que se detectó el ataque
+    event_type VARCHAR(16) NOT NULL DEFAULT 'deauth'
+        CHECK (event_type IN ('deauth', 'disassoc')),  -- Tipo de evento 802.11 (F1, DEC-0003): deauth (0x0C) / disassoc (0x0A)
     timestamp TIMESTAMP DEFAULT NOW()    -- Momento del evento
 );
 
