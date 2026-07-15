@@ -1,0 +1,15 @@
+{
+  "name": "WifiMgmtParser",
+  "version": "1.0.0",
+  "description": "Parser portable de tramas 802.11 management (deauth/disassoc), seguro para consumidores C y C++.",
+  "keywords": "802.11, deauth, disassoc, parser, esp32",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Eberth-sys/Deauth-Alert-WiFi-IoT-System.git"
+  },
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"],
+  "build": {
+    "srcDir": "src"
+  }
+}
