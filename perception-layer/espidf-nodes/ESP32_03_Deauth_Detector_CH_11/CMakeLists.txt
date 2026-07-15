@@ -7,7 +7,10 @@
 cmake_minimum_required(VERSION 3.16)
 
 # Referencia centralizada a partitions.csv en perception-layer
-set(PARTITION_TABLE_CSV "${CMAKE_SOURCE_DIR}/../../partitions.csv") #localiza el archivo de particion.
+# La tabla de particiones se define en sdkconfig.defaults (CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="../partitions.csv").
+
+# Componente compartido WifiMgmtParser (F4b): declararlo ANTES de project.cmake.
+set(EXTRA_COMPONENT_DIRS "${CMAKE_SOURCE_DIR}/../../shared/WifiMgmtParser")
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(ESP32_03_Deauth_Detector_CH_11)

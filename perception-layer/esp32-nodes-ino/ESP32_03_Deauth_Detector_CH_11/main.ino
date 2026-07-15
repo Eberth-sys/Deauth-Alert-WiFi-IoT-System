@@ -10,6 +10,7 @@
 #include <BLEServer.h>       // Configura el servidor BLE.
 #include <BLEUtils.h>        // Utilidades BLE (UUIDs, callbacks).
 #include <BLESecurity.h>     // Configuración de seguridad BLE.
+#include <wifi_mgmt_parser.h> // Parser portable de la cabecera 802.11 (biblioteca compartida, F4b)
 
 
 // ------------------------------------------------------
@@ -54,19 +55,8 @@ bool deviceConnected = false;
 // Variable global para el canal actual
 const uint8_t MONITOR_CHANNEL = 11;
 
-// Función para identificar el tipo de paquete
-String getPacketType(const uint8_t *data) {
-    uint8_t type = (data[0] & 0x0C) >> 2; // Bits 2-3 para el tipo de paquete
-    uint8_t subtype = (data[0] & 0xF0) >> 4; // Bits 4-7 para el subtipo
-
-    if (type == 0) { // Paquetes de gestión
-        switch (subtype) {
-            case 0x0C: return "Deauthentication"; // Paquete de desautenticación
-            default: return "Gestión (Otro)";
-        }
-    }
-    return "Desconocido";
-}
+// El parseo/clasificacion de la cabecera 802.11 vive en la biblioteca compartida
+// WifiMgmtParser (F4b, DT-04); ver wifi_mgmt_parse().
 
 // Callback para manejar paquetes capturados
 void sniffer_callback(void *buf, wifi_promiscuous_pkt_type_t type) {
@@ -81,22 +71,22 @@ void sniffer_callback(void *buf, wifi_promiscuous_pkt_type_t type) {
     size_t frame_len = (size_t)sig_len - 4;
     if (frame_len < 24) return;   // cabecera MAC de management (data[0..23])
 
-    const uint8_t *data = ppkt->payload;
+    // (orden seguro) Parseo portable de la cabecera; no se accede a data[] directamente.
+    wifi_mgmt_frame_t frame;
+    if (wifi_mgmt_parse(ppkt->payload, frame_len, &frame) != WIFI_MGMT_OK) return;
+    if (frame.frame_subtype != 0x0C) return;   // solo deauth (0x0C); 0x0A queda reconocido sin alertar
 
-    // (orden seguro) Verificar tipo/subtipo antes de leer direcciones.
-    if (getPacketType(data) != "Deauthentication") return;   // solo deauth (0x0C)
-
-    // BSSID objetivo (data[10..15]); tipo y longitud ya validados.
+    // Mapeo actual (DT-24): BSSID = addr2 (data[10..15]), origen = addr3, destino = addr1.
     char bssid[18];
     snprintf(bssid, sizeof(bssid), "%02X:%02X:%02X:%02X:%02X:%02X",
-             data[10], data[11], data[12], data[13], data[14], data[15]);
+             frame.addr2[0], frame.addr2[1], frame.addr2[2], frame.addr2[3], frame.addr2[4], frame.addr2[5]);
     if (strcmp(bssid, TARGET_BSSID) != 0) return;
 
     char srcMac[18], destMac[18];
     snprintf(srcMac, sizeof(srcMac), "%02X:%02X:%02X:%02X:%02X:%02X",
-             data[16], data[17], data[18], data[19], data[20], data[21]);
+             frame.addr3[0], frame.addr3[1], frame.addr3[2], frame.addr3[3], frame.addr3[4], frame.addr3[5]);
     snprintf(destMac, sizeof(destMac), "%02X:%02X:%02X:%02X:%02X:%02X",
-             data[4], data[5], data[6], data[7], data[8], data[9]);
+             frame.addr1[0], frame.addr1[1], frame.addr1[2], frame.addr1[3], frame.addr1[4], frame.addr1[5]);
 
     // (C) Canal desde los metadatos de recepcion.
     String mensaje = "[ALERT] Ataque de Deauthentication detectado | Origen: " + String(srcMac) +

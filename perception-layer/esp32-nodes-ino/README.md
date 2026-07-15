@@ -182,6 +182,32 @@ Get-ChildItem -Directory ESP32_0* | ForEach-Object { pio run -d $_.FullName }
 
 > **Windows — rutas largas:** el paso `checkprogsize` puede fallar (*"filename or extension is too long"*) si el proyecto está en una ruta muy larga (p.ej. OneDrive). Compilar desde una ruta corta, habilitar *long paths*, o fijar `PLATFORMIO_CORE_DIR`/`PLATFORMIO_BUILD_DIR` a rutas cortas (sin guardarlas en el repo).
 
+### Biblioteca compartida `WifiMgmtParser`
+
+El parseo de la cabecera 802.11 (clasificación de tipo/subtipo y extracción de direcciones) vive en una **biblioteca portable compartida**, `perception-layer/shared/WifiMgmtParser/`, que consumen las tres cadenas de compilación (Arduino, PlatformIO y ESP-IDF) desde una **única fuente**. Los `main.ino` la incluyen con `#include <wifi_mgmt_parser.h>`.
+
+**Arduino IDE** — instalar la biblioteca en el *sketchbook* (una sola vez):
+
+- **Opción A (copiar la carpeta):** copiar `perception-layer/shared/WifiMgmtParser/` a la carpeta de bibliotecas del *sketchbook*, quedando:
+
+  ```text
+  <Sketchbook>/libraries/WifiMgmtParser/
+  ├── library.properties
+  └── src/
+      ├── wifi_mgmt_parser.h
+      └── wifi_mgmt_parser.c
+  ```
+
+  `<Sketchbook>` es la carpeta indicada en *Archivo > Preferencias > Ubicación del sketchbook* (por defecto `~/Arduino` en Linux/macOS o `Documentos\Arduino` en Windows).
+
+- **Opción B (Add .ZIP Library):** comprimir la carpeta `WifiMgmtParser/` en un `.zip` y usar *Programa > Incluir Librería > Añadir biblioteca .ZIP…* apuntando a ese `.zip`.
+
+Reiniciar el IDE tras instalarla. Con la biblioteca presente, `main.ino` compila con el `#include <wifi_mgmt_parser.h>` activo.
+
+En los demás flujos no hay que instalar nada extra: **Arduino CLI** la resuelve con `--libraries perception-layer/shared`; **PlatformIO**, con `lib_extra_dirs = ../../shared` (heredado de [`pio_common.ini`](pio_common.ini)); **ESP-IDF**, como componente CMake (`EXTRA_COMPONENT_DIRS` + `REQUIRES WifiMgmtParser`).
+
+> **Compilación vs. validación física:** la CI valida la biblioteca mediante **12 compilaciones** (4 Arduino + 4 ESP-IDF + 4 PlatformIO) y **tests de host** (unit + ASAN/UBSAN + enlace C/C++ + fuzzing). **No** implica pruebas con hardware; la aceptación física de los nodos queda pendiente de laboratorio.
+
 ## Parámetros de configuración recomendados
 
 | Parámetro | Valor |

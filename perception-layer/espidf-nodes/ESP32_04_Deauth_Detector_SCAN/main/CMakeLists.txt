@@ -1,7 +1,7 @@
 #perception-layer\espidf-nodes\ESP32_04_Deauth_Detector_SCAN\main\CMakeLists.txt
 idf_component_register(SRCS "main.c"
                     INCLUDE_DIRS "."
-                    REQUIRES bt esp_wifi nvs_flash)
+                    REQUIRES bt esp_wifi nvs_flash WifiMgmtParser)
 
 target_include_directories(${COMPONENT_LIB} PRIVATE
     "${IDF_PATH}/components/bt/include/esp32/include"
