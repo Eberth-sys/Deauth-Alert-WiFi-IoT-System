@@ -17,6 +17,7 @@
 
 // Archivo de configuración local, contiene UUIDs BLE y BSSID objetivo
 #include "../../config/config.h"
+#include "wifi_mgmt_parser.h"   // Parser portable de la cabecera 802.11 (biblioteca compartida, F4b)
 
 // Etiquetas únicas para este nodo (canal 11)
 #define TAG "ESP32_03_CH11"  // Para logs específicos de este nodo
@@ -121,24 +122,22 @@ static void wifi_sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
     size_t frame_len = (size_t)sig_len - 4;
     if (frame_len < 24) return;   // cabecera MAC de management (data[0..23])
 
-    const uint8_t* data = pkt->payload;
+    // (orden seguro) Parseo portable de la cabecera; no se accede a data[] directamente.
+    wifi_mgmt_frame_t frame;
+    if (wifi_mgmt_parse(pkt->payload, frame_len, &frame) != WIFI_MGMT_OK) return;
+    if (frame.frame_subtype != 0x0C) return;   // solo deauth (0x0C); 0x0A queda reconocido sin alertar
 
-    // (orden seguro) Verificar tipo/subtipo 802.11 antes de leer direcciones.
-    uint8_t frame_type = (data[0] & 0x0C) >> 2;
-    uint8_t frame_subtype = (data[0] & 0xF0) >> 4;
-    if (frame_type != 0 || frame_subtype != 0x0C) return;   // solo deauth (0x0C)
-
-    // BSSID objetivo (data[10..15]); tipo y longitud ya validados.
+    // Mapeo actual (DT-24): BSSID = addr2 (data[10..15]), origen = addr3, destino = addr1.
     char bssid[18];
     snprintf(bssid, sizeof(bssid), "%02X:%02X:%02X:%02X:%02X:%02X",
-             data[10], data[11], data[12], data[13], data[14], data[15]);
+             frame.addr2[0], frame.addr2[1], frame.addr2[2], frame.addr2[3], frame.addr2[4], frame.addr2[5]);
     if (strcmp(bssid, TARGET_BSSID) != 0) return;
 
     char src_mac[18], dst_mac[18];
     snprintf(src_mac, sizeof(src_mac), "%02X:%02X:%02X:%02X:%02X:%02X",
-             data[16], data[17], data[18], data[19], data[20], data[21]);
+             frame.addr3[0], frame.addr3[1], frame.addr3[2], frame.addr3[3], frame.addr3[4], frame.addr3[5]);
     snprintf(dst_mac, sizeof(dst_mac), "%02X:%02X:%02X:%02X:%02X:%02X",
-             data[4], data[5], data[6], data[7], data[8], data[9]);
+             frame.addr1[0], frame.addr1[1], frame.addr1[2], frame.addr1[3], frame.addr1[4], frame.addr1[5]);
 
     // (C) Canal desde los metadatos de recepcion (sin esp_wifi_get_channel en el hot path).
     send_alert(src_mac, dst_mac, bssid, pkt->rx_ctrl.channel);

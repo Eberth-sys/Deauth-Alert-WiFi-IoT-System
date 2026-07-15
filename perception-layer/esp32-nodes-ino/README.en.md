@@ -182,6 +182,32 @@ Get-ChildItem -Directory ESP32_0* | ForEach-Object { pio run -d $_.FullName }
 
 > **Windows — long paths:** the `checkprogsize` step may fail (*"filename or extension is too long"*) if the project sits in a very long path (e.g., OneDrive). Build from a short path, enable *long paths*, or set `PLATFORMIO_CORE_DIR`/`PLATFORMIO_BUILD_DIR` to short paths (not stored in the repo).
 
+### Shared `WifiMgmtParser` library
+
+The 802.11 header parsing (type/subtype classification and address extraction) lives in a **portable shared library**, `perception-layer/shared/WifiMgmtParser/`, consumed by all three build chains (Arduino, PlatformIO, and ESP-IDF) from a **single source**. The `main.ino` files include it with `#include <wifi_mgmt_parser.h>`.
+
+**Arduino IDE** — install the library into the *sketchbook* (once):
+
+- **Option A (copy the folder):** copy `perception-layer/shared/WifiMgmtParser/` into the sketchbook's libraries folder, resulting in:
+
+  ```text
+  <Sketchbook>/libraries/WifiMgmtParser/
+  ├── library.properties
+  └── src/
+      ├── wifi_mgmt_parser.h
+      └── wifi_mgmt_parser.c
+  ```
+
+  `<Sketchbook>` is the folder shown under *File > Preferences > Sketchbook location* (by default `~/Arduino` on Linux/macOS or `Documents\Arduino` on Windows).
+
+- **Option B (Add .ZIP Library):** zip the `WifiMgmtParser/` folder and use *Sketch > Include Library > Add .ZIP Library…* pointing to that `.zip`.
+
+Restart the IDE after installing it. With the library present, `main.ino` compiles with the `#include <wifi_mgmt_parser.h>` line active.
+
+The other flows need no extra install: **Arduino CLI** resolves it with `--libraries perception-layer/shared`; **PlatformIO**, with `lib_extra_dirs = ../../shared` (inherited from [`pio_common.ini`](pio_common.ini)); **ESP-IDF**, as a CMake component (`EXTRA_COMPONENT_DIRS` + `REQUIRES WifiMgmtParser`).
+
+> **Build vs. physical validation:** the CI validates the library through **12 compilations** (4 Arduino + 4 ESP-IDF + 4 PlatformIO) and **host tests** (unit + ASAN/UBSAN + C/C++ linkage + fuzzing). It does **not** imply hardware testing; physical acceptance of the nodes remains pending in the lab.
+
 ## Recommended Configuration Parameters
 
 | Parameter | Value |

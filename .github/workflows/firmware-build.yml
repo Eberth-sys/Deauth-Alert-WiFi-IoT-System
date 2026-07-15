@@ -92,7 +92,7 @@ jobs:
           bash .github/scripts/gen_config.sh build_sketch/main/config.h
       - name: Compilar (Huge APP, sin flashear)
         run: |
-          ./arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app build_sketch/main
+          ./arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app --libraries perception-layer/shared build_sketch/main
 
   esp-idf:
     needs: guards
@@ -124,8 +124,8 @@ jobs:
           # Se monta toda la estructura espidf-nodes para preservar las rutas relativas
           # (../partitions.csv y ../../config/config.h). Un proyecto por nodo.
           docker run --rm \
-            -v "${{ github.workspace }}/perception-layer/espidf-nodes:/project" \
-            -w "/project/${{ matrix.node }}" \
+            -v "${{ github.workspace }}/perception-layer:/project" \
+            -w "/project/espidf-nodes/${{ matrix.node }}" \
             espressif/idf:release-v5.1 \
             idf.py set-target esp32 build
 
