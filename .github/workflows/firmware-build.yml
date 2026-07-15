@@ -62,15 +62,19 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Instalar Arduino CLI (version fijada)
         run: |
-          curl -fsSL -o acli.tar.gz "https://downloads.arduino.cc/arduino-cli/arduino-cli_${ARDUINO_CLI_VERSION}_Linux_64bit.tar.gz"
+          # Resiliencia solo en la descarga: --retry 2 = 3 intentos totales (1 + 2), backoff progresivo de curl.
+          curl -fsSL --retry 2 --retry-all-errors -o acli.tar.gz \
+            "https://downloads.arduino.cc/arduino-cli/arduino-cli_${ARDUINO_CLI_VERSION}_Linux_64bit.tar.gz"
           tar -xf acli.tar.gz arduino-cli
           ./arduino-cli version
       - name: Instalar core esp32:esp32 (version fijada)
         run: |
+          # Retry (max 3 intentos, espera progresiva) SOLO en adquisicion; no reintenta compilacion ni verificacion.
+          retry() { n=1; max=3; delay=10; until "$@"; do if [ "$n" -ge "$max" ]; then echo "::error::Fallo tras $max intentos: $*"; return 1; fi; echo "Intento $n/$max fallo; reintentando en ${delay}s..."; sleep "$delay"; n=$((n+1)); delay=$((delay*2)); done; }
           ./arduino-cli config init
           ./arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
-          ./arduino-cli core update-index
-          ./arduino-cli core install "esp32:esp32@${ESP32_CORE_VERSION}"
+          retry ./arduino-cli core update-index
+          retry ./arduino-cli core install "esp32:esp32@${ESP32_CORE_VERSION}"
           ./arduino-cli core list
       - name: Verificar core fijado (3.2.0)
         run: |
@@ -104,6 +108,11 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Generar config.h sintetico (compartido por los nodos ESP-IDF)
         run: bash .github/scripts/gen_config.sh perception-layer/espidf-nodes/config/config.h
+      - name: Descargar la imagen ESP-IDF 5.1 (con retry; adquisicion de dependencia)
+        run: |
+          # Retry (max 3, progresivo) SOLO del pull; luego el build corre una sola vez con la imagen local.
+          retry() { n=1; max=3; delay=10; until "$@"; do if [ "$n" -ge "$max" ]; then echo "::error::Fallo tras $max intentos: $*"; return 1; fi; echo "Intento $n/$max fallo; reintentando en ${delay}s..."; sleep "$delay"; n=$((n+1)); delay=$((delay*2)); done; }
+          retry docker pull espressif/idf:release-v5.1
       - name: Verificar version ESP-IDF fijada (5.1)
         run: |
           docker run --rm espressif/idf:release-v5.1 idf.py --version | tee idf_ver.txt
@@ -143,6 +152,11 @@ jobs:
           pio --version | grep -E "${PIO_VERSION}" || { echo "::error::PlatformIO != ${PIO_VERSION}"; exit 1; }
       - name: Generar config.h sintetico (por nodo)
         run: bash .github/scripts/gen_config.sh "perception-layer/esp32-nodes-ino/${{ matrix.node }}/config.h"
+      - name: Instalar paquetes del proyecto (con retry; plataforma pioarduino + toolchain + esptool)
+        run: |
+          # Retry (max 3, progresivo) SOLO de la adquisicion de paquetes; el build corre una sola vez despues.
+          retry() { n=1; max=3; delay=10; until "$@"; do if [ "$n" -ge "$max" ]; then echo "::error::Fallo tras $max intentos: $*"; return 1; fi; echo "Intento $n/$max fallo; reintentando en ${delay}s..."; sleep "$delay"; n=$((n+1)); delay=$((delay*2)); done; }
+          retry pio pkg install -d "perception-layer/esp32-nodes-ino/${{ matrix.node }}"
       - name: Compilar el proyecto del nodo (verbose; reutiliza pio_common.ini + CSV; sin flashear)
         run: |
           set -o pipefail
