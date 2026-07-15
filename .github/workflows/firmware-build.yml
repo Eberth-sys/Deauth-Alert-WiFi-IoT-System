@@ -1,0 +1,158 @@
+name: firmware-build
+
+# CI de compilacion del firmware ESP32 SIN flashear. Matrices: 4 Arduino + 4 ESP-IDF + 4 PlatformIO.
+# Gate previo al merge: pull_request con base phase8/event-contract-json. Revalidacion: push a phase8.
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [phase8/event-contract-json]
+    paths:
+      - 'perception-layer/esp32-nodes-ino/**'
+      - 'perception-layer/espidf-nodes/**'
+      - '.github/workflows/firmware-build.yml'
+      - '.github/scripts/gen_config.sh'
+  push:
+    branches: [phase8/event-contract-json]
+    paths:
+      - 'perception-layer/esp32-nodes-ino/**'
+      - 'perception-layer/espidf-nodes/**'
+      - '.github/workflows/firmware-build.yml'
+      - '.github/scripts/gen_config.sh'
+
+permissions:
+  contents: read
+
+jobs:
+  guards:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Fallar si hay config.h o .pio versionados
+        run: |
+          if git ls-files | grep -E '(^|/)config\.h$|(^|/)\.pio/'; then
+            echo "::error::Se encontro config.h o .pio versionado (sensible/temporal)"; exit 1
+          fi
+          echo "OK: no hay config.h ni .pio versionados"
+      - name: Fallar si el workflow flashea o accede a dispositivos
+        run: |
+          # Se excluye la propia linea del grep para no auto-coincidir.
+          if grep -nE 'idf\.py[^|&]*flash|arduino-cli[^|&]*upload|pio[^|&]*(-t|--target)[^|&]*upload|write_flash|/dev/tty' \
+               .github/workflows/firmware-build.yml | grep -v 'grep -nE'; then
+            echo "::error::Comando de flasheo/upload/dispositivo detectado en el workflow"; exit 1
+          fi
+          echo "OK: el workflow solo compila (sin flash/upload/device)"
+
+  arduino-cli:
+    needs: guards
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - ESP32_01_Deauth_Detector_CH_01
+          - ESP32_02_Deauth_Detector_CH_06
+          - ESP32_03_Deauth_Detector_CH_11
+          - ESP32_04_Deauth_Detector_SCANN
+    env:
+      ARDUINO_CLI_VERSION: '1.5.1'
+      ESP32_CORE_VERSION: '3.2.0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Instalar Arduino CLI (version fijada)
+        run: |
+          curl -fsSL -o acli.tar.gz "https://downloads.arduino.cc/arduino-cli/arduino-cli_${ARDUINO_CLI_VERSION}_Linux_64bit.tar.gz"
+          tar -xf acli.tar.gz arduino-cli
+          ./arduino-cli version
+      - name: Instalar core esp32:esp32 (version fijada)
+        run: |
+          ./arduino-cli config init
+          ./arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          ./arduino-cli core update-index
+          ./arduino-cli core install "esp32:esp32@${ESP32_CORE_VERSION}"
+          ./arduino-cli core list
+      - name: Verificar core fijado (3.2.0)
+        run: |
+          ./arduino-cli core list | grep -E "esp32:esp32[[:space:]]+${ESP32_CORE_VERSION}" \
+            || { echo "::error::core esp32:esp32 != ${ESP32_CORE_VERSION}"; exit 1; }
+      - name: Preparar sketch temporal (carpeta == main.ino) + config.h sintetico
+        run: |
+          # Replica el procedimiento de F4a: el sketch es main.ino en una carpeta con otro
+          # nombre; arduino-cli exige carpeta == nombre del .ino. Se copia a un dir temporal
+          # (SIN modificar fuentes versionadas).
+          mkdir -p build_sketch/main
+          cp "perception-layer/esp32-nodes-ino/${{ matrix.node }}/main.ino" build_sketch/main/main.ino
+          bash .github/scripts/gen_config.sh build_sketch/main/config.h
+      - name: Compilar (Huge APP, sin flashear)
+        run: |
+          ./arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app build_sketch/main
+
+  esp-idf:
+    needs: guards
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - ESP32_01_Deauth_Detector_CH_01
+          - ESP32_02_Deauth_Detector_CH_06
+          - ESP32_03_Deauth_Detector_CH_11
+          - ESP32_04_Deauth_Detector_SCAN
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Generar config.h sintetico (compartido por los nodos ESP-IDF)
+        run: bash .github/scripts/gen_config.sh perception-layer/espidf-nodes/config/config.h
+      - name: Verificar version ESP-IDF fijada (5.1)
+        run: |
+          docker run --rm espressif/idf:release-v5.1 idf.py --version | tee idf_ver.txt
+          grep -E 'v5\.1' idf_ver.txt || { echo "::error::ESP-IDF != v5.1"; exit 1; }
+      - name: Compilar en el contenedor oficial ESP-IDF 5.1 (sin flashear)
+        run: |
+          # Se monta toda la estructura espidf-nodes para preservar las rutas relativas
+          # (../partitions.csv y ../../config/config.h). Un proyecto por nodo.
+          docker run --rm \
+            -v "${{ github.workspace }}/perception-layer/espidf-nodes:/project" \
+            -w "/project/${{ matrix.node }}" \
+            espressif/idf:release-v5.1 \
+            idf.py set-target esp32 build
+
+  platformio:
+    needs: guards
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - ESP32_01_Deauth_Detector_CH_01
+          - ESP32_02_Deauth_Detector_CH_06
+          - ESP32_03_Deauth_Detector_CH_11
+          - ESP32_04_Deauth_Detector_SCANN
+    env:
+      PIO_VERSION: '6.1.16'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Instalar PlatformIO Core (version fijada)
+        run: |
+          python3 -m pip install --user "platformio==${PIO_VERSION}"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Verificar version PlatformIO fijada (6.1.16)
+        run: |
+          pio --version | grep -E "${PIO_VERSION}" || { echo "::error::PlatformIO != ${PIO_VERSION}"; exit 1; }
+      - name: Generar config.h sintetico (por nodo)
+        run: bash .github/scripts/gen_config.sh "perception-layer/esp32-nodes-ino/${{ matrix.node }}/config.h"
+      - name: Compilar el proyecto del nodo (verbose; reutiliza pio_common.ini + CSV; sin flashear)
+        run: |
+          set -o pipefail
+          pio run -v -d "perception-layer/esp32-nodes-ino/${{ matrix.node }}" 2>&1 | tee pio_build.log
+      - name: Verificar pioarduino 54.03.20 + Arduino Core 3.2.0 + CSV compartido (desde el log verbose)
+        run: |
+          grep -F 'PLATFORM: Espressif 32 (54.3.20)' pio_build.log \
+            || { echo "::error::plataforma != Espressif 32 (54.3.20) / pioarduino 54.03.20"; exit 1; }
+          grep -F 'framework-arduinoespressif32 @ 3.2.0' pio_build.log \
+            || { echo "::error::Arduino Core != 3.2.0"; exit 1; }
+          grep -F 'partitions_huge_app.csv' pio_build.log \
+            || { echo "::error::el build no referencia partitions_huge_app.csv (CSV compartido)"; exit 1; }
+          echo "OK: pioarduino 54.03.20 + Arduino Core 3.2.0 + partitions_huge_app.csv confirmados en el log verbose"
