@@ -1,0 +1,2 @@
+# Artefactos de build/test/fuzz (binarios, crash-*, semilla, corpus efimero).
+build/
