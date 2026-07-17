@@ -185,3 +185,9 @@ jobs:
         run: make -C perception-layer/shared/WifiMgmtParser/tests cpp-test
       - name: Fuzz (semilla fija 1337, acotado)
         run: make -C perception-layer/shared/WifiMgmtParser/tests fuzz
+      - name: DeauthEvent — Unit + ASAN/UBSAN (C)
+        run: make -C perception-layer/shared/DeauthEvent/tests test
+      - name: DeauthEvent — Enlace C/C++ (extern "C")
+        run: make -C perception-layer/shared/DeauthEvent/tests cpp-test
+      - name: DeauthEvent — Fuzz (semilla fija 1337, acotado)
+        run: make -C perception-layer/shared/DeauthEvent/tests fuzz

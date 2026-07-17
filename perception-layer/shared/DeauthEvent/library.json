@@ -1,0 +1,15 @@
+{
+  "name": "DeauthEvent",
+  "version": "1.0.0",
+  "description": "Modelo de evento de deautenticacion (POD 20 B) + parser de BSSID canonico, seguro para consumidores C y C++.",
+  "keywords": "802.11, deauth, event, queue, esp32",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Eberth-sys/Deauth-Alert-WiFi-IoT-System.git"
+  },
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"],
+  "build": {
+    "srcDir": "src"
+  }
+}
