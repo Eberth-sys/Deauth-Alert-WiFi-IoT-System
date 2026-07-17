@@ -16,6 +16,18 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 
+// (F4d-1) Identidad canonica del nodo para el contrato de datos. Es DISTINTA del nombre BLE
+// anunciado y de las etiquetas de log: debe coincidir con device['name'] de
+// processing-layer/config/devices.yaml, que es la identidad operativa autoritativa (ligada a
+// la MAC BLE de la conexion). F5 la emitira como campo "n" del JSON; ante discrepancia, la
+// RPi conserva su identidad autoritativa y registra el desvio (ya implementado en F3).
+#define NODE_ID "ESP32_2_CH_06"
+// ble_manager.py rechaza un "n" vacio o de mas de _MAX_NODE_LEN (64) caracteres.
+static_assert(sizeof(NODE_ID) > 1,
+               "F4d-1: NODE_ID no puede estar vacio");
+static_assert(sizeof(NODE_ID) - 1 <= 64,
+               "F4d-1: NODE_ID excede _MAX_NODE_LEN (64) de ble_manager.py");
+
 
 // ------------------------------------------------------
 // 💡 CONFIGURACIÓN DEL ENTORNO DE DESARROLLO
@@ -204,6 +216,7 @@ void setupSecurity() {
 
 void setup() {
     Serial.begin(115200);
+    Serial.printf("[INFO] node_id=%s\n", NODE_ID);   // (F4d-1) identidad canonica; ver devices.yaml
     
     // Configurar Wi-Fi en modo STA
     WiFi.mode(WIFI_MODE_STA);
