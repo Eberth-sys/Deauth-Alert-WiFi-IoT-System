@@ -90,6 +90,18 @@ static uint32_t      droppedEvents = 0;
 // Estado BLE compartido (callbacks BLE <-> worker): deviceConnected.
 static portMUX_TYPE  bleMux = portMUX_INITIALIZER_UNLOCKED;
 
+// --- F4d-2: MTU BLE por conexion + descartes por MTU ---
+#define DEAUTH_LOCAL_MTU 247   // MTU local maximo a solicitar (<= 517)
+// negotiatedMtu y activeConnId son estado protegido por bleMux (junto con deviceConnected). El worker
+// solo copia deviceConnected + negotiatedMtu; activeConnId se usa para correlacionar los callbacks.
+static uint16_t      negotiatedMtu = 23;   // MTU efectivo; arranca en el default hasta negociar
+static uint16_t      activeConnId  = 0;
+// Descartes por payload > capacidad del MTU: contador SEPARADO de droppedEvents, con su PROPIA
+// seccion critica (nunca anidar con bleMux ni con droppedMux).
+static portMUX_TYPE  mtuMux = portMUX_INITIALIZER_UNLOCKED;
+static uint32_t      droppedMtu = 0;
+static uint16_t      droppedMtuLast = 0;   // MTU vigente en el ultimo descarte (para el reporte)
+
 // Variable global para el canal actual
 const uint8_t MONITOR_CHANNEL = 6;
 
@@ -152,11 +164,32 @@ static void reportDropped(TickType_t* lastTick) {
     if (d) Serial.printf("[WARN] Eventos descartados por cola llena en los ultimos 5 s: %u\n", (unsigned)d);
 }
 
+// (F4d-2) Reporte rate-limited (>= 5 s, wrap-safe) de descartes por MTU insuficiente. Mismo patron
+// que reportDropped; sin logs por evento. Incluye cantidad, MTU y capacidad util.
+static void reportMtuDropped(TickType_t* lastTick) {
+    TickType_t now = xTaskGetTickCount();
+    if ((TickType_t)(now - *lastTick) < pdMS_TO_TICKS(5000)) return;
+    *lastTick = now;
+    uint32_t d;
+    uint16_t m;
+    portENTER_CRITICAL(&mtuMux);
+    d = droppedMtu;
+    m = droppedMtuLast;
+    droppedMtu = 0;
+    portEXIT_CRITICAL(&mtuMux);
+    if (d) {
+        uint16_t cap = (m >= 3) ? (uint16_t)(m - 3) : 0;
+        Serial.printf("[WARN] Alertas descartadas por MTU insuficiente en los ultimos 5 s: %u (MTU=%u, capacidad util=%u B)\n",
+                      (unsigned)d, (unsigned)m, (unsigned)cap);
+    }
+}
+
 // Tarea worker: drena la cola y hace el trabajo lento (formateo, Serial, BLE). Conserva el texto actual.
 static void deauthWorker(void* arg) {
     (void)arg;
     deauth_event_t e;
     TickType_t lastReport = xTaskGetTickCount();
+    TickType_t lastMtuReport = lastReport;
     for (;;) {
         if (xQueueReceive(eventQueue, &e, pdMS_TO_TICKS(1000)) == pdTRUE) {
             char bssid[18], srcMac[18], destMac[18];
@@ -172,19 +205,33 @@ static void deauthWorker(void* arg) {
             } else {
                 Serial.println(mensaje);
 
-                // Snapshot protegido de deviceConnected; el lock se libera ANTES de setValue/notify.
+                // Snapshot protegido de deviceConnected y MTU; el lock se libera ANTES de setValue/notify.
                 bool conn;
+                uint16_t mtu;
                 portENTER_CRITICAL(&bleMux);
                 conn = deviceConnected;
+                mtu  = negotiatedMtu;
                 portEXIT_CRITICAL(&bleMux);
 
                 if (conn) {
-                    pCharacteristic->setValue(reinterpret_cast<uint8_t*>(mensaje), static_cast<size_t>(n));
-                    pCharacteristic->notify();
+                    // (F4d-2) Capacidad util de una notificacion = MTU negociado - 3 (cabecera ATT).
+                    size_t capacity = (mtu >= 3) ? (size_t)(mtu - 3) : 0;
+                    if ((size_t)n > capacity) {
+                        // No cabe: NO truncar, NO enviar. Contar en seccion critica independiente
+                        // (bleMux ya liberado; nunca anidar con bleMux/droppedMux).
+                        portENTER_CRITICAL(&mtuMux);
+                        droppedMtu++;
+                        droppedMtuLast = mtu;
+                        portEXIT_CRITICAL(&mtuMux);
+                    } else {
+                        pCharacteristic->setValue(reinterpret_cast<uint8_t*>(mensaje), static_cast<size_t>(n));
+                        pCharacteristic->notify();
+                    }
                 }
             }
         }
         reportDropped(&lastReport);
+        reportMtuDropped(&lastMtuReport);
     }
 }
 
@@ -203,6 +250,41 @@ class MyServerCallbacks : public BLEServerCallbacks {
         portEXIT_CRITICAL(&bleMux);
         Serial.println("[DISCONNECTED] Cliente BLE desconectado.");
         BLEDevice::startAdvertising();  // Volver a anunciar el servidor BLE
+    }
+
+    // (F4d-2) Overloads de 2 argumentos: traen esp_ble_gatts_cb_param_t (conn_id / MTU). El core
+    // invoca ambos overloads; los de 1 argumento de arriba mantienen deviceConnected/advertising.
+    void onConnect(BLEServer* pServer, esp_ble_gatts_cb_param_t* param) override {
+        portENTER_CRITICAL(&bleMux);
+        activeConnId  = param->connect.conn_id;
+        negotiatedMtu = 23;                 // MTU efectivo arranca en el default hasta negociar
+        portEXIT_CRITICAL(&bleMux);
+    }
+
+    void onDisconnect(BLEServer* pServer, esp_ble_gatts_cb_param_t* param) override {
+        portENTER_CRITICAL(&bleMux);
+        // Restablecer a 23 con la misma condicion de conn_id que la actualizacion.
+        if (param->disconnect.conn_id == activeConnId) {
+            negotiatedMtu = 23;
+        }
+        portEXIT_CRITICAL(&bleMux);
+    }
+
+    void onMtuChanged(BLEServer* pServer, esp_ble_gatts_cb_param_t* param) override {
+        bool mtuAccepted;
+        portENTER_CRITICAL(&bleMux);
+        // Actualizar solo si el evento corresponde a la conexion activa.
+        mtuAccepted = (deviceConnected && param->mtu.conn_id == activeConnId);
+        if (mtuAccepted) {
+            negotiatedMtu = param->mtu.mtu;
+        }
+        portEXIT_CRITICAL(&bleMux);
+        if (mtuAccepted) {
+            // Observabilidad (una sola linea, FUERA del lock): evidencia de la negociacion real.
+            uint16_t cap = (param->mtu.mtu >= 3) ? (uint16_t)(param->mtu.mtu - 3) : 0;
+            Serial.printf("[INFO] ble_mtu_negotiated=%u conn_id=%u capacity=%u\n",
+                          (unsigned)param->mtu.mtu, (unsigned)param->mtu.conn_id, (unsigned)cap);
+        }
     }
 };
 
@@ -257,6 +339,15 @@ void setup() {
 
     // Configuración de BLE
     BLEDevice::init("ESP32_02_Deauth_Detector_CH_06");
+    // (F4d-2) Solicitar el MTU local maximo acordable (247), tras BLEDevice::init y antes de crear
+    // el servidor/advertising. Solo declara nuestro maximo; el efectivo lo fija la negociacion.
+    {
+        esp_err_t mtuErr = BLEDevice::setMTU(DEAUTH_LOCAL_MTU);
+        if (mtuErr != ESP_OK) {
+            Serial.printf("[WARN] BLEDevice::setMTU(%u) fallo (%d); el MTU efectivo puede quedar en 23\n",
+                          (unsigned)DEAUTH_LOCAL_MTU, mtuErr);
+        }
+    }
     pServer = BLEDevice::createServer();
     pServer->setCallbacks(new MyServerCallbacks());
 

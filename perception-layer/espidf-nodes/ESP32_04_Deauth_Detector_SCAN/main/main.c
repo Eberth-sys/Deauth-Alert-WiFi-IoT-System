@@ -47,6 +47,11 @@ static uint16_t conn_id = 0;
 static esp_gatt_if_t gatts_if = ESP_GATT_IF_NONE;
 static uint16_t char_handle;
 
+// (F4d-2) MTU ATT negociado con el central (bajo ble_mux, mismo grupo que el estado BLE).
+// Arranca en el default (23) y solo cambia con ESP_GATTS_MTU_EVT del conn_id activo.
+static uint16_t negotiated_mtu = ESP_GATT_DEF_BLE_MTU_SIZE;
+#define DEAUTH_LOCAL_MTU 247   // (F4d-2) MTU local maximo a solicitar (<= ESP_GATT_MAX_MTU_SIZE=517)
+
 // --- F4c-2: BSSID pre-parseado + cola estatica + worker + contador de descartes ---
 static uint8_t target_bssid[6];
 
@@ -66,6 +71,12 @@ static StaticTask_t  worker_tcb;
 // Contador de descartes: protegido con seccion critica portMUX (nunca solo volatile).
 static portMUX_TYPE  dropped_mux = portMUX_INITIALIZER_UNLOCKED;
 static uint32_t      dropped_events = 0;
+
+// (F4d-2) Descartes por payload > capacidad del MTU: contador SEPARADO de dropped_events, con su
+// PROPIA seccion critica (nunca anidar con ble_mux ni con dropped_mux).
+static portMUX_TYPE  mtu_mux = portMUX_INITIALIZER_UNLOCKED;
+static uint32_t      dropped_mtu = 0;
+static uint16_t      dropped_mtu_last = 0;   // MTU vigente en el ultimo descarte (para el reporte)
 
 // Estado BLE compartido (gatts handler <-> worker): device_connected/conn_id/gatts_if/char_handle.
 static portMUX_TYPE  ble_mux = portMUX_INITIALIZER_UNLOCKED;
@@ -150,11 +161,32 @@ static void report_dropped(TickType_t* last_tick) {
     if (d) ESP_LOGW(TAG, "Eventos descartados por cola llena en los ultimos 5 s: %u", (unsigned)d);
 }
 
+// (F4d-2) Reporte rate-limited (>= 5 s, wrap-safe) de descartes por MTU insuficiente. Mismo patron
+// que report_dropped; sin logs por evento. Incluye cantidad, MTU y capacidad util.
+static void report_mtu_dropped(TickType_t* last_tick) {
+    TickType_t now = xTaskGetTickCount();
+    if ((TickType_t)(now - *last_tick) < pdMS_TO_TICKS(5000)) return;
+    *last_tick = now;
+    uint32_t d;
+    uint16_t m;
+    portENTER_CRITICAL(&mtu_mux);
+    d = dropped_mtu;
+    m = dropped_mtu_last;
+    dropped_mtu = 0;
+    portEXIT_CRITICAL(&mtu_mux);
+    if (d) {
+        uint16_t cap = (m >= 3) ? (uint16_t)(m - 3) : 0;
+        ESP_LOGW(TAG, "Alertas descartadas por MTU insuficiente en los ultimos 5 s: %u (MTU=%u, capacidad util=%u B)",
+                 (unsigned)d, (unsigned)m, (unsigned)cap);
+    }
+}
+
 // Tarea worker: drena la cola y hace el trabajo lento (formateo, log, BLE).
 static void deauth_worker(void* arg) {
     (void)arg;
     deauth_event_t e;
     TickType_t last_report = xTaskGetTickCount();
+    TickType_t last_mtu_report = last_report;
     for (;;) {
         if (xQueueReceive(event_queue, &e, pdMS_TO_TICKS(1000)) == pdTRUE) {
             char bssid[18], src_mac[18], dst_mac[18], alert_msg[256];
@@ -169,28 +201,41 @@ static void deauth_worker(void* arg) {
             } else {
                 ESP_LOGI(TAG, "%s", alert_msg);
 
-                // Snapshot consistente del estado BLE bajo lock; el lock se libera ANTES de enviar.
+                // Snapshot consistente del estado BLE y del MTU bajo lock; se libera ANTES de enviar.
                 bool          conn;
-                uint16_t      cid, chdl;
+                uint16_t      cid, chdl, mtu;
                 esp_gatt_if_t gif;
                 portENTER_CRITICAL(&ble_mux);
                 conn = device_connected;
                 cid  = conn_id;
                 gif  = gatts_if;
                 chdl = char_handle;
+                mtu  = negotiated_mtu;
                 portEXIT_CRITICAL(&ble_mux);
 
                 if (conn) {
-                    esp_err_t r = esp_ble_gatts_send_indicate(gif, cid, chdl,
-                                                              (size_t)n, (uint8_t*)alert_msg, false);
-                    if (r != ESP_OK) {
-                        // Una desconexion posterior al snapshot da un error controlado, nunca acceso invalido.
-                        ESP_LOGW(TAG, "esp_ble_gatts_send_indicate fallo (%d)", r);
+                    // (F4d-2) Capacidad util de una notificacion = MTU negociado - 3 (cabecera ATT).
+                    size_t capacity = (mtu >= 3) ? (size_t)(mtu - 3) : 0;
+                    if ((size_t)n > capacity) {
+                        // No cabe: NO truncar, NO enviar. Contar en seccion critica independiente
+                        // (ble_mux ya liberado; nunca anidar con ble_mux/dropped_mux).
+                        portENTER_CRITICAL(&mtu_mux);
+                        dropped_mtu++;
+                        dropped_mtu_last = mtu;
+                        portEXIT_CRITICAL(&mtu_mux);
+                    } else {
+                        esp_err_t r = esp_ble_gatts_send_indicate(gif, cid, chdl,
+                                                                  (size_t)n, (uint8_t*)alert_msg, false);
+                        if (r != ESP_OK) {
+                            // Una desconexion posterior al snapshot da un error controlado, nunca acceso invalido.
+                            ESP_LOGW(TAG, "esp_ble_gatts_send_indicate fallo (%d)", r);
+                        }
                     }
                 }
             }
         }
         report_dropped(&last_report);
+        report_mtu_dropped(&last_mtu_report);
     }
 }
 
@@ -272,11 +317,34 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatt_i
             device_connected = true;
             conn_id = param->connect.conn_id;
             gatts_if = gatt_if;
+            negotiated_mtu = ESP_GATT_DEF_BLE_MTU_SIZE;   // (F4d-2) MTU efectivo arranca en el default
             portEXIT_CRITICAL(&ble_mux);
             break;
 
+        case ESP_GATTS_MTU_EVT: {
+            // (F4d-2) Actualizar el MTU negociado SOLO si el evento corresponde a la conexion activa.
+            bool mtu_accepted;
+            portENTER_CRITICAL(&ble_mux);
+            mtu_accepted = (device_connected && param->mtu.conn_id == conn_id);
+            if (mtu_accepted) {
+                negotiated_mtu = param->mtu.mtu;
+            }
+            portEXIT_CRITICAL(&ble_mux);
+            if (mtu_accepted) {
+                // Observabilidad (una sola linea, FUERA del lock): evidencia de la negociacion real.
+                uint16_t cap = (param->mtu.mtu >= 3) ? (uint16_t)(param->mtu.mtu - 3) : 0;
+                ESP_LOGI(TAG, "ble_mtu_negotiated=%u conn_id=%u capacity=%u",
+                         (unsigned)param->mtu.mtu, (unsigned)param->mtu.conn_id, (unsigned)cap);
+            }
+            break;
+        }
+
         case ESP_GATTS_DISCONNECT_EVT:
             portENTER_CRITICAL(&ble_mux);
+            // (F4d-2) Restablecer a 23 con la misma condicion de conn_id que la actualizacion.
+            if (param->disconnect.conn_id == conn_id) {
+                negotiated_mtu = ESP_GATT_DEF_BLE_MTU_SIZE;
+            }
             device_connected = false;
             portEXIT_CRITICAL(&ble_mux);
             esp_ble_gap_start_advertising(&adv_params);
@@ -340,6 +408,13 @@ void app_main() {
     ESP_ERROR_CHECK(esp_bt_controller_enable(ESP_BT_MODE_BLE));
     ESP_ERROR_CHECK(esp_bluedroid_init());
     ESP_ERROR_CHECK(esp_bluedroid_enable());
+    // (F4d-2) Solicitar el MTU local maximo acordable (247). Solo declara nuestro maximo; el MTU
+    // efectivo lo fija la negociacion con el central. No abortar la captura si falla.
+    esp_err_t mtu_err = esp_ble_gatt_set_local_mtu(DEAUTH_LOCAL_MTU);
+    if (mtu_err != ESP_OK) {
+        ESP_LOGW(TAG, "esp_ble_gatt_set_local_mtu(%u) fallo (%d); el MTU efectivo puede quedar en 23",
+                 (unsigned)DEAUTH_LOCAL_MTU, mtu_err);
+    }
 
     setup_ble_security();
 
