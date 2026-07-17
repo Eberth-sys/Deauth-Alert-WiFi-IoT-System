@@ -25,6 +25,18 @@
 #define TAG "ESP32_SCANNER"
 #define DEVICE_NAME "ESP32_Channel_Scanner"
 
+// (F4d-1) Identidad canonica del nodo para el contrato de datos. Es DISTINTA del nombre BLE
+// anunciado y de las etiquetas de log: debe coincidir con device['name'] de
+// processing-layer/config/devices.yaml, que es la identidad operativa autoritativa (ligada a
+// la MAC BLE de la conexion). F5 la emitira como campo "n" del JSON; ante discrepancia, la
+// RPi conserva su identidad autoritativa y registra el desvio (ya implementado en F3).
+#define NODE_ID "ESP32_4_SCANN"
+// ble_manager.py rechaza un "n" vacio o de mas de _MAX_NODE_LEN (64) caracteres.
+_Static_assert(sizeof(NODE_ID) > 1,
+               "F4d-1: NODE_ID no puede estar vacio");
+_Static_assert(sizeof(NODE_ID) - 1 <= 64,
+               "F4d-1: NODE_ID excede _MAX_NODE_LEN (64) de ble_manager.py");
+
 // Definición de canales a escanear (excluye 1, 6 y 11)
 static const uint8_t scan_channels[] = {2, 3, 4, 5, 7, 8, 9, 10, 12, 13, 14};
 #define DWELL_TIME_MS 2000 // Tiempo en cada canal (2 segundos)
@@ -277,6 +289,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatt_i
 
 // Función principal del nodo scanner
 void app_main() {
+    ESP_LOGI(TAG, "node_id=%s", NODE_ID);   // (F4d-1) identidad canonica; ver devices.yaml
     // (F4a) Validar SERVICE_UUID y CHARACTERISTIC_UUID ANTES de toda inicializacion
     // (evita dejar un servicio BLE parcialmente creado con un UUID invalido).
     if (!string_to_uuid(SERVICE_UUID, g_service_uuid128) ||
