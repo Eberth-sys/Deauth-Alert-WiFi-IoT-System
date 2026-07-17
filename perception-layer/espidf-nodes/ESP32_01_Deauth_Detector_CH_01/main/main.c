@@ -18,6 +18,8 @@
 // Inclusión de la configuración específica del dispositivo (UUIDs y BSSID objetivo)
 #include "../../config/config.h"
 #include "wifi_mgmt_parser.h"   // Parser portable de la cabecera 802.11 (biblioteca compartida, F4b)
+#include "deauth_event.h"       // Modelo de evento POD + parser de BSSID (biblioteca compartida, F4c-1)
+#include "freertos/queue.h"     // Cola FreeRTOS estatica (F4c-2)
 
 // Definiciones para identificación del nodo
 #define TAG "ESP32_01_CH01" // Etiqueta de logs
@@ -31,6 +33,29 @@ static bool device_connected = false;
 static uint16_t conn_id = 0;
 static esp_gatt_if_t gatts_if = ESP_GATT_IF_NONE;
 static uint16_t char_handle;
+
+// --- F4c-2: BSSID pre-parseado + cola estatica + worker + contador de descartes ---
+static uint8_t target_bssid[6];
+
+#define DEAUTH_WORKER_STACK_BYTES 4096
+// Los toolchains fijados (ESP-IDF 5.1 / Arduino Core 3.2.0, Xtensa) definen StackType_t como
+// uint8_t (1 byte); por eso sizeof(worker_stack) == bytes de stack. Si cambiara, detener aqui.
+_Static_assert(sizeof(StackType_t) == 1,
+               "F4c-2 asume StackType_t de 1 byte; sizeof(worker_stack) debe equivaler a los bytes de stack");
+
+static uint8_t       queue_storage[DEAUTH_QUEUE_DEPTH * sizeof(deauth_event_t)];   // 16*20 = 320 B
+static StaticQueue_t queue_static;
+static QueueHandle_t event_queue = NULL;
+
+static StackType_t   worker_stack[DEAUTH_WORKER_STACK_BYTES / sizeof(StackType_t)];
+static StaticTask_t  worker_tcb;
+
+// Contador de descartes: protegido con seccion critica portMUX (nunca solo volatile).
+static portMUX_TYPE  dropped_mux = portMUX_INITIALIZER_UNLOCKED;
+static uint32_t      dropped_events = 0;
+
+// Estado BLE compartido (gatts handler <-> worker): device_connected/conn_id/gatts_if/char_handle.
+static portMUX_TYPE  ble_mux = portMUX_INITIALIZER_UNLOCKED;
 
 // Definiciones del servicio BLE
 static esp_gatt_srvc_id_t service_id;
@@ -94,19 +119,68 @@ static void setup_ble_security() {
     esp_ble_gap_set_security_param(ESP_BLE_SM_SET_RSP_KEY, &rsp_key, sizeof(rsp_key));
 }
 
-static void send_alert(const char* src_mac, const char* dest_mac, const char* bssid, uint8_t channel) {
-    char alert_msg[256];
+// Formatea una MAC de 6 bytes a "XX:XX:XX:XX:XX:XX".
+static void mac_to_str(const uint8_t mac[6], char out[18]) {
+    snprintf(out, 18, "%02X:%02X:%02X:%02X:%02X:%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
 
-    snprintf(alert_msg, sizeof(alert_msg),
-             "[ALERT] Ataque de Deauthentication detectado | Origen: %s | Destino: %s | BSSID: %s | Canal: %d",
-             src_mac, dest_mac, bssid, channel);
+// Reporte rate-limited (>= 5 s, wrap-safe) de descartes. Lee+resetea el contador dentro
+// de la MISMA seccion critica; jamas la mantiene durante el log.
+static void report_dropped(TickType_t* last_tick) {
+    TickType_t now = xTaskGetTickCount();
+    if ((TickType_t)(now - *last_tick) < pdMS_TO_TICKS(5000)) return;
+    *last_tick = now;
+    uint32_t d;
+    portENTER_CRITICAL(&dropped_mux);
+    d = dropped_events;
+    dropped_events = 0;
+    portEXIT_CRITICAL(&dropped_mux);
+    if (d) ESP_LOGW(TAG, "Eventos descartados por cola llena en los ultimos 5 s: %u", (unsigned)d);
+}
 
-    printf("%s\n", alert_msg);
-    ESP_LOGI(TAG, "%s", alert_msg);
+// Tarea worker: drena la cola y hace el trabajo lento (formateo, log, BLE). Conserva printf + ESP_LOGI.
+static void deauth_worker(void* arg) {
+    (void)arg;
+    deauth_event_t e;
+    TickType_t last_report = xTaskGetTickCount();
+    for (;;) {
+        if (xQueueReceive(event_queue, &e, pdMS_TO_TICKS(1000)) == pdTRUE) {
+            char bssid[18], src_mac[18], dst_mac[18], alert_msg[256];
+            mac_to_str(e.bssid, bssid);
+            mac_to_str(e.src, src_mac);
+            mac_to_str(e.dst, dst_mac);
+            int n = snprintf(alert_msg, sizeof(alert_msg),
+                             "[ALERT] Ataque de Deauthentication detectado | Origen: %s | Destino: %s | BSSID: %s | Canal: %d",
+                             src_mac, dst_mac, bssid, e.channel);
+            if (n < 0 || (size_t)n >= sizeof(alert_msg)) {
+                ESP_LOGW(TAG, "no se pudo formatear la alerta");
+            } else {
+                printf("%s\n", alert_msg);
+                ESP_LOGI(TAG, "%s", alert_msg);
 
-    if (device_connected) {
-        esp_ble_gatts_send_indicate(gatts_if, conn_id, char_handle,
-                                    strlen(alert_msg), (uint8_t*)alert_msg, false);
+                // Snapshot consistente del estado BLE bajo lock; el lock se libera ANTES de enviar.
+                bool          conn;
+                uint16_t      cid, chdl;
+                esp_gatt_if_t gif;
+                portENTER_CRITICAL(&ble_mux);
+                conn = device_connected;
+                cid  = conn_id;
+                gif  = gatts_if;
+                chdl = char_handle;
+                portEXIT_CRITICAL(&ble_mux);
+
+                if (conn) {
+                    esp_err_t r = esp_ble_gatts_send_indicate(gif, cid, chdl,
+                                                              (size_t)n, (uint8_t*)alert_msg, false);
+                    if (r != ESP_OK) {
+                        // Una desconexion posterior al snapshot da un error controlado, nunca acceso invalido.
+                        ESP_LOGW(TAG, "esp_ble_gatts_send_indicate fallo (%d)", r);
+                    }
+                }
+            }
+        }
+        report_dropped(&last_report);
     }
 }
 
@@ -127,20 +201,23 @@ static void wifi_sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
     if (wifi_mgmt_parse(pkt->payload, frame_len, &frame) != WIFI_MGMT_OK) return;
     if (frame.frame_subtype != 0x0C) return;   // solo deauth (0x0C); 0x0A queda reconocido sin alertar
 
-    // Mapeo actual (DT-24): BSSID = addr2 (data[10..15]), origen = addr3, destino = addr1.
-    char bssid[18];
-    snprintf(bssid, sizeof(bssid), "%02X:%02X:%02X:%02X:%02X:%02X",
-             frame.addr2[0], frame.addr2[1], frame.addr2[2], frame.addr2[3], frame.addr2[4], frame.addr2[5]);
-    if (strcmp(bssid, TARGET_BSSID) != 0) return;
+    // BSSID objetivo: comparacion binaria de 6 bytes (sin snprintf/strcmp en el callback).
+    if (memcmp(frame.addr2, target_bssid, 6) != 0) return;
 
-    char src_mac[18], dst_mac[18];
-    snprintf(src_mac, sizeof(src_mac), "%02X:%02X:%02X:%02X:%02X:%02X",
-             frame.addr3[0], frame.addr3[1], frame.addr3[2], frame.addr3[3], frame.addr3[4], frame.addr3[5]);
-    snprintf(dst_mac, sizeof(dst_mac), "%02X:%02X:%02X:%02X:%02X:%02X",
-             frame.addr1[0], frame.addr1[1], frame.addr1[2], frame.addr1[3], frame.addr1[4], frame.addr1[5]);
+    // Copiar el evento (mapeo DT-24: BSSID=addr2, src=addr3, dst=addr1) y encolar sin bloquear.
+    deauth_event_t e;
+    memcpy(e.bssid, frame.addr2, 6);
+    memcpy(e.src,   frame.addr3, 6);
+    memcpy(e.dst,   frame.addr1, 6);
+    e.channel = pkt->rx_ctrl.channel;   // (C) canal desde los metadatos de recepcion
+    e.subtype = frame.frame_subtype;    // 0x0C
 
-    // (C) Canal desde los metadatos de recepcion (sin esp_wifi_get_channel en el hot path).
-    send_alert(src_mac, dst_mac, bssid, pkt->rx_ctrl.channel);
+    if (xQueueSend(event_queue, &e, 0) != pdTRUE) {
+        // Cola llena: incrementar el contador de descartes en seccion critica minima.
+        portENTER_CRITICAL(&dropped_mux);
+        dropped_events++;
+        portEXIT_CRITICAL(&dropped_mux);
+    }
 }
 
 // Manejador de eventos de GAP (advertising BLE)
@@ -181,19 +258,25 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatt_i
             break;
 
         case ESP_GATTS_ADD_CHAR_EVT:
+            portENTER_CRITICAL(&ble_mux);
             char_handle = param->add_char.attr_handle;
+            portEXIT_CRITICAL(&ble_mux);
             ESP_LOGI(TAG, "Característica BLE creada. Handle: %d", char_handle);
             break;
 
         case ESP_GATTS_CONNECT_EVT:
+            portENTER_CRITICAL(&ble_mux);
             device_connected = true;
             conn_id = param->connect.conn_id;
             gatts_if = gatt_if;
+            portEXIT_CRITICAL(&ble_mux);
             ESP_LOGI(TAG, "Dispositivo conectado por BLE");
             break;
 
         case ESP_GATTS_DISCONNECT_EVT:
+            portENTER_CRITICAL(&ble_mux);
             device_connected = false;
+            portEXIT_CRITICAL(&ble_mux);
             ESP_LOGI(TAG, "Dispositivo desconectado por BLE");
             esp_ble_gap_start_advertising(&adv_params);
             break;
@@ -230,6 +313,24 @@ void app_main() {
         ESP_LOGE(TAG, "esp_wifi_set_promiscuous_filter fallo (%d); no se habilita el modo promiscuo", filt_err);
         return;
     }
+    // (F4c-2) Validar TARGET_BSSID, crear cola y worker ANTES de registrar el callback y
+    // habilitar el modo promiscuo. Cualquier fallo impide activar la captura (sin fallback dinamico).
+    if (!deauth_parse_bssid(TARGET_BSSID, target_bssid)) {
+        ESP_LOGE(TAG, "TARGET_BSSID invalido; no se habilita la captura");
+        return;
+    }
+    event_queue = xQueueCreateStatic(DEAUTH_QUEUE_DEPTH, sizeof(deauth_event_t),
+                                     queue_storage, &queue_static);
+    if (event_queue == NULL) {
+        ESP_LOGE(TAG, "xQueueCreateStatic fallo; no se habilita la captura");
+        return;
+    }
+    if (xTaskCreateStatic(deauth_worker, "deauth_worker", sizeof(worker_stack), NULL,
+                          tskIDLE_PRIORITY + 1, worker_stack, &worker_tcb) == NULL) {
+        ESP_LOGE(TAG, "xTaskCreateStatic fallo; no se habilita la captura");
+        return;
+    }
+
     ESP_ERROR_CHECK(esp_wifi_set_promiscuous_rx_cb(wifi_sniffer_callback));
     ESP_ERROR_CHECK(esp_wifi_set_channel(current_channel, WIFI_SECOND_CHAN_NONE));   // canal ANTES de habilitar
     ESP_ERROR_CHECK(esp_wifi_set_promiscuous(true));                                  // habilitar al final
