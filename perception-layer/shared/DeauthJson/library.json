@@ -1,0 +1,18 @@
+{
+  "name": "DeauthJson",
+  "version": "1.0.0",
+  "description": "Serializador del contrato de eventos v1 (JSON minimo por snprintf, sin librerias JSON ni heap) para los nodos ESP32; consume deauth_event_t de DeauthEvent.",
+  "keywords": "802.11, deauth, json, contract, esp32",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Eberth-sys/Deauth-Alert-WiFi-IoT-System.git"
+  },
+  "dependencies": {
+    "DeauthEvent": "1.0.0"
+  },
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"],
+  "build": {
+    "srcDir": "src"
+  }
+}
