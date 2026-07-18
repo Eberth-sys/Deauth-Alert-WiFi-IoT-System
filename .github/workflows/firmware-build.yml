@@ -12,6 +12,7 @@ on:
       - '.github/workflows/firmware-build.yml'
       - '.github/scripts/gen_config.sh'
       - 'perception-layer/shared/**'
+      - 'processing-layer/src/ble_manager.py'
   push:
     branches: [phase8/event-contract-json]
     paths:
@@ -20,6 +21,7 @@ on:
       - '.github/workflows/firmware-build.yml'
       - '.github/scripts/gen_config.sh'
       - 'perception-layer/shared/**'
+      - 'processing-layer/src/ble_manager.py'
 
 permissions:
   contents: read
@@ -191,3 +193,11 @@ jobs:
         run: make -C perception-layer/shared/DeauthEvent/tests cpp-test
       - name: DeauthEvent — Fuzz (semilla fija 1337, acotado)
         run: make -C perception-layer/shared/DeauthEvent/tests fuzz
+      - name: DeauthJson — Unit + ASAN/UBSAN (C)
+        run: make -C perception-layer/shared/DeauthJson/tests test
+      - name: DeauthJson — Enlace C/C++ (extern "C")
+        run: make -C perception-layer/shared/DeauthJson/tests cpp-test
+      - name: DeauthJson — Fuzz (semilla fija 1337, acotado)
+        run: make -C perception-layer/shared/DeauthJson/tests fuzz
+      - name: DeauthJson — Contrato C→Python (parser real de ble_manager)
+        run: make -C perception-layer/shared/DeauthJson/tests contract
