@@ -12,6 +12,7 @@
 #include <BLESecurity.h>     // Configuración de seguridad BLE.
 #include <wifi_mgmt_parser.h> // Parser portable de la cabecera 802.11 (biblioteca compartida, F4b)
 #include <deauth_event.h>     // Modelo de evento POD + parser de BSSID (biblioteca compartida, F4c-1)
+#include <deauth_json.h>      // Serializador del contrato JSON v1 (biblioteca compartida, F5-1)
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -125,7 +126,7 @@ void sniffer_callback(void *buf, wifi_promiscuous_pkt_type_t type) {
     // (orden seguro) Parseo portable de la cabecera; no se accede a data[] directamente.
     wifi_mgmt_frame_t frame;
     if (wifi_mgmt_parse(ppkt->payload, frame_len, &frame) != WIFI_MGMT_OK) return;
-    if (frame.frame_subtype != 0x0C) return;   // solo deauth (0x0C); 0x0A queda reconocido sin alertar
+    if (frame.frame_subtype != 0x0C && frame.frame_subtype != 0x0A) return;   // deauth (0x0C) y disassoc (0x0A)
 
     // BSSID objetivo: comparacion binaria de 6 bytes (sin snprintf/strcmp en el callback).
     if (memcmp(frame.addr2, targetBssid, 6) != 0) return;
@@ -136,7 +137,7 @@ void sniffer_callback(void *buf, wifi_promiscuous_pkt_type_t type) {
     memcpy(e.src,   frame.addr3, 6);
     memcpy(e.dst,   frame.addr1, 6);
     e.channel = ppkt->rx_ctrl.channel;   // (C) canal desde los metadatos de recepcion
-    e.subtype = frame.frame_subtype;     // 0x0C
+    e.subtype = frame.frame_subtype;     // 0x0C (deauth) o 0x0A (disassoc)
 
     if (xQueueSend(eventQueue, &e, 0) != pdTRUE) {
         // Cola llena: incrementar el contador de descartes en seccion critica minima.
@@ -144,12 +145,6 @@ void sniffer_callback(void *buf, wifi_promiscuous_pkt_type_t type) {
         droppedEvents++;
         portEXIT_CRITICAL(&droppedMux);
     }
-}
-
-// Formatea una MAC de 6 bytes a "XX:XX:XX:XX:XX:XX".
-static void macToStr(const uint8_t mac[6], char out[18]) {
-    snprintf(out, 18, "%02X:%02X:%02X:%02X:%02X:%02X",
-             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 }
 
 // Reporte rate-limited (>= 5 s, wrap-safe) de descartes; lee+resetea en la misma seccion critica.
@@ -193,18 +188,12 @@ static void deauthWorker(void* arg) {
     TickType_t lastMtuReport = lastReport;
     for (;;) {
         if (xQueueReceive(eventQueue, &e, pdMS_TO_TICKS(1000)) == pdTRUE) {
-            char bssid[18], srcMac[18], destMac[18];
-            macToStr(e.bssid, bssid);
-            macToStr(e.src, srcMac);
-            macToStr(e.dst, destMac);
-            char mensaje[256];
-            int n = snprintf(mensaje, sizeof(mensaje),
-                             "[ALERT] Ataque de Deauthentication detectado | Origen: %s | Destino: %s | BSSID: %s | Canal: %d",
-                             srcMac, destMac, bssid, e.channel);
+            char mensaje[DEAUTH_JSON_BUFFER_SIZE];
+            int n = deauth_json_serialize(&e, NODE_ID, mensaje, sizeof(mensaje));
             if (n < 0 || (size_t)n >= sizeof(mensaje)) {
-                Serial.println("[WARN] no se pudo formatear la alerta");
+                Serial.println("[WARN] no se pudo serializar la alerta JSON");
             } else {
-                Serial.println(mensaje);
+                Serial.println(mensaje);   // (F5) diagnostico: el MISMO JSON v1 que se envia por BLE
 
                 // Snapshot protegido de deviceConnected y MTU; el lock se libera ANTES de setValue/notify.
                 bool conn;

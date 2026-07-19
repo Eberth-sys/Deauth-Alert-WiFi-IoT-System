@@ -2,7 +2,7 @@
 
 idf_component_register(SRCS "main.c"
                     INCLUDE_DIRS "."
-                    REQUIRES bt esp_wifi nvs_flash WifiMgmtParser DeauthEvent)
+                    REQUIRES bt esp_wifi nvs_flash WifiMgmtParser DeauthEvent DeauthJson)
 
 target_include_directories(${COMPONENT_LIB} PRIVATE
     "${IDF_PATH}/components/bt/include/esp32/include"

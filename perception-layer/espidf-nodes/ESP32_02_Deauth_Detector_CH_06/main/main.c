@@ -19,6 +19,7 @@
 #include "../../config/config.h"
 #include "wifi_mgmt_parser.h"   // Parser portable de la cabecera 802.11 (biblioteca compartida, F4b)
 #include "deauth_event.h"       // Modelo de evento POD + parser de BSSID (biblioteca compartida, F4c-1)
+#include "deauth_json.h"        // Serializador del contrato JSON v1 (biblioteca compartida, F5-1)
 #include "freertos/queue.h"     // Cola FreeRTOS estatica (F4c-2)
 
 // Identificadores específicos para este nodo (canal 6)
@@ -142,12 +143,6 @@ static void setup_ble_security() {
     esp_ble_gap_set_security_param(ESP_BLE_SM_SET_RSP_KEY, &rsp_key, sizeof(rsp_key));
 }
 
-// Formatea una MAC de 6 bytes a "XX:XX:XX:XX:XX:XX".
-static void mac_to_str(const uint8_t mac[6], char out[18]) {
-    snprintf(out, 18, "%02X:%02X:%02X:%02X:%02X:%02X",
-             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-}
-
 // Reporte rate-limited (>= 5 s, wrap-safe) de descartes. Lee+resetea el contador dentro
 // de la MISMA seccion critica; jamas la mantiene durante el log.
 static void report_dropped(TickType_t* last_tick) {
@@ -182,7 +177,7 @@ static void report_mtu_dropped(TickType_t* last_tick) {
     }
 }
 
-// Tarea worker: drena la cola y hace el trabajo lento (formateo, log, BLE). Conserva printf + ESP_LOGI.
+// Tarea worker: drena la cola y emite la alerta como JSON v1 (serializa + ESP_LOGI + BLE).
 static void deauth_worker(void* arg) {
     (void)arg;
     deauth_event_t e;
@@ -190,18 +185,12 @@ static void deauth_worker(void* arg) {
     TickType_t last_mtu_report = last_report;
     for (;;) {
         if (xQueueReceive(event_queue, &e, pdMS_TO_TICKS(1000)) == pdTRUE) {
-            char bssid[18], src_mac[18], dst_mac[18], alert_msg[256];
-            mac_to_str(e.bssid, bssid);
-            mac_to_str(e.src, src_mac);
-            mac_to_str(e.dst, dst_mac);
-            int n = snprintf(alert_msg, sizeof(alert_msg),
-                             "[ALERT] Ataque de Deauthentication detectado | Origen: %s | Destino: %s | BSSID: %s | Canal: %d",
-                             src_mac, dst_mac, bssid, e.channel);
+            char alert_msg[DEAUTH_JSON_BUFFER_SIZE];
+            int n = deauth_json_serialize(&e, NODE_ID, alert_msg, sizeof(alert_msg));
             if (n < 0 || (size_t)n >= sizeof(alert_msg)) {
-                ESP_LOGW(TAG, "no se pudo formatear la alerta");
+                ESP_LOGW(TAG, "no se pudo serializar la alerta JSON");
             } else {
-                printf("%s\n", alert_msg);
-                ESP_LOGI(TAG, "%s", alert_msg);
+                ESP_LOGI(TAG, "%s", alert_msg);   // (F5) diagnostico: el MISMO JSON v1 que se envia por BLE
 
                 // Snapshot consistente del estado BLE y del MTU bajo lock; se libera ANTES de enviar.
                 bool          conn;
@@ -256,7 +245,7 @@ static void wifi_sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
     // (orden seguro) Parseo portable de la cabecera; no se accede a data[] directamente.
     wifi_mgmt_frame_t frame;
     if (wifi_mgmt_parse(pkt->payload, frame_len, &frame) != WIFI_MGMT_OK) return;
-    if (frame.frame_subtype != 0x0C) return;   // solo deauth (0x0C); 0x0A queda reconocido sin alertar
+    if (frame.frame_subtype != 0x0C && frame.frame_subtype != 0x0A) return;   // deauth (0x0C) y disassoc (0x0A)
 
     // BSSID objetivo: comparacion binaria de 6 bytes (sin snprintf/strcmp en el callback).
     if (memcmp(frame.addr2, target_bssid, 6) != 0) return;
@@ -267,7 +256,7 @@ static void wifi_sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
     memcpy(e.src,   frame.addr3, 6);
     memcpy(e.dst,   frame.addr1, 6);
     e.channel = pkt->rx_ctrl.channel;   // (C) canal desde los metadatos de recepcion
-    e.subtype = frame.frame_subtype;    // 0x0C
+    e.subtype = frame.frame_subtype;    // 0x0C (deauth) o 0x0A (disassoc)
 
     if (xQueueSend(event_queue, &e, 0) != pdTRUE) {
         // Cola llena: incrementar el contador de descartes en seccion critica minima.

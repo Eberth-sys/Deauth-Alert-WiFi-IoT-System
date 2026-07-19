@@ -12,7 +12,8 @@ cmake_minimum_required(VERSION 3.16)
 # Componente compartido WifiMgmtParser (F4b): declararlo ANTES de project.cmake.
 set(EXTRA_COMPONENT_DIRS
     "${CMAKE_SOURCE_DIR}/../../shared/WifiMgmtParser"
-    "${CMAKE_SOURCE_DIR}/../../shared/DeauthEvent")
+    "${CMAKE_SOURCE_DIR}/../../shared/DeauthEvent"
+    "${CMAKE_SOURCE_DIR}/../../shared/DeauthJson")
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(ESP32_04_Deauth_Detector_SCANNER)

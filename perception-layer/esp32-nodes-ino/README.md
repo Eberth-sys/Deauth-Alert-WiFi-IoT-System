@@ -139,7 +139,7 @@ La vía con **validación física** (hardware) es Arduino IDE. El repositorio **
 
 ```text
 [INFO]  Modo promiscuo activo | Canal: <N>
-[ALERT] Origen: ... | Destino: ... | Canal: <N>
+{"v":1,"e":12,"n":"ESP32_1_CH_01","s":"01:01:01:01:01:01","d":"FF:FF:FF:FF:FF:FF","b":"01:01:01:01:01:01","c":1}
 ```
 
 ### Compilación reproducible con Arduino CLI
@@ -182,29 +182,31 @@ Get-ChildItem -Directory ESP32_0* | ForEach-Object { pio run -d $_.FullName }
 
 > **Windows — rutas largas:** el paso `checkprogsize` puede fallar (*"filename or extension is too long"*) si el proyecto está en una ruta muy larga (p.ej. OneDrive). Compilar desde una ruta corta, habilitar *long paths*, o fijar `PLATFORMIO_CORE_DIR`/`PLATFORMIO_BUILD_DIR` a rutas cortas (sin guardarlas en el repo).
 
-### Biblioteca compartida `WifiMgmtParser`
+### Bibliotecas compartidas (`WifiMgmtParser`, `DeauthEvent`, `DeauthJson`)
 
-El parseo de la cabecera 802.11 (clasificación de tipo/subtipo y extracción de direcciones) vive en una **biblioteca portable compartida**, `perception-layer/shared/WifiMgmtParser/`, que consumen las tres cadenas de compilación (Arduino, PlatformIO y ESP-IDF) desde una **única fuente**. Los `main.ino` la incluyen con `#include <wifi_mgmt_parser.h>`.
+Tres **bibliotecas portables compartidas** viven en `perception-layer/shared/` y las consumen las tres cadenas de compilación (Arduino, PlatformIO y ESP-IDF) desde una **única fuente**:
 
-**Arduino IDE** — instalar la biblioteca en el *sketchbook* (una sola vez):
+- **`WifiMgmtParser`** (F4b) — parseo de la cabecera 802.11 (clasificación de tipo/subtipo y extracción de direcciones); `#include <wifi_mgmt_parser.h>`.
+- **`DeauthEvent`** (F4c-1) — modelo de evento POD (20 B) + parser de BSSID canónico; `#include <deauth_event.h>`.
+- **`DeauthJson`** (F5-1) — serializador del contrato JSON v1 por `snprintf` (sin heap ni librerías JSON); `#include <deauth_json.h>` (depende de `DeauthEvent`).
 
-- **Opción A (copiar la carpeta):** copiar `perception-layer/shared/WifiMgmtParser/` a la carpeta de bibliotecas del *sketchbook*, quedando:
+**Arduino IDE** — instalar las **tres** bibliotecas en el *sketchbook* (una sola vez):
+
+- **Opción A (copiar las carpetas):** copiar cada carpeta de `perception-layer/shared/` a la carpeta de bibliotecas del *sketchbook*, quedando:
 
   ```text
-  <Sketchbook>/libraries/WifiMgmtParser/
-  ├── library.properties
-  └── src/
-      ├── wifi_mgmt_parser.h
-      └── wifi_mgmt_parser.c
+  <Sketchbook>/libraries/WifiMgmtParser/   (library.properties + src/)
+  <Sketchbook>/libraries/DeauthEvent/      (library.properties + src/)
+  <Sketchbook>/libraries/DeauthJson/       (library.properties + src/)
   ```
 
   `<Sketchbook>` es la carpeta indicada en *Archivo > Preferencias > Ubicación del sketchbook* (por defecto `~/Arduino` en Linux/macOS o `Documentos\Arduino` en Windows).
 
-- **Opción B (Add .ZIP Library):** comprimir la carpeta `WifiMgmtParser/` en un `.zip` y usar *Programa > Incluir Librería > Añadir biblioteca .ZIP…* apuntando a ese `.zip`.
+- **Opción B (Add .ZIP Library):** comprimir cada carpeta (`WifiMgmtParser/`, `DeauthEvent/`, `DeauthJson/`) en un `.zip` y usar *Programa > Incluir Librería > Añadir biblioteca .ZIP…* para cada una.
 
-Reiniciar el IDE tras instalarla. Con la biblioteca presente, `main.ino` compila con el `#include <wifi_mgmt_parser.h>` activo.
+Reiniciar el IDE tras instalarlas. Con las tres presentes, `main.ino` compila con los `#include` activos.
 
-En los demás flujos no hay que instalar nada extra: **Arduino CLI** la resuelve con `--libraries perception-layer/shared`; **PlatformIO**, con `lib_extra_dirs = ../../shared` (heredado de [`pio_common.ini`](pio_common.ini)); **ESP-IDF**, como componente CMake (`EXTRA_COMPONENT_DIRS` + `REQUIRES WifiMgmtParser`).
+En los demás flujos no hay que instalar nada extra: **Arduino CLI** las resuelve con `--libraries perception-layer/shared`; **PlatformIO**, con `lib_extra_dirs = ../../shared` (heredado de [`pio_common.ini`](pio_common.ini)); **ESP-IDF**, como componentes CMake (`EXTRA_COMPONENT_DIRS` + `REQUIRES WifiMgmtParser DeauthEvent DeauthJson`).
 
 > **Compilación vs. validación física:** la CI valida la biblioteca mediante **12 compilaciones** (4 Arduino + 4 ESP-IDF + 4 PlatformIO) y **tests de host** (unit + ASAN/UBSAN + enlace C/C++ + fuzzing). **No** implica pruebas con hardware; la aceptación física de los nodos queda pendiente de laboratorio.
 
@@ -229,16 +231,25 @@ En los demás flujos no hay que instalar nada extra: **Arduino CLI** la resuelve
 
 ## Alerta BLE al nodo centralizador
 
-Ejemplo de alerta generada:
+Ejemplo de alerta generada (contrato JSON v1, `DeauthJson`):
 
-```plaintext
-[ALERT] Ataque de Deauthentication detectado | Origen: 01:01:01:01:01:01 | Destino: FF:FF:FF:FF:FF:FF | BSSID: 01:01:01:01:01:01 | Canal: 6
+```json
+{"v":1,"e":12,"n":"ESP32_1_CH_01","s":"01:01:01:01:01:01","d":"FF:FF:FF:FF:FF:FF","b":"01:01:01:01:01:01","c":1}
 ```
 
-- **BSSID:** `01:01:01:01:01:01`: el punto de acceso suplantado por el atacante.
-- **Origen:** `01:01:01:01:01:01`: coincide con el BSSID suplantado, típico de este ataque.
-- **Destino:** `FF:FF:FF:FF:FF:FF`: ataque dirigido a todos los clientes conectados (broadcast).
-- **Canal:** `6`: el canal Wi-Fi donde se detectó el ataque.
+```json
+{"v":1,"e":10,"n":"ESP32_2_CH_06","s":"02:02:02:02:02:02","d":"AA:BB:CC:DD:EE:FF","b":"02:02:02:02:02:02","c":6}
+```
+
+- **`v`:** versión del contrato de eventos (`1` en esta versión).
+- **`e`:** subtipo de trama de gestión 802.11 — `12` = deauthentication, `10` = disassociation.
+- **`n`:** identificador canónico del nodo (`node_id`; ver `devices.yaml.example`).
+- **`s`:** dirección de origen reportada, según el mapeo actual.
+- **`d`:** dirección de destino reportada (`FF:FF:FF:FF:FF:FF` = broadcast, a todos los clientes).
+- **`b`:** BSSID reportado.
+- **`c`:** canal Wi-Fi (1–14) en el que se detectó la trama (coherente con el `CH_xx` del `node_id`).
+
+El firmware nuevo emite este JSON v1; la Raspberry Pi conserva un **parser dual** (acepta el JSON nuevo y el texto legacy). El mapeo actual de direcciones (`s`/`d`/`b`) se preserva; su validación semántica final queda pendiente de laboratorio (DT-24).
 
 *(Direcciones MAC de ejemplo; no corresponden a hardware real.)*
 

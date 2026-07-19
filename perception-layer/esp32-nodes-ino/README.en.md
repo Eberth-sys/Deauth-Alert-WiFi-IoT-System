@@ -139,7 +139,7 @@ The path with **physical validation** (hardware) is the Arduino IDE. The reposit
 
 ```text
 [INFO]  Modo promiscuo activo | Canal: <N>
-[ALERT] Origen: ... | Destino: ... | Canal: <N>
+{"v":1,"e":12,"n":"ESP32_1_CH_01","s":"01:01:01:01:01:01","d":"FF:FF:FF:FF:FF:FF","b":"01:01:01:01:01:01","c":1}
 ```
 
 ### Reproducible build with the Arduino CLI
@@ -182,29 +182,31 @@ Get-ChildItem -Directory ESP32_0* | ForEach-Object { pio run -d $_.FullName }
 
 > **Windows — long paths:** the `checkprogsize` step may fail (*"filename or extension is too long"*) if the project sits in a very long path (e.g., OneDrive). Build from a short path, enable *long paths*, or set `PLATFORMIO_CORE_DIR`/`PLATFORMIO_BUILD_DIR` to short paths (not stored in the repo).
 
-### Shared `WifiMgmtParser` library
+### Shared libraries (`WifiMgmtParser`, `DeauthEvent`, `DeauthJson`)
 
-The 802.11 header parsing (type/subtype classification and address extraction) lives in a **portable shared library**, `perception-layer/shared/WifiMgmtParser/`, consumed by all three build chains (Arduino, PlatformIO, and ESP-IDF) from a **single source**. The `main.ino` files include it with `#include <wifi_mgmt_parser.h>`.
+Three **portable shared libraries** live in `perception-layer/shared/` and are consumed by all three build chains (Arduino, PlatformIO, and ESP-IDF) from a **single source**:
 
-**Arduino IDE** — install the library into the *sketchbook* (once):
+- **`WifiMgmtParser`** (F4b) — 802.11 header parsing (type/subtype classification and address extraction); `#include <wifi_mgmt_parser.h>`.
+- **`DeauthEvent`** (F4c-1) — POD event model (20 B) + canonical BSSID parser; `#include <deauth_event.h>`.
+- **`DeauthJson`** (F5-1) — v1 contract JSON serializer via `snprintf` (no heap, no JSON library); `#include <deauth_json.h>` (depends on `DeauthEvent`).
 
-- **Option A (copy the folder):** copy `perception-layer/shared/WifiMgmtParser/` into the sketchbook's libraries folder, resulting in:
+**Arduino IDE** — install the **three** libraries into the *sketchbook* (once):
+
+- **Option A (copy the folders):** copy each folder under `perception-layer/shared/` into the sketchbook's libraries folder, resulting in:
 
   ```text
-  <Sketchbook>/libraries/WifiMgmtParser/
-  ├── library.properties
-  └── src/
-      ├── wifi_mgmt_parser.h
-      └── wifi_mgmt_parser.c
+  <Sketchbook>/libraries/WifiMgmtParser/   (library.properties + src/)
+  <Sketchbook>/libraries/DeauthEvent/      (library.properties + src/)
+  <Sketchbook>/libraries/DeauthJson/       (library.properties + src/)
   ```
 
   `<Sketchbook>` is the folder shown under *File > Preferences > Sketchbook location* (by default `~/Arduino` on Linux/macOS or `Documents\Arduino` on Windows).
 
-- **Option B (Add .ZIP Library):** zip the `WifiMgmtParser/` folder and use *Sketch > Include Library > Add .ZIP Library…* pointing to that `.zip`.
+- **Option B (Add .ZIP Library):** zip each folder (`WifiMgmtParser/`, `DeauthEvent/`, `DeauthJson/`) and use *Sketch > Include Library > Add .ZIP Library…* for each one.
 
-Restart the IDE after installing it. With the library present, `main.ino` compiles with the `#include <wifi_mgmt_parser.h>` line active.
+Restart the IDE after installing them. With all three present, `main.ino` compiles with the `#include` lines active.
 
-The other flows need no extra install: **Arduino CLI** resolves it with `--libraries perception-layer/shared`; **PlatformIO**, with `lib_extra_dirs = ../../shared` (inherited from [`pio_common.ini`](pio_common.ini)); **ESP-IDF**, as a CMake component (`EXTRA_COMPONENT_DIRS` + `REQUIRES WifiMgmtParser`).
+The other flows need no extra install: **Arduino CLI** resolves them with `--libraries perception-layer/shared`; **PlatformIO**, with `lib_extra_dirs = ../../shared` (inherited from [`pio_common.ini`](pio_common.ini)); **ESP-IDF**, as CMake components (`EXTRA_COMPONENT_DIRS` + `REQUIRES WifiMgmtParser DeauthEvent DeauthJson`).
 
 > **Build vs. physical validation:** the CI validates the library through **12 compilations** (4 Arduino + 4 ESP-IDF + 4 PlatformIO) and **host tests** (unit + ASAN/UBSAN + C/C++ linkage + fuzzing). It does **not** imply hardware testing; physical acceptance of the nodes remains pending in the lab.
 
@@ -229,16 +231,25 @@ The other flows need no extra install: **Arduino CLI** resolves it with `--libra
 
 ## BLE Alert to the Central Node
 
-Example of a generated alert:
+Example of a generated alert (v1 JSON contract, `DeauthJson`):
 
-```plaintext
-[ALERT] Ataque de Deauthentication detectado | Origen: 01:01:01:01:01:01 | Destino: FF:FF:FF:FF:FF:FF | BSSID: 01:01:01:01:01:01 | Canal: 6
+```json
+{"v":1,"e":12,"n":"ESP32_1_CH_01","s":"01:01:01:01:01:01","d":"FF:FF:FF:FF:FF:FF","b":"01:01:01:01:01:01","c":1}
 ```
 
-- **BSSID:** `01:01:01:01:01:01`: the access point spoofed by the attacker.
-- **Origen (source):** `01:01:01:01:01:01`: matches the spoofed BSSID, which is typical of this attack.
-- **Destino (destination):** `FF:FF:FF:FF:FF:FF`: an attack directed at all connected clients (broadcast).
-- **Canal (channel):** `6`: the Wi-Fi channel where the attack was detected.
+```json
+{"v":1,"e":10,"n":"ESP32_2_CH_06","s":"02:02:02:02:02:02","d":"AA:BB:CC:DD:EE:FF","b":"02:02:02:02:02:02","c":6}
+```
+
+- **`v`:** event-contract version (`1` in this version).
+- **`e`:** 802.11 management-frame subtype — `12` = deauthentication, `10` = disassociation.
+- **`n`:** canonical node identifier (`node_id`; see `devices.yaml.example`).
+- **`s`:** reported source address, per the current mapping.
+- **`d`:** reported destination address (`FF:FF:FF:FF:FF:FF` = broadcast, all clients).
+- **`b`:** reported BSSID.
+- **`c`:** Wi-Fi channel (1–14) on which the frame was detected (consistent with the `CH_xx` in the `node_id`).
+
+The new firmware emits this v1 JSON; the Raspberry Pi keeps a **dual parser** (it accepts both the new JSON and the legacy text). The current address mapping (`s`/`d`/`b`) is preserved; its final semantic validation is pending lab work (DT-24).
 
 *(Example MAC addresses; they do not correspond to real hardware.)*
 

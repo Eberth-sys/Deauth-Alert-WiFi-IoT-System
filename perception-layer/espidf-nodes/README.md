@@ -178,16 +178,25 @@ El build usa el `partitions.csv` de esta carpeta; el binario (~1,09 MB) deja **~
 
 ## Alerta BLE al nodo centralizador
 
-Ejemplo de alerta generada:
+Ejemplo de alerta generada (contrato JSON v1, `DeauthJson`):
 
-```plaintext
-[ALERT] Ataque de Deauthentication detectado | Origen: 01:01:01:01:01:01 | Destino: FF:FF:FF:FF:FF:FF | BSSID: 01:01:01:01:01:01 | Canal: 6
+```json
+{"v":1,"e":12,"n":"ESP32_1_CH_01","s":"01:01:01:01:01:01","d":"FF:FF:FF:FF:FF:FF","b":"01:01:01:01:01:01","c":1}
 ```
 
-- **BSSID:** `01:01:01:01:01:01`: el punto de acceso suplantado por el atacante.
-- **Origen:** `01:01:01:01:01:01`: coincide con el BSSID suplantado, típico de este ataque.
-- **Destino:** `FF:FF:FF:FF:FF:FF`: ataque dirigido a todos los clientes conectados (broadcast).
-- **Canal:** `6`: el canal Wi-Fi donde se detectó el ataque.
+```json
+{"v":1,"e":10,"n":"ESP32_2_CH_06","s":"02:02:02:02:02:02","d":"AA:BB:CC:DD:EE:FF","b":"02:02:02:02:02:02","c":6}
+```
+
+- **`v`:** versión del contrato de eventos (`1` en esta versión).
+- **`e`:** subtipo de trama de gestión 802.11 — `12` = deauthentication, `10` = disassociation.
+- **`n`:** identificador canónico del nodo (`node_id`; ver `devices.yaml.example`).
+- **`s`:** dirección de origen reportada, según el mapeo actual.
+- **`d`:** dirección de destino reportada (`FF:FF:FF:FF:FF:FF` = broadcast, a todos los clientes).
+- **`b`:** BSSID reportado.
+- **`c`:** canal Wi-Fi (1–14) en el que se detectó la trama (coherente con el `CH_xx` del `node_id`).
+
+El firmware nuevo emite este JSON v1; la Raspberry Pi conserva un **parser dual** (acepta el JSON nuevo y el texto legacy). El mapeo actual de direcciones (`s`/`d`/`b`) se preserva; su validación semántica final queda pendiente de laboratorio (DT-24).
 
 *(Direcciones MAC de ejemplo; no corresponden a hardware real.)*
 
