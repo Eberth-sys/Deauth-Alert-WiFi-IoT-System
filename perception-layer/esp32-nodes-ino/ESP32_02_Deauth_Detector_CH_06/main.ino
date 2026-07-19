@@ -13,6 +13,7 @@
 #include <wifi_mgmt_parser.h> // Parser portable de la cabecera 802.11 (biblioteca compartida, F4b)
 #include <deauth_event.h>     // Modelo de evento POD + parser de BSSID (biblioteca compartida, F4c-1)
 #include <deauth_json.h>      // Serializador del contrato JSON v1 (biblioteca compartida, F5-1)
+#include <deauth_ratelimit.h> // Rate-limit compartido de alertas (biblioteca compartida, F5-3)
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -103,6 +104,12 @@ static portMUX_TYPE  mtuMux = portMUX_INITIALIZER_UNLOCKED;
 static uint32_t      droppedMtu = 0;
 static uint16_t      droppedMtuLast = 0;   // MTU vigente en el ultimo descarte (para el reporte)
 
+// (F5-3) Rate-limit de alertas por (dst, subtype): instancia + contadores WORKER-ONLY (sin portMUX;
+// solo la tarea worker los toca). rateLimitedSuppressed = duplicados; rateLimitFailOpen = tabla llena.
+static deauth_rate_limiter_t rateLimiter;
+static uint32_t      rateLimitedSuppressed = 0;
+static uint32_t      rateLimitFailOpen = 0;
+
 // Variable global para el canal actual
 const uint8_t MONITOR_CHANNEL = 6;
 
@@ -179,48 +186,78 @@ static void reportMtuDropped(TickType_t* lastTick) {
     }
 }
 
+// (F5-3) Reporte rate-limited (>= 5 s, wrap-safe) de duplicados suprimidos y de fail-open por tabla
+// llena. Contadores WORKER-ONLY (sin seccion critica). Sin logs por evento; solo si el contador > 0.
+static void reportRateLimited(TickType_t* lastTick) {
+    TickType_t now = xTaskGetTickCount();
+    if ((TickType_t)(now - *lastTick) < pdMS_TO_TICKS(5000)) return;
+    *lastTick = now;
+    if (rateLimitedSuppressed) {
+        Serial.printf("[WARN] Alertas duplicadas suprimidas por rate-limit en los ultimos 5 s: %u\n",
+                      (unsigned)rateLimitedSuppressed);
+        rateLimitedSuppressed = 0;
+    }
+    if (rateLimitFailOpen) {
+        Serial.printf("[WARN] Fail-open del rate-limit (tabla llena) en los ultimos 5 s: %u\n",
+                      (unsigned)rateLimitFailOpen);
+        rateLimitFailOpen = 0;
+    }
+}
+
 // Tarea worker: drena la cola y hace el trabajo lento (formateo, Serial, BLE). Conserva el texto actual.
 static void deauthWorker(void* arg) {
     (void)arg;
     deauth_event_t e;
     TickType_t lastReport = xTaskGetTickCount();
     TickType_t lastMtuReport = lastReport;
+    TickType_t lastRlReport = lastReport;
+    deauth_ratelimit_init(&rateLimiter);   // (F5-3) instancia explicita, sin estado global oculto
     for (;;) {
         if (xQueueReceive(eventQueue, &e, pdMS_TO_TICKS(1000)) == pdTRUE) {
-            char mensaje[DEAUTH_JSON_BUFFER_SIZE];
-            int n = deauth_json_serialize(&e, NODE_ID, mensaje, sizeof(mensaje));
-            if (n < 0 || (size_t)n >= sizeof(mensaje)) {
-                Serial.println("[WARN] no se pudo serializar la alerta JSON");
+            // (F5-3) Rate-limit por (dst, subtype) ANTES de serializar/emitir. if(allow) (no continue):
+            // los reportes periodicos de abajo (fuera de xQueueReceive) corren siempre, aun al suprimir.
+            deauth_rl_result_t rlRes = deauth_ratelimit_check(&rateLimiter, e.dst, e.subtype,
+                                                              (uint32_t)xTaskGetTickCount(), pdMS_TO_TICKS(1000));
+            if (rlRes == DEAUTH_RL_SUPPRESS) {
+                rateLimitedSuppressed++;   // duplicado dentro de la ventana: no serializa ni emite
             } else {
-                Serial.println(mensaje);   // (F5) diagnostico: el MISMO JSON v1 que se envia por BLE
+                if (rlRes == DEAUTH_RL_ALLOW_FULL) rateLimitFailOpen++;   // tabla llena: fail-open observable
+                char mensaje[DEAUTH_JSON_BUFFER_SIZE];
+                int n = deauth_json_serialize(&e, NODE_ID, mensaje, sizeof(mensaje));
+                if (n < 0 || (size_t)n >= sizeof(mensaje)) {
+                    Serial.println("[WARN] no se pudo serializar la alerta JSON");
+                } else {
+                    Serial.println(mensaje);   // (F5) diagnostico: el MISMO JSON v1 que se envia por BLE
 
-                // Snapshot protegido de deviceConnected y MTU; el lock se libera ANTES de setValue/notify.
-                bool conn;
-                uint16_t mtu;
-                portENTER_CRITICAL(&bleMux);
-                conn = deviceConnected;
-                mtu  = negotiatedMtu;
-                portEXIT_CRITICAL(&bleMux);
+                    // Snapshot protegido de deviceConnected y MTU; el lock se libera ANTES de setValue/notify.
+                    bool conn;
+                    uint16_t mtu;
+                    portENTER_CRITICAL(&bleMux);
+                    conn = deviceConnected;
+                    mtu  = negotiatedMtu;
+                    portEXIT_CRITICAL(&bleMux);
 
-                if (conn) {
-                    // (F4d-2) Capacidad util de una notificacion = MTU negociado - 3 (cabecera ATT).
-                    size_t capacity = (mtu >= 3) ? (size_t)(mtu - 3) : 0;
-                    if ((size_t)n > capacity) {
-                        // No cabe: NO truncar, NO enviar. Contar en seccion critica independiente
-                        // (bleMux ya liberado; nunca anidar con bleMux/droppedMux).
-                        portENTER_CRITICAL(&mtuMux);
-                        droppedMtu++;
-                        droppedMtuLast = mtu;
-                        portEXIT_CRITICAL(&mtuMux);
-                    } else {
-                        pCharacteristic->setValue(reinterpret_cast<uint8_t*>(mensaje), static_cast<size_t>(n));
-                        pCharacteristic->notify();
+                    if (conn) {
+                        // (F4d-2) Capacidad util de una notificacion = MTU negociado - 3 (cabecera ATT).
+                        size_t capacity = (mtu >= 3) ? (size_t)(mtu - 3) : 0;
+                        if ((size_t)n > capacity) {
+                            // No cabe: NO truncar, NO enviar. Contar en seccion critica independiente
+                            // (bleMux ya liberado; nunca anidar con bleMux/droppedMux).
+                            portENTER_CRITICAL(&mtuMux);
+                            droppedMtu++;
+                            droppedMtuLast = mtu;
+                            portEXIT_CRITICAL(&mtuMux);
+                        } else {
+                            pCharacteristic->setValue(reinterpret_cast<uint8_t*>(mensaje), static_cast<size_t>(n));
+                            pCharacteristic->notify();
+                        }
                     }
                 }
             }
         }
         reportDropped(&lastReport);
         reportMtuDropped(&lastMtuReport);
+        reportRateLimited(&lastRlReport);
     }
 }
 
