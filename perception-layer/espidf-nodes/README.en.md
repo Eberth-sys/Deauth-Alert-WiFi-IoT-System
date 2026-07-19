@@ -178,16 +178,25 @@ The build uses the `partitions.csv` in this folder; the binary (~1.09 MB) leaves
 
 ## BLE alert to the central node
 
-Example of a generated alert:
+Example of a generated alert (v1 JSON contract, `DeauthJson`):
 
-```plaintext
-[ALERT] Ataque de Deauthentication detectado | Origen: 01:01:01:01:01:01 | Destino: FF:FF:FF:FF:FF:FF | BSSID: 01:01:01:01:01:01 | Canal: 6
+```json
+{"v":1,"e":12,"n":"ESP32_1_CH_01","s":"01:01:01:01:01:01","d":"FF:FF:FF:FF:FF:FF","b":"01:01:01:01:01:01","c":1}
 ```
 
-- **BSSID:** `01:01:01:01:01:01`: the access point spoofed by the attacker.
-- **Source:** `01:01:01:01:01:01`: matches the spoofed BSSID, typical of this attack.
-- **Destination:** `FF:FF:FF:FF:FF:FF`: attack directed at all connected clients (broadcast).
-- **Channel:** `6`: the Wi-Fi channel where the attack was detected.
+```json
+{"v":1,"e":10,"n":"ESP32_2_CH_06","s":"02:02:02:02:02:02","d":"AA:BB:CC:DD:EE:FF","b":"02:02:02:02:02:02","c":6}
+```
+
+- **`v`:** event-contract version (`1` in this version).
+- **`e`:** 802.11 management-frame subtype — `12` = deauthentication, `10` = disassociation.
+- **`n`:** canonical node identifier (`node_id`; see `devices.yaml.example`).
+- **`s`:** reported source address, per the current mapping.
+- **`d`:** reported destination address (`FF:FF:FF:FF:FF:FF` = broadcast, all clients).
+- **`b`:** reported BSSID.
+- **`c`:** Wi-Fi channel (1–14) on which the frame was detected (consistent with the `CH_xx` in the `node_id`).
+
+The new firmware emits this v1 JSON; the Raspberry Pi keeps a **dual parser** (it accepts both the new JSON and the legacy text). The current address mapping (`s`/`d`/`b`) is preserved; its final semantic validation is pending lab work (DT-24).
 
 *(Example MAC addresses; they do not correspond to real hardware.)*
 
