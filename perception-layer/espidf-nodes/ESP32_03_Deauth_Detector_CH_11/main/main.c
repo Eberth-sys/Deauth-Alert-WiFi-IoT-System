@@ -20,6 +20,7 @@
 #include "wifi_mgmt_parser.h"   // Parser portable de la cabecera 802.11 (biblioteca compartida, F4b)
 #include "deauth_event.h"       // Modelo de evento POD + parser de BSSID (biblioteca compartida, F4c-1)
 #include "deauth_json.h"        // Serializador del contrato JSON v1 (biblioteca compartida, F5-1)
+#include "deauth_ratelimit.h"   // Rate-limit compartido de alertas (biblioteca compartida, F5-3)
 #include "freertos/queue.h"     // Cola FreeRTOS estatica (F4c-2)
 
 // Etiquetas únicas para este nodo (canal 11)
@@ -77,6 +78,12 @@ static uint32_t      dropped_events = 0;
 static portMUX_TYPE  mtu_mux = portMUX_INITIALIZER_UNLOCKED;
 static uint32_t      dropped_mtu = 0;
 static uint16_t      dropped_mtu_last = 0;   // MTU vigente en el ultimo descarte (para el reporte)
+
+// (F5-3) Rate-limit de alertas por (dst, subtype): instancia + contadores WORKER-ONLY (sin portMUX;
+// solo la tarea worker los toca). rate_limited_suppressed = duplicados; rate_limit_fail_open = tabla llena.
+static deauth_rate_limiter_t rate_limiter;
+static uint32_t      rate_limited_suppressed = 0;
+static uint32_t      rate_limit_fail_open = 0;
 
 // Estado BLE compartido (gatts handler <-> worker): device_connected/conn_id/gatts_if/char_handle.
 static portMUX_TYPE  ble_mux = portMUX_INITIALIZER_UNLOCKED;
@@ -177,49 +184,78 @@ static void report_mtu_dropped(TickType_t* last_tick) {
     }
 }
 
+// (F5-3) Reporte rate-limited (>= 5 s, wrap-safe) de duplicados suprimidos y de fail-open por tabla
+// llena. Contadores WORKER-ONLY (sin seccion critica). Sin logs por evento; solo si el contador > 0.
+static void report_rate_limited(TickType_t* last_tick) {
+    TickType_t now = xTaskGetTickCount();
+    if ((TickType_t)(now - *last_tick) < pdMS_TO_TICKS(5000)) return;
+    *last_tick = now;
+    if (rate_limited_suppressed) {
+        ESP_LOGW(TAG, "Alertas duplicadas suprimidas por rate-limit en los ultimos 5 s: %u",
+                 (unsigned)rate_limited_suppressed);
+        rate_limited_suppressed = 0;
+    }
+    if (rate_limit_fail_open) {
+        ESP_LOGW(TAG, "Fail-open del rate-limit (tabla llena) en los ultimos 5 s: %u",
+                 (unsigned)rate_limit_fail_open);
+        rate_limit_fail_open = 0;
+    }
+}
+
 // Tarea worker: drena la cola y emite la alerta como JSON v1 (serializa + ESP_LOGI + BLE).
 static void deauth_worker(void* arg) {
     (void)arg;
     deauth_event_t e;
     TickType_t last_report = xTaskGetTickCount();
     TickType_t last_mtu_report = last_report;
+    TickType_t last_rl_report = last_report;
+    deauth_ratelimit_init(&rate_limiter);   // (F5-3) instancia explicita, sin estado global oculto
     for (;;) {
         if (xQueueReceive(event_queue, &e, pdMS_TO_TICKS(1000)) == pdTRUE) {
-            char alert_msg[DEAUTH_JSON_BUFFER_SIZE];
-            int n = deauth_json_serialize(&e, NODE_ID, alert_msg, sizeof(alert_msg));
-            if (n < 0 || (size_t)n >= sizeof(alert_msg)) {
-                ESP_LOGW(TAG, "no se pudo serializar la alerta JSON");
+            // (F5-3) Rate-limit por (dst, subtype) ANTES de serializar/emitir. if(allow) (no continue):
+            // los reportes periodicos de abajo (fuera de xQueueReceive) corren siempre, aun al suprimir.
+            deauth_rl_result_t rl_res = deauth_ratelimit_check(&rate_limiter, e.dst, e.subtype,
+                                                              (uint32_t)xTaskGetTickCount(), pdMS_TO_TICKS(1000));
+            if (rl_res == DEAUTH_RL_SUPPRESS) {
+                rate_limited_suppressed++;   // duplicado dentro de la ventana: no serializa ni emite
             } else {
-                ESP_LOGI(TAG, "%s", alert_msg);   // (F5) diagnostico: el MISMO JSON v1 que se envia por BLE
+                if (rl_res == DEAUTH_RL_ALLOW_FULL) rate_limit_fail_open++;   // tabla llena: fail-open observable
+                char alert_msg[DEAUTH_JSON_BUFFER_SIZE];
+                int n = deauth_json_serialize(&e, NODE_ID, alert_msg, sizeof(alert_msg));
+                if (n < 0 || (size_t)n >= sizeof(alert_msg)) {
+                    ESP_LOGW(TAG, "no se pudo serializar la alerta JSON");
+                } else {
+                    ESP_LOGI(TAG, "%s", alert_msg);   // (F5) diagnostico: el MISMO JSON v1 que se envia por BLE
 
-                // Snapshot consistente del estado BLE y del MTU bajo lock; se libera ANTES de enviar.
-                bool          conn;
-                uint16_t      cid, chdl, mtu;
-                esp_gatt_if_t gif;
-                portENTER_CRITICAL(&ble_mux);
-                conn = device_connected;
-                cid  = conn_id;
-                gif  = gatts_if;
-                chdl = char_handle;
-                mtu  = negotiated_mtu;
-                portEXIT_CRITICAL(&ble_mux);
+                    // Snapshot consistente del estado BLE y del MTU bajo lock; se libera ANTES de enviar.
+                    bool          conn;
+                    uint16_t      cid, chdl, mtu;
+                    esp_gatt_if_t gif;
+                    portENTER_CRITICAL(&ble_mux);
+                    conn = device_connected;
+                    cid  = conn_id;
+                    gif  = gatts_if;
+                    chdl = char_handle;
+                    mtu  = negotiated_mtu;
+                    portEXIT_CRITICAL(&ble_mux);
 
-                if (conn) {
-                    // (F4d-2) Capacidad util de una notificacion = MTU negociado - 3 (cabecera ATT).
-                    size_t capacity = (mtu >= 3) ? (size_t)(mtu - 3) : 0;
-                    if ((size_t)n > capacity) {
-                        // No cabe: NO truncar, NO enviar. Contar en seccion critica independiente
-                        // (ble_mux ya liberado; nunca anidar con ble_mux/dropped_mux).
-                        portENTER_CRITICAL(&mtu_mux);
-                        dropped_mtu++;
-                        dropped_mtu_last = mtu;
-                        portEXIT_CRITICAL(&mtu_mux);
-                    } else {
-                        esp_err_t r = esp_ble_gatts_send_indicate(gif, cid, chdl,
-                                                                  (size_t)n, (uint8_t*)alert_msg, false);
-                        if (r != ESP_OK) {
-                            // Una desconexion posterior al snapshot da un error controlado, nunca acceso invalido.
-                            ESP_LOGW(TAG, "esp_ble_gatts_send_indicate fallo (%d)", r);
+                    if (conn) {
+                        // (F4d-2) Capacidad util de una notificacion = MTU negociado - 3 (cabecera ATT).
+                        size_t capacity = (mtu >= 3) ? (size_t)(mtu - 3) : 0;
+                        if ((size_t)n > capacity) {
+                            // No cabe: NO truncar, NO enviar. Contar en seccion critica independiente
+                            // (ble_mux ya liberado; nunca anidar con ble_mux/dropped_mux).
+                            portENTER_CRITICAL(&mtu_mux);
+                            dropped_mtu++;
+                            dropped_mtu_last = mtu;
+                            portEXIT_CRITICAL(&mtu_mux);
+                        } else {
+                            esp_err_t r = esp_ble_gatts_send_indicate(gif, cid, chdl,
+                                                                      (size_t)n, (uint8_t*)alert_msg, false);
+                            if (r != ESP_OK) {
+                                // Una desconexion posterior al snapshot da un error controlado, nunca acceso invalido.
+                                ESP_LOGW(TAG, "esp_ble_gatts_send_indicate fallo (%d)", r);
+                            }
                         }
                     }
                 }
@@ -227,6 +263,7 @@ static void deauth_worker(void* arg) {
         }
         report_dropped(&last_report);
         report_mtu_dropped(&last_mtu_report);
+        report_rate_limited(&last_rl_report);
     }
 }
 

@@ -20,12 +20,15 @@ $(BUILD):
 test: | $(BUILD)
 	$(CC) $(CFLAGS) $(SAN) $(INC) $(SRC) test_deauth_event.c -o $(BUILD)/test_runner
 	./$(BUILD)/test_runner
+	$(CC) $(CFLAGS) $(SAN) $(INC) ../src/deauth_ratelimit.c test_deauth_ratelimit.c -o $(BUILD)/ratelimit_runner
+	./$(BUILD)/ratelimit_runner
 
 # Enlace C/C++: parser como C, smoke test como C++, enlazados con g++
 cpp-test: | $(BUILD)
 	$(CC)  $(CFLAGS)   $(SAN) $(INC) -c $(SRC) -o $(BUILD)/deauth_event.o
+	$(CC)  $(CFLAGS)   $(SAN) $(INC) -c ../src/deauth_ratelimit.c -o $(BUILD)/deauth_ratelimit.o
 	$(CXX) $(CXXFLAGS) $(SAN) $(INC) -c test_cpp_linkage.cpp -o $(BUILD)/test_cpp_linkage.o
-	$(CXX) $(SAN) $(BUILD)/deauth_event.o $(BUILD)/test_cpp_linkage.o -o $(BUILD)/cpp_test_runner
+	$(CXX) $(SAN) $(BUILD)/deauth_event.o $(BUILD)/deauth_ratelimit.o $(BUILD)/test_cpp_linkage.o -o $(BUILD)/cpp_test_runner
 	./$(BUILD)/cpp_test_runner
 
 # Fuzzing reproducible (semilla fija) del parser de BSSID, acotado por tiempo y runs
