@@ -8,7 +8,7 @@
     "url": "https://github.com/Eberth-sys/Deauth-Alert-WiFi-IoT-System.git"
   },
   "dependencies": {
-    "DeauthEvent": "1.0.0"
+    "DeauthEvent": "^1.0.0"
   },
   "frameworks": ["arduino"],
   "platforms": ["espressif32"],

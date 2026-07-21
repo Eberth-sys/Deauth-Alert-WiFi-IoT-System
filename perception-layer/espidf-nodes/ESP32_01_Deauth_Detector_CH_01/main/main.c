@@ -21,6 +21,17 @@
 #include "deauth_event.h"       // Modelo de evento POD + parser de BSSID (biblioteca compartida, F4c-1)
 #include "deauth_json.h"        // Serializador del contrato JSON v1 (biblioteca compartida, F5-1)
 #include "deauth_ratelimit.h"   // Rate-limit compartido de alertas (biblioteca compartida, F5-3)
+
+// (F6a-1) Instrumentacion diagnostica: DESACTIVADA por defecto. Se habilita con
+// -DDEAUTH_DIAG=1 (variable CMake cacheada). Con 0 no se compila nada de este bloque.
+#ifndef DEAUTH_DIAG
+#define DEAUTH_DIAG 0
+#endif
+#if DEAUTH_DIAG
+#include "esp_system.h"         // esp_get_minimum_free_heap_size()
+#include "esp_timer.h"          // uptime de 64 bits (sin wrap) para la linea [DIAG]
+#include "deauth_diag.h"        // Helper portable de instrumentacion (F6a-1)
+#endif
 #include "freertos/queue.h"     // Cola FreeRTOS estatica (F4c-2)
 
 // Definiciones para identificación del nodo
@@ -84,6 +95,15 @@ static uint16_t      dropped_mtu_last = 0;   // MTU vigente en el ultimo descart
 static deauth_rate_limiter_t rate_limiter;
 static uint32_t      rate_limited_suppressed = 0;
 static uint32_t      rate_limit_fail_open = 0;
+
+#if DEAUTH_DIAG
+// (F6a-1) Estado diagnostico compartido callback<->worker con mux DEDICADO: nunca se
+// anida con dropped_mux, mtu_mux ni ble_mux. El buffer es ESTATICO (no vive en el stack
+// del worker) para no perturbar el watermark que se esta midiendo.
+static deauth_diag_state_t diag_state;
+static portMUX_TYPE        diag_mux = portMUX_INITIALIZER_UNLOCKED;
+static char                diag_line[DEAUTH_DIAG_BUFFER_SIZE];
+#endif
 
 // Estado BLE compartido (gatts handler <-> worker): device_connected/conn_id/gatts_if/char_handle.
 static portMUX_TYPE  ble_mux = portMUX_INITIALIZER_UNLOCKED;
@@ -150,6 +170,7 @@ static void setup_ble_security() {
     esp_ble_gap_set_security_param(ESP_BLE_SM_SET_RSP_KEY, &rsp_key, sizeof(rsp_key));
 }
 
+#if !DEAUTH_DIAG
 // Reporte rate-limited (>= 5 s, wrap-safe) de descartes. Lee+resetea el contador dentro
 // de la MISMA seccion critica; jamas la mantiene durante el log.
 static void report_dropped(TickType_t* last_tick) {
@@ -201,14 +222,87 @@ static void report_rate_limited(TickType_t* last_tick) {
         rate_limit_fail_open = 0;
     }
 }
+#endif  /* !DEAUTH_DIAG */
+
+#if DEAUTH_DIAG
+// (F6a-1) Ventana unica de 5 s: UNA sola captura de los cuatro contadores, reutilizada por
+// los warnings existentes (mismo texto), por los deltas y por los totales. Los locks se
+// toman y liberan DE A UNO, jamas anidados; el formateo y los logs van FUERA de todo lock.
+static void report_window_5s(TickType_t* last_tick) {
+    TickType_t now = xTaskGetTickCount();
+    if ((TickType_t)(now - *last_tick) < pdMS_TO_TICKS(5000)) return;
+    *last_tick = now;
+
+    deauth_diag_delta_t d;
+    deauth_diag_state_t snap;
+    uint16_t mtu_last, mtu_now;
+
+    portENTER_CRITICAL(&dropped_mux);
+    d.dropped_events = dropped_events;
+    dropped_events = 0;
+    portEXIT_CRITICAL(&dropped_mux);
+
+    portENTER_CRITICAL(&mtu_mux);
+    d.dropped_mtu = dropped_mtu;
+    mtu_last = dropped_mtu_last;
+    dropped_mtu = 0;
+    portEXIT_CRITICAL(&mtu_mux);
+
+    // Contadores worker-only: no requieren seccion critica.
+    d.rate_limited_suppressed = rate_limited_suppressed;
+    d.rate_limit_fail_open    = rate_limit_fail_open;
+    rate_limited_suppressed = 0;
+    rate_limit_fail_open    = 0;
+
+    portENTER_CRITICAL(&ble_mux);
+    mtu_now = negotiated_mtu;
+    portEXIT_CRITICAL(&ble_mux);
+
+    // Watermark convertido EXPLICITAMENTE a bytes (el _Static_assert de StackType_t vigila la unidad).
+    const uint32_t stack_free = (uint32_t)uxTaskGetStackHighWaterMark(NULL) * (uint32_t)sizeof(StackType_t);
+    const uint32_t heap_free  = (uint32_t)esp_get_minimum_free_heap_size();
+
+    portENTER_CRITICAL(&diag_mux);
+    deauth_diag_observe_stack_free(&diag_state, stack_free);
+    deauth_diag_observe_heap_free(&diag_state, heap_free);
+    deauth_diag_set_mtu(&diag_state, mtu_now);
+    deauth_diag_accumulate(&diag_state, &d);
+    snap = diag_state;
+    portEXIT_CRITICAL(&diag_mux);
+
+    if (d.dropped_events) ESP_LOGW(TAG, "Eventos descartados por cola llena en los ultimos 5 s: %u", (unsigned)d.dropped_events);
+    if (d.dropped_mtu) {
+        uint16_t cap = (mtu_last >= 3) ? (uint16_t)(mtu_last - 3) : 0;
+        ESP_LOGW(TAG, "Alertas descartadas por MTU insuficiente en los ultimos 5 s: %u (MTU=%u, capacidad util=%u B)",
+                 (unsigned)d.dropped_mtu, (unsigned)mtu_last, (unsigned)cap);
+    }
+    if (d.rate_limited_suppressed) {
+        ESP_LOGW(TAG, "Alertas duplicadas suprimidas por rate-limit en los ultimos 5 s: %u",
+                 (unsigned)d.rate_limited_suppressed);
+    }
+    if (d.rate_limit_fail_open) {
+        ESP_LOGW(TAG, "Fail-open del rate-limit (tabla llena) en los ultimos 5 s: %u",
+                 (unsigned)d.rate_limit_fail_open);
+    }
+
+    // Linea diagnostica: SOLO por consola serie, NUNCA por BLE (no toca el contrato JSON v1).
+    {
+        const uint64_t up_ms = (uint64_t)(esp_timer_get_time() / 1000);
+        int n = deauth_diag_format(&snap, &d, NODE_ID, up_ms, diag_line, sizeof(diag_line));
+        if (n > 0 && (size_t)n < sizeof(diag_line)) ESP_LOGI(TAG, "%s", diag_line);
+    }
+}
+#endif  /* DEAUTH_DIAG */
 
 // Tarea worker: drena la cola y emite la alerta como JSON v1 (serializa + ESP_LOGI + BLE).
 static void deauth_worker(void* arg) {
     (void)arg;
     deauth_event_t e;
     TickType_t last_report = xTaskGetTickCount();
+#if !DEAUTH_DIAG
     TickType_t last_mtu_report = last_report;
     TickType_t last_rl_report = last_report;
+#endif
     deauth_ratelimit_init(&rate_limiter);   // (F5-3) instancia explicita, sin estado global oculto
     for (;;) {
         if (xQueueReceive(event_queue, &e, pdMS_TO_TICKS(1000)) == pdTRUE) {
@@ -261,9 +355,13 @@ static void deauth_worker(void* arg) {
                 }
             }
         }
+#if DEAUTH_DIAG
+        report_window_5s(&last_report);   // (F6a-1) captura UNICA por ventana
+#else
         report_dropped(&last_report);
         report_mtu_dropped(&last_mtu_report);
         report_rate_limited(&last_rl_report);
+#endif
     }
 }
 
@@ -301,6 +399,17 @@ static void wifi_sniffer_callback(void* buf, wifi_promiscuous_pkt_type_t type) {
         dropped_events++;
         portEXIT_CRITICAL(&dropped_mux);
     }
+#if DEAUTH_DIAG
+    else {
+        // (F6a-1) Sonda diagnostica: profundidad OBSERVADA inmediatamente despues del encolado
+        // exitoso. Es una MUESTRA, no un maximo absoluto (el worker puede consumir entre ambas
+        // operaciones). Introduce una perturbacion pequena; solo existe con DEAUTH_DIAG=1.
+        const UBaseType_t depth = uxQueueMessagesWaiting(event_queue);
+        portENTER_CRITICAL(&diag_mux);
+        deauth_diag_observe_queue_depth(&diag_state, (uint16_t)depth);
+        portEXIT_CRITICAL(&diag_mux);
+    }
+#endif
 }
 
 // Manejador de eventos de GAP (advertising BLE)
@@ -432,6 +541,11 @@ void app_main() {
         ESP_LOGE(TAG, "xQueueCreateStatic fallo; no se habilita la captura");
         return;
     }
+#if DEAUTH_DIAG
+    // (F6a-1) Init ANTES de crear el worker y de habilitar el callback promiscuo: evita que una
+    // primera muestra alcance un estado sin inicializar si el scheduler adelanta la tarea.
+    deauth_diag_init(&diag_state);
+#endif
     if (xTaskCreateStatic(deauth_worker, "deauth_worker", sizeof(worker_stack), NULL,
                           tskIDLE_PRIORITY + 1, worker_stack, &worker_tcb) == NULL) {
         ESP_LOGE(TAG, "xTaskCreateStatic fallo; no se habilita la captura");

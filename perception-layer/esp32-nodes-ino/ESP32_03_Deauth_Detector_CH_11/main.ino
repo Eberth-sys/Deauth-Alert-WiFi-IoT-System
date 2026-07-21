@@ -14,6 +14,16 @@
 #include <deauth_event.h>     // Modelo de evento POD + parser de BSSID (biblioteca compartida, F4c-1)
 #include <deauth_json.h>      // Serializador del contrato JSON v1 (biblioteca compartida, F5-1)
 #include <deauth_ratelimit.h> // Rate-limit compartido de alertas (biblioteca compartida, F5-3)
+
+// (F6a-1) Instrumentacion diagnostica: DESACTIVADA por defecto. Se habilita con
+// -DDEAUTH_DIAG=1 (build-property de Arduino CLI / build_flags de PlatformIO).
+#ifndef DEAUTH_DIAG
+#define DEAUTH_DIAG 0
+#endif
+#if DEAUTH_DIAG
+#include <esp_timer.h>        // uptime de 64 bits (sin wrap) para la linea [DIAG]
+#include <deauth_diag.h>      // Helper portable de instrumentacion (F6a-1)
+#endif
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -111,6 +121,15 @@ static deauth_rate_limiter_t rateLimiter;
 static uint32_t      rateLimitedSuppressed = 0;
 static uint32_t      rateLimitFailOpen = 0;
 
+#if DEAUTH_DIAG
+// (F6a-1) Estado diagnostico compartido callback<->worker con mux DEDICADO: nunca se
+// anida con bleMux, droppedMux ni mtuMux. El buffer es ESTATICO (no vive en el stack del
+// worker) para no perturbar el watermark que se esta midiendo.
+static deauth_diag_state_t diagState;
+static portMUX_TYPE        diagMux = portMUX_INITIALIZER_UNLOCKED;
+static char                diagLine[DEAUTH_DIAG_BUFFER_SIZE];
+#endif
+
 // Variable global para el canal actual
 const uint8_t MONITOR_CHANNEL = 11;
 
@@ -152,8 +171,20 @@ void sniffer_callback(void *buf, wifi_promiscuous_pkt_type_t type) {
         droppedEvents++;
         portEXIT_CRITICAL(&droppedMux);
     }
+#if DEAUTH_DIAG
+    else {
+        // (F6a-1) Sonda diagnostica: profundidad OBSERVADA inmediatamente despues del encolado
+        // exitoso. Es una MUESTRA, no un maximo absoluto (el worker puede consumir entre ambas
+        // operaciones). Introduce una perturbacion pequena; solo existe con DEAUTH_DIAG=1.
+        const UBaseType_t depth = uxQueueMessagesWaiting(eventQueue);
+        portENTER_CRITICAL(&diagMux);
+        deauth_diag_observe_queue_depth(&diagState, (uint16_t)depth);
+        portEXIT_CRITICAL(&diagMux);
+    }
+#endif
 }
 
+#if !DEAUTH_DIAG
 // Reporte rate-limited (>= 5 s, wrap-safe) de descartes; lee+resetea en la misma seccion critica.
 static void reportDropped(TickType_t* lastTick) {
     TickType_t now = xTaskGetTickCount();
@@ -204,14 +235,87 @@ static void reportRateLimited(TickType_t* lastTick) {
         rateLimitFailOpen = 0;
     }
 }
+#endif  /* !DEAUTH_DIAG */
+
+#if DEAUTH_DIAG
+// (F6a-1) Ventana unica de 5 s: UNA sola captura de los cuatro contadores, reutilizada por
+// los warnings existentes (mismo texto), por los deltas y por los totales. Los locks se
+// toman y liberan DE A UNO, jamas anidados; el formateo y los logs van FUERA de todo lock.
+static void reportWindow5s(TickType_t* lastTick) {
+    TickType_t now = xTaskGetTickCount();
+    if ((TickType_t)(now - *lastTick) < pdMS_TO_TICKS(5000)) return;
+    *lastTick = now;
+
+    deauth_diag_delta_t d;
+    deauth_diag_state_t snap;
+    uint16_t mtuLast, mtuNow;
+
+    portENTER_CRITICAL(&droppedMux);
+    d.dropped_events = droppedEvents;
+    droppedEvents = 0;
+    portEXIT_CRITICAL(&droppedMux);
+
+    portENTER_CRITICAL(&mtuMux);
+    d.dropped_mtu = droppedMtu;
+    mtuLast = droppedMtuLast;
+    droppedMtu = 0;
+    portEXIT_CRITICAL(&mtuMux);
+
+    // Contadores worker-only: no requieren seccion critica.
+    d.rate_limited_suppressed = rateLimitedSuppressed;
+    d.rate_limit_fail_open    = rateLimitFailOpen;
+    rateLimitedSuppressed = 0;
+    rateLimitFailOpen     = 0;
+
+    portENTER_CRITICAL(&bleMux);
+    mtuNow = negotiatedMtu;
+    portEXIT_CRITICAL(&bleMux);
+
+    // Watermark convertido EXPLICITAMENTE a bytes (el static_assert de StackType_t vigila la unidad).
+    const uint32_t stackFree = (uint32_t)uxTaskGetStackHighWaterMark(NULL) * (uint32_t)sizeof(StackType_t);
+    const uint32_t heapFree  = (uint32_t)ESP.getMinFreeHeap();
+
+    portENTER_CRITICAL(&diagMux);
+    deauth_diag_observe_stack_free(&diagState, stackFree);
+    deauth_diag_observe_heap_free(&diagState, heapFree);
+    deauth_diag_set_mtu(&diagState, mtuNow);
+    deauth_diag_accumulate(&diagState, &d);
+    snap = diagState;
+    portEXIT_CRITICAL(&diagMux);
+
+    if (d.dropped_events) Serial.printf("[WARN] Eventos descartados por cola llena en los ultimos 5 s: %u\n", (unsigned)d.dropped_events);
+    if (d.dropped_mtu) {
+        uint16_t cap = (mtuLast >= 3) ? (uint16_t)(mtuLast - 3) : 0;
+        Serial.printf("[WARN] Alertas descartadas por MTU insuficiente en los ultimos 5 s: %u (MTU=%u, capacidad util=%u B)\n",
+                      (unsigned)d.dropped_mtu, (unsigned)mtuLast, (unsigned)cap);
+    }
+    if (d.rate_limited_suppressed) {
+        Serial.printf("[WARN] Alertas duplicadas suprimidas por rate-limit en los ultimos 5 s: %u\n",
+                      (unsigned)d.rate_limited_suppressed);
+    }
+    if (d.rate_limit_fail_open) {
+        Serial.printf("[WARN] Fail-open del rate-limit (tabla llena) en los ultimos 5 s: %u\n",
+                      (unsigned)d.rate_limit_fail_open);
+    }
+
+    // Linea diagnostica: SOLO por consola serie, NUNCA por BLE (no toca el contrato JSON v1).
+    {
+        const uint64_t upMs = (uint64_t)(esp_timer_get_time() / 1000);
+        int n = deauth_diag_format(&snap, &d, NODE_ID, upMs, diagLine, sizeof(diagLine));
+        if (n > 0 && (size_t)n < sizeof(diagLine)) Serial.println(diagLine);
+    }
+}
+#endif  /* DEAUTH_DIAG */
 
 // Tarea worker: drena la cola y hace el trabajo lento (formateo, Serial, BLE). Conserva el texto actual.
 static void deauthWorker(void* arg) {
     (void)arg;
     deauth_event_t e;
     TickType_t lastReport = xTaskGetTickCount();
+#if !DEAUTH_DIAG
     TickType_t lastMtuReport = lastReport;
     TickType_t lastRlReport = lastReport;
+#endif
     deauth_ratelimit_init(&rateLimiter);   // (F5-3) instancia explicita, sin estado global oculto
     for (;;) {
         if (xQueueReceive(eventQueue, &e, pdMS_TO_TICKS(1000)) == pdTRUE) {
@@ -256,9 +360,13 @@ static void deauthWorker(void* arg) {
                 }
             }
         }
+#if DEAUTH_DIAG
+        reportWindow5s(&lastReport);   // (F6a-1) captura UNICA por ventana
+#else
         reportDropped(&lastReport);
         reportMtuDropped(&lastMtuReport);
         reportRateLimited(&lastRlReport);
+#endif
     }
 }
 
@@ -346,6 +454,11 @@ void setup() {
         Serial.println("[ERROR] xQueueCreateStatic fallo; no se habilita la captura");
         return;
     }
+#if DEAUTH_DIAG
+    // (F6a-1) Init ANTES de crear el worker y de habilitar el callback promiscuo: evita que una
+    // primera muestra alcance un estado sin inicializar si el scheduler adelanta la tarea.
+    deauth_diag_init(&diagState);
+#endif
     if (xTaskCreateStatic(deauthWorker, "deauth_worker", sizeof(workerStack), NULL,
                           tskIDLE_PRIORITY + 1, workerStack, &workerTcb) == NULL) {
         Serial.println("[ERROR] xTaskCreateStatic fallo; no se habilita la captura");
