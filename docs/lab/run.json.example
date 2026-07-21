@@ -1,0 +1,42 @@
+{
+  "_comentario": "Plantilla SINTETICA de metadata de corrida (Fase 8 / F6). El run.json REAL no se versiona: vive en almacenamiento privado junto a la evidencia cruda. Sin PII (nombre, correo, identificador del operador) y sin ubicacion (direccion, coordenadas, sede, plano). Formato JSON para poder validarse con la biblioteca estandar, sin PyYAML.",
+  "run_id": "F6-A-0001",
+  "campana": "A",
+  "cadena": "arduino-cli",
+  "toolchain": {
+    "arduino_core": "3.2.0",
+    "esp_idf": "5.1",
+    "platformio": "6.1.16"
+  },
+  "firmware": {
+    "commit": "0000000",
+    "deauth_diag": 1,
+    "particion": "huge_app"
+  },
+  "fecha": "2026-01-01",
+  "operador_rol": "operador_1",
+  "autorizacion_ref": "AUTORIZACION-INTERNA-0000",
+  "entorno": {
+    "tipo": "RF controlado",
+    "equipos_propios": true,
+    "redes_autorizadas": true,
+    "ubicacion": "NO SE REGISTRA"
+  },
+  "topologia": {
+    "esp32_fisicos": 4,
+    "roles": ["ESP32_1_CH_01", "ESP32_2_CH_06", "ESP32_3_CH_11", "ESP32_4_SCANN"],
+    "targets_logicos": 8,
+    "configuraciones_compilacion": ["DEAUTH_DIAG=0", "DEAUTH_DIAG=1"],
+    "campanas": 2,
+    "receptor_ble": "raspberry-pi",
+    "host_captura": "adaptador-monitor"
+  },
+  "etiquetas_sanitizadas": {
+    "ap": "AP_LAB",
+    "cliente": "STA_LAB_1",
+    "generador": "ATACANTE_LAB",
+    "ssid": "SSID_LAB"
+  },
+  "pruebas": ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10"],
+  "notas": "Los valores de este archivo son de ejemplo. Hay 4 ESP32 fisicos y 8 targets/variantes logicas (4 roles x 2 cadenas); DEAUTH_DIAG=0 y DEAUTH_DIAG=1 son dos configuraciones de compilacion de cada target y producen binarios distintos, sin agregar roles ni dispositivos. DT-24 (T10) se ejecuta en corrida separada de baja tasa con SA != BSSID; el scanner se evalua aparte de los nodos de canal fijo."
+}

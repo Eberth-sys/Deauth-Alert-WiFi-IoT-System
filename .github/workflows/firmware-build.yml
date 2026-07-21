@@ -13,6 +13,19 @@ on:
       - '.github/scripts/gen_config.sh'
       - 'perception-layer/shared/**'
       - 'processing-layer/src/ble_manager.py'
+      # F6a-2: tooling, protocolo y guardas de evidencia deben disparar el CI.
+      - 'tools/parse_diag.py'
+      - 'tools/tests/test_parse_diag.py'
+      - 'docs/lab/**'
+      - '.gitignore'
+      - 'evidence/**'
+      - '**/*.pcap'
+      - '**/*.pcapng'
+      - '**/run.json'
+      - '**/run.json.*'
+      - '**/serial.log'
+      - '**/alerts.jsonl'
+      - '**/diag.jsonl'
   push:
     branches: [phase8/event-contract-json]
     paths:
@@ -22,6 +35,19 @@ on:
       - '.github/scripts/gen_config.sh'
       - 'perception-layer/shared/**'
       - 'processing-layer/src/ble_manager.py'
+      # F6a-2: tooling, protocolo y guardas de evidencia deben disparar el CI.
+      - 'tools/parse_diag.py'
+      - 'tools/tests/test_parse_diag.py'
+      - 'docs/lab/**'
+      - '.gitignore'
+      - 'evidence/**'
+      - '**/*.pcap'
+      - '**/*.pcapng'
+      - '**/run.json'
+      - '**/run.json.*'
+      - '**/serial.log'
+      - '**/alerts.jsonl'
+      - '**/diag.jsonl'
 
 permissions:
   contents: read
@@ -46,6 +72,37 @@ jobs:
             echo "::error::Comando de flasheo/upload/dispositivo detectado en el workflow"; exit 1
           fi
           echo "OK: el workflow solo compila (sin flash/upload/device)"
+      - name: Fallar si hay evidencia cruda de laboratorio versionada (F6a-2)
+        run: |
+          # La evidencia cruda (PCAP, logs de consola, alerts/diag jsonl, run.json real y
+          # cualquier cosa bajo evidence/) puede contener MAC/BSSID/SSID y metadatos de
+          # ubicacion: NUNCA se versiona. Se recorre git ls-files DIRECTAMENTE, sin crear
+          # archivos temporales en el workspace. La allowlist es por RUTA EXACTA: no basta
+          # con terminar en .example ni con llamarse "template".
+          malas=0
+          while IFS= read -r ruta; do
+            if [ "$ruta" = "docs/lab/run.json.example" ]; then
+              continue                      # unica ruta documental aprobada
+            fi
+            prohibida=0
+            case "$ruta" in
+              evidence/*|*/evidence/*)                          prohibida=1 ;;
+              *.pcap|*.pcapng)                                  prohibida=1 ;;
+              run.json|*/run.json|run.json.*|*/run.json.*)      prohibida=1 ;;
+              serial.log|*/serial.log)                          prohibida=1 ;;
+              alerts.jsonl|*/alerts.jsonl)                      prohibida=1 ;;
+              diag.jsonl|*/diag.jsonl)                          prohibida=1 ;;
+            esac
+            if [ "$prohibida" = "1" ]; then
+              echo "::error::Evidencia cruda versionada: $ruta"
+              malas=$((malas + 1))
+            fi
+          done < <(git ls-files)
+          if [ "$malas" -gt 0 ]; then
+            echo "::error::$malas archivo(s) de evidencia cruda rastreados; deben vivir fuera del repositorio"
+            exit 1
+          fi
+          echo "OK: no hay evidencia cruda versionada"
 
   arduino-cli:
     needs: guards
@@ -411,3 +468,5 @@ jobs:
         run: make -C perception-layer/shared/DeauthJson/tests fuzz
       - name: DeauthJson — Contrato C→Python (parser real de ble_manager)
         run: make -C perception-layer/shared/DeauthJson/tests contract
+      - name: DeauthDiag — Parser [DIAG] + paridad con diag-schema.json (stdlib)
+        run: python3 tools/tests/test_parse_diag.py
