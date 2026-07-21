@@ -131,8 +131,25 @@ jobs:
             # awk (no grep) para contar: con `set -o pipefail` un grep sin coincidencias
             # retorna 1 y abortaria el paso justo en el caso correcto de DIAG=0.
             syms=$("$NM" "$elf" | awk "/deauth_diag_/{n++} END{print n+0}")
-            strs=$(strings "$elf" | awk "/\[DIAG\]|diag_v/{n++} END{print n+0}")
-            echo "== DIAG=$d ($elf) simbolos deauth_diag_*=$syms strings [DIAG]/diag_v=$strs =="
+            # Marcador EXACTO del formato de DeauthDiag. El patron amplio daba FALSOS POSITIVOS:
+            # el core Arduino enlaza esp_diag_variable_* (esp_diagnostics / esp_insights), cuyos
+            # nombres contienen la subcadena "diag_v"; ESP-IDF nativo no incluye esos componentes.
+            # Conteo con lectura shell pura: no usa grep, que con pipefail aborta al no encontrar.
+            marker="[DIAG] {\"diag_v\":%u,"
+            strs=0
+            amplias=0
+            while IFS= read -r line; do
+              if [[ "$line" == *"$marker"* ]]; then
+                strs=$((strs + 1))
+              fi
+              case "$line" in
+                *"[DIAG]"*|*diag_v*)
+                  amplias=$((amplias + 1))
+                  if [ "$amplias" -le 5 ]; then echo "  [info] coincidencia amplia (no falla): $line"; fi
+                  ;;
+              esac
+            done < <(strings "$elf")
+            echo "== DIAG=$d ($elf) simbolos deauth_diag_*=$syms marcador_exacto=$strs (amplias=$amplias) =="
             if ! "$SZ" -A "$elf" | grep -E "^\.(flash\.(text|rodata)|iram0\.text|dram0\.(data|bss)|text|rodata|data|bss)[[:space:]]" > "sec${d}.txt"; then
               echo "::error::No se capturo ninguna seccion del ELF (DIAG=$d)"; exit 1
             fi
@@ -212,8 +229,25 @@ jobs:
             # awk (no grep) para contar: con `set -o pipefail` un grep sin coincidencias
             # retorna 1 y abortaria el paso justo en el caso correcto de DIAG=0.
             syms=$(xtensa-esp32-elf-nm "$elf" | awk "/deauth_diag_/{n++} END{print n+0}")
-            strs=$(strings "$elf" | awk "/\[DIAG\]|diag_v/{n++} END{print n+0}")
-            echo "== DIAG=$d ($elf) simbolos deauth_diag_*=$syms strings [DIAG]/diag_v=$strs =="
+            # Marcador EXACTO del formato de DeauthDiag. El patron amplio daba FALSOS POSITIVOS:
+            # el core Arduino enlaza esp_diag_variable_* (esp_diagnostics / esp_insights), cuyos
+            # nombres contienen la subcadena "diag_v"; ESP-IDF nativo no incluye esos componentes.
+            # Conteo con lectura shell pura: no usa grep, que con pipefail aborta al no encontrar.
+            marker="[DIAG] {\"diag_v\":%u,"
+            strs=0
+            amplias=0
+            while IFS= read -r line; do
+              if [[ "$line" == *"$marker"* ]]; then
+                strs=$((strs + 1))
+              fi
+              case "$line" in
+                *"[DIAG]"*|*diag_v*)
+                  amplias=$((amplias + 1))
+                  if [ "$amplias" -le 5 ]; then echo "  [info] coincidencia amplia (no falla): $line"; fi
+                  ;;
+              esac
+            done < <(strings "$elf")
+            echo "== DIAG=$d ($elf) simbolos deauth_diag_*=$syms marcador_exacto=$strs (amplias=$amplias) =="
             if ! xtensa-esp32-elf-size -A "$elf" | grep -E "^\.(flash\.(text|rodata)|iram0\.text|dram0\.(data|bss)|text|rodata|data|bss)[[:space:]]" > "sec${d}.txt"; then
               echo "::error::No se capturo ninguna seccion del ELF (DIAG=$d)"; exit 1
             fi
@@ -294,8 +328,25 @@ jobs:
             # awk (no grep) para contar: con `set -o pipefail` un grep sin coincidencias
             # retorna 1 y abortaria el paso justo en el caso correcto de DIAG=0.
             syms=$("$NM" "$elf" | awk "/deauth_diag_/{n++} END{print n+0}")
-            strs=$(strings "$elf" | awk "/\[DIAG\]|diag_v/{n++} END{print n+0}")
-            echo "== DIAG=$d ($elf) simbolos deauth_diag_*=$syms strings [DIAG]/diag_v=$strs =="
+            # Marcador EXACTO del formato de DeauthDiag. El patron amplio daba FALSOS POSITIVOS:
+            # el core Arduino enlaza esp_diag_variable_* (esp_diagnostics / esp_insights), cuyos
+            # nombres contienen la subcadena "diag_v"; ESP-IDF nativo no incluye esos componentes.
+            # Conteo con lectura shell pura: no usa grep, que con pipefail aborta al no encontrar.
+            marker="[DIAG] {\"diag_v\":%u,"
+            strs=0
+            amplias=0
+            while IFS= read -r line; do
+              if [[ "$line" == *"$marker"* ]]; then
+                strs=$((strs + 1))
+              fi
+              case "$line" in
+                *"[DIAG]"*|*diag_v*)
+                  amplias=$((amplias + 1))
+                  if [ "$amplias" -le 5 ]; then echo "  [info] coincidencia amplia (no falla): $line"; fi
+                  ;;
+              esac
+            done < <(strings "$elf")
+            echo "== DIAG=$d ($elf) simbolos deauth_diag_*=$syms marcador_exacto=$strs (amplias=$amplias) =="
             if ! "$SZ" -A "$elf" | grep -E "^\.(flash\.(text|rodata)|iram0\.text|dram0\.(data|bss)|text|rodata|data|bss)[[:space:]]" > "sec${d}.txt"; then
               echo "::error::No se capturo ninguna seccion del ELF (DIAG=$d)"; exit 1
             fi
