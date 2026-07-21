@@ -1,5 +1,14 @@
 #include "deauth_diag.h"
 
+/*
+ * Todo el cuerpo -incluidos los literales y el formato "[DIAG]"- vive dentro de
+ * #if DEAUTH_DIAG. Con DEAUTH_DIAG=0 esta unidad de traduccion queda vacia a
+ * proposito: no emite simbolos ni cadenas, sin depender de que el enlazador
+ * recolecte secciones (las cadenas mergeables .rodata.str* NO se recolectan en
+ * las cadenas basadas en el core Arduino).
+ */
+#if DEAUTH_DIAG
+
 #include <inttypes.h>
 #include <stdio.h>
 
@@ -142,3 +151,11 @@ int deauth_diag_format(const deauth_diag_state_t *snapshot,
     }
     return n;
 }
+
+#else  /* !DEAUTH_DIAG */
+
+/* Unidad vacia deliberada: evita el diagnostico "ISO C forbids an empty
+   translation unit" sin emitir simbolos ni cadenas. */
+typedef int diag_tu_not_empty_t;
+
+#endif /* DEAUTH_DIAG */

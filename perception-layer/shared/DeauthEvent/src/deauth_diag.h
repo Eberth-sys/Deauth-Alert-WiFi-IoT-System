@@ -1,14 +1,6 @@
 #ifndef DEAUTH_DIAG_H
 #define DEAUTH_DIAG_H
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
  * Instrumentacion diagnostica compartida (F6a-1). Modulo C puro y PORTABLE:
  * SIN FreeRTOS, SIN ESP-IDF/Arduino, SIN heap y SIN estado global oculto.
@@ -20,11 +12,32 @@ extern "C" {
  *     YA CONVERTIDOS A BYTES a este helper;
  *   - este helper solo acumula minimos/maximos/totales y serializa la linea.
  *
- * El estado es una instancia explicita del caller. Con DEAUTH_DIAG=0 el firmware
- * no referencia ninguna de estas funciones (el modulo queda fuera del binario).
- * La linea se emite SOLO por consola serie; NUNCA por BLE (no contamina el
- * contrato JSON v1 de DeauthJson).
+ * DEAUTH_DIAG gobierna todo el modulo: con 0 no se declara ni define nada
+ * (constantes, tipos, prototipos y cuerpo quedan fuera de la compilacion), de
+ * modo que el binario final no contiene simbolos NI literales diagnosticos en
+ * ninguna cadena de herramientas. La linea se emite SOLO por consola serie;
+ * NUNCA por BLE (no contamina el contrato JSON v1 de DeauthJson).
  */
+
+/* Desactivado por defecto si el build no lo proporciona. */
+#ifndef DEAUTH_DIAG
+#define DEAUTH_DIAG 0
+#endif
+
+/* Solo se aceptan 0 o 1: cualquier otro valor es un error de build. */
+#if (DEAUTH_DIAG != 0) && (DEAUTH_DIAG != 1)
+#error "DEAUTH_DIAG debe ser 0 o 1"
+#endif
+
+#if DEAUTH_DIAG
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define DEAUTH_DIAG_V               1u
 
@@ -93,5 +106,7 @@ int deauth_diag_format(const deauth_diag_state_t *snapshot,
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* DEAUTH_DIAG */
 
 #endif /* DEAUTH_DIAG_H */
