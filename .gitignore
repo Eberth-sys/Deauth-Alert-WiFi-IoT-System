@@ -202,3 +202,10 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Evidencia cruda de laboratorio (Fase 8 / F6) - NUNCA en el repositorio publico.
+# Solo se ignoran las rutas y extensiones de evidencia; NO se usan comodines globales
+# para *.jsonl ni run.json, para no bloquear fixtures sinteticos ni plantillas.
+/evidence/
+*.pcap
+*.pcapng

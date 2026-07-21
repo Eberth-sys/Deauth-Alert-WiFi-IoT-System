@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Linea diagnostica [DIAG] de DeauthDiag (Fase 8 / F6a-1)",
+  "description": "Contrato de la carga JSON que sigue al prefijo '[DIAG] ' en la consola serie del nodo. Se emite SOLO por serie, nunca por BLE (el contrato BLE es DEC-0003 JSON v1). Los rangos se derivan de los tipos reales de deauth_diag_state_t / deauth_diag_delta_t y de las constantes de DeauthDiag; no son valores inventados. Este esquema es documental: parse_diag.py valida con stdlib, sin jsonschema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "diag_v",
+    "n",
+    "up_ms",
+    "stack_min_free_bytes",
+    "queue_max_depth",
+    "heap_min_free_bytes",
+    "mtu_negotiated",
+    "d_dropped_events",
+    "d_dropped_mtu",
+    "d_rl_suppressed",
+    "d_rl_fail_open",
+    "t_dropped_events",
+    "t_dropped_mtu",
+    "t_rl_suppressed",
+    "t_rl_fail_open"
+  ],
+  "properties": {
+    "diag_v": {
+      "type": "integer",
+      "const": 1,
+      "description": "Version del contrato diagnostico. Constante DEAUTH_DIAG_V = 1u. Cualquier otro valor se rechaza."
+    },
+    "n": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "description": "NODE_ID canonico. Longitud y alfabeto validados por deauth_diag_format(): 1..DEAUTH_DIAG_MAX_NODE_LEN (64) y [A-Za-z0-9_-]."
+    },
+    "up_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615,
+      "description": "Uptime en milisegundos. uint64_t (esp_timer_get_time()/1000): no envuelve en la practica."
+    },
+    "stack_min_free_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295,
+      "description": "Minimo de stack libre del worker, en BYTES. uint32_t. El valor centinela UINT32_MAX (4294967295) significa 'sin dato observado' (estado recien inicializado)."
+    },
+    "queue_max_depth": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535,
+      "description": "Maximo de las MUESTRAS de ocupacion de la cola (no es un maximo absoluto). uint16_t. Operativamente no deberia superar DEAUTH_QUEUE_DEPTH = 16."
+    },
+    "heap_min_free_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295,
+      "description": "Minimo de heap libre desde el arranque, en BYTES. uint32_t. UINT32_MAX = sin dato observado."
+    },
+    "mtu_negotiated": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535,
+      "description": "MTU BLE vigente (no es minimo ni maximo). uint16_t. Operativamente arranca en 23 (ESP_GATT_DEF_BLE_MTU_SIZE) y el maximo local solicitado es 247; no se afirma 247 efectivo hasta medirlo."
+    },
+    "d_dropped_events": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295,
+      "description": "Delta de la ventana de 5 s: eventos descartados por cola llena. uint32_t."
+    },
+    "d_dropped_mtu": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295,
+      "description": "Delta de la ventana de 5 s: alertas descartadas por MTU insuficiente. uint32_t."
+    },
+    "d_rl_suppressed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295,
+      "description": "Delta de la ventana de 5 s: duplicados suprimidos por rate-limit (clave ya registrada dentro de la ventana). uint32_t."
+    },
+    "d_rl_fail_open": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295,
+      "description": "Delta de la ventana de 5 s: alertas permitidas por fail-open (tabla de 8 entradas activa). uint32_t."
+    },
+    "t_dropped_events": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615,
+      "description": "Total acumulado desde el arranque de d_dropped_events. uint64_t con saturacion en UINT64_MAX."
+    },
+    "t_dropped_mtu": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615,
+      "description": "Total acumulado desde el arranque de d_dropped_mtu. uint64_t con saturacion en UINT64_MAX."
+    },
+    "t_rl_suppressed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615,
+      "description": "Total acumulado desde el arranque de d_rl_suppressed. uint64_t con saturacion en UINT64_MAX."
+    },
+    "t_rl_fail_open": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615,
+      "description": "Total acumulado desde el arranque de d_rl_fail_open. uint64_t con saturacion en UINT64_MAX."
+    }
+  }
+}
