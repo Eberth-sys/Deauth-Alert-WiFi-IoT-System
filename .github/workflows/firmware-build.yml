@@ -50,7 +50,7 @@ jobs:
   arduino-cli:
     needs: guards
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -92,14 +92,80 @@ jobs:
           mkdir -p build_sketch/main
           cp "perception-layer/esp32-nodes-ino/${{ matrix.node }}/main.ino" build_sketch/main/main.ino
           bash .github/scripts/gen_config.sh build_sketch/main/config.h
-      - name: Compilar (Huge APP, sin flashear)
+      - name: Verificar que el core no define extra_flags propios (F6a-1)
         run: |
-          ./arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app --libraries perception-layer/shared build_sketch/main
+          # La inyeccion de -DDEAUTH_DIAG usa compiler.c/cpp.extra_flags SIN autorreferencia:
+          # solo es seguro mientras el core los deje VACIOS. Ruta EXACTA de la version fijada y
+          # se exigen las dos lineas literales: una clave ausente tambien debe fallar.
+          PT="$HOME/.arduino15/packages/esp32/hardware/esp32/${ESP32_CORE_VERSION}/platform.txt"
+          echo "platform.txt: $PT"
+          if [ ! -f "$PT" ]; then
+            echo "::error::No existe $PT (core ${ESP32_CORE_VERSION} no instalado en la ruta esperada)"; exit 1
+          fi
+          for k in compiler.c.extra_flags compiler.cpp.extra_flags; do
+            if ! grep -Fqx "${k}=" "$PT"; then
+              echo "::error::Se exige la linea literal '${k}=' (vacia) en $PT"
+              grep -nE "^${k}=" "$PT" || echo "(clave ausente)"
+              exit 1
+            fi
+          done
+          echo "OK: compiler.c.extra_flags= y compiler.cpp.extra_flags= presentes y vacios en el core ${ESP32_CORE_VERSION}"
+      - name: Compilar DIAG=0 y DIAG=1 (Huge APP, sin flashear; build-dirs separados)
+        run: |
+          for d in 0 1; do
+            ./arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app \
+              --libraries perception-layer/shared \
+              --build-path "$PWD/build_diag${d}" \
+              --build-property "compiler.c.extra_flags=-DDEAUTH_DIAG=${d}" \
+              --build-property "compiler.cpp.extra_flags=-DDEAUTH_DIAG=${d}" \
+              build_sketch/main
+          done
+      - name: Verificacion estricta DIAG=0/1 (simbolos, strings y secciones)
+        run: |
+          NM=$(find "$HOME/.arduino15/packages/esp32/tools" -name "xtensa-esp32-elf-nm" -type f | head -1)
+          SZ=$(find "$HOME/.arduino15/packages/esp32/tools" -name "xtensa-esp32-elf-size" -type f | head -1)
+          if [ -z "$NM" ] || [ -z "$SZ" ]; then echo "::error::toolchain nm/size no encontrado"; exit 1; fi
+          ELF0="build_diag0/main.ino.elf"; ELF1="build_diag1/main.ino.elf"
+          for d in 0 1; do
+            eval "elf=\$ELF${d}"
+            # awk (no grep) para contar: con `set -o pipefail` un grep sin coincidencias
+            # retorna 1 y abortaria el paso justo en el caso correcto de DIAG=0.
+            syms=$("$NM" "$elf" | awk "/deauth_diag_/{n++} END{print n+0}")
+            strs=$(strings "$elf" | awk "/\[DIAG\]|diag_v/{n++} END{print n+0}")
+            echo "== DIAG=$d ($elf) simbolos deauth_diag_*=$syms strings [DIAG]/diag_v=$strs =="
+            if ! "$SZ" -A "$elf" | grep -E "^\.(flash\.(text|rodata)|iram0\.text|dram0\.(data|bss)|text|rodata|data|bss)[[:space:]]" > "sec${d}.txt"; then
+              echo "::error::No se capturo ninguna seccion del ELF (DIAG=$d)"; exit 1
+            fi
+            cat "sec${d}.txt"
+            if [ "$d" = "0" ] && { [ "$syms" != "0" ] || [ "$strs" != "0" ]; }; then
+              echo "::error::DIAG=0 conserva diagnostico (simbolos=$syms strings=$strs)"; exit 1
+            fi
+            if [ "$d" = "1" ] && { [ "$syms" = "0" ] || [ "$strs" = "0" ]; }; then
+              echo "::error::DIAG=1 sin diagnostico (simbolos=$syms strings=$strs)"; exit 1
+            fi
+          done
+          echo "== Secciones: DIAG=0 -> DIAG=1 (delta) =="
+          while read -r name v0 _rest; do
+            # Lectura shell pura (sin $1/$2 ni awk): inmune al quoting, tambien dentro de bash -c.
+            v1=""
+            while read -r sec_name sec_size _rest2; do
+              if [ "$sec_name" = "$name" ]; then
+                v1="$sec_size"
+                break
+              fi
+            done < "sec1.txt"
+            if [ -z "$v1" ]; then
+              echo "::error::Seccion ${name} presente en DIAG=0 y AUSENTE en DIAG=1"
+              exit 1
+            fi
+            echo "  ${name}: ${v0} -> ${v1} (delta $((v1 - v0)))"
+          done < "sec0.txt"
+          echo "OK: DIAG=0 limpio y DIAG=1 instrumentado"
 
   esp-idf:
     needs: guards
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
@@ -121,20 +187,67 @@ jobs:
         run: |
           docker run --rm espressif/idf:release-v5.1 idf.py --version | tee idf_ver.txt
           grep -E 'v5\.1' idf_ver.txt || { echo "::error::ESP-IDF != v5.1"; exit 1; }
-      - name: Compilar en el contenedor oficial ESP-IDF 5.1 (sin flashear)
+      - name: Compilar DIAG=0 y DIAG=1 en el contenedor oficial ESP-IDF 5.1 (sin flashear)
         run: |
           # Se monta toda la estructura espidf-nodes para preservar las rutas relativas
           # (../partitions.csv y ../../config/config.h). Un proyecto por nodo.
+          # Cada build-dir fija su target EXPLICITAMENTE (-DIDF_TARGET=esp32): no se hereda.
+          for d in 0 1; do
+            docker run --rm \
+              -v "${{ github.workspace }}/perception-layer:/project" \
+              -w "/project/espidf-nodes/${{ matrix.node }}" \
+              espressif/idf:release-v5.1 \
+              idf.py -B "build_diag${d}" -DIDF_TARGET=esp32 -DDEAUTH_DIAG="${d}" build
+          done
+      - name: Verificacion estricta DIAG=0/1 (simbolos, strings y secciones)
+        run: |
           docker run --rm \
             -v "${{ github.workspace }}/perception-layer:/project" \
             -w "/project/espidf-nodes/${{ matrix.node }}" \
-            espressif/idf:release-v5.1 \
-            idf.py set-target esp32 build
+            espressif/idf:release-v5.1 bash -c '
+          set -e
+          ELF0=$(ls build_diag0/*.elf | head -1); ELF1=$(ls build_diag1/*.elf | head -1)
+          for d in 0 1; do
+            eval "elf=\$ELF${d}"
+            # awk (no grep) para contar: con `set -o pipefail` un grep sin coincidencias
+            # retorna 1 y abortaria el paso justo en el caso correcto de DIAG=0.
+            syms=$(xtensa-esp32-elf-nm "$elf" | awk "/deauth_diag_/{n++} END{print n+0}")
+            strs=$(strings "$elf" | awk "/\[DIAG\]|diag_v/{n++} END{print n+0}")
+            echo "== DIAG=$d ($elf) simbolos deauth_diag_*=$syms strings [DIAG]/diag_v=$strs =="
+            if ! xtensa-esp32-elf-size -A "$elf" | grep -E "^\.(flash\.(text|rodata)|iram0\.text|dram0\.(data|bss)|text|rodata|data|bss)[[:space:]]" > "sec${d}.txt"; then
+              echo "::error::No se capturo ninguna seccion del ELF (DIAG=$d)"; exit 1
+            fi
+            cat "sec${d}.txt"
+            if [ "$d" = "0" ] && { [ "$syms" != "0" ] || [ "$strs" != "0" ]; }; then
+              echo "::error::DIAG=0 conserva diagnostico (simbolos=$syms strings=$strs)"; exit 1
+            fi
+            if [ "$d" = "1" ] && { [ "$syms" = "0" ] || [ "$strs" = "0" ]; }; then
+              echo "::error::DIAG=1 sin diagnostico (simbolos=$syms strings=$strs)"; exit 1
+            fi
+          done
+          echo "== Secciones: DIAG=0 -> DIAG=1 (delta) =="
+          while read -r name v0 _rest; do
+            # Lectura shell pura (sin $1/$2 ni awk): inmune al quoting, tambien dentro de bash -c.
+            v1=""
+            while read -r sec_name sec_size _rest2; do
+              if [ "$sec_name" = "$name" ]; then
+                v1="$sec_size"
+                break
+              fi
+            done < "sec1.txt"
+            if [ -z "$v1" ]; then
+              echo "::error::Seccion ${name} presente en DIAG=0 y AUSENTE en DIAG=1"
+              exit 1
+            fi
+            echo "  ${name}: ${v0} -> ${v1} (delta $((v1 - v0)))"
+          done < "sec0.txt"
+          echo "OK: DIAG=0 limpio y DIAG=1 instrumentado"
+          '
 
   platformio:
     needs: guards
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -161,10 +274,56 @@ jobs:
           # Retry (max 3, progresivo) SOLO de la adquisicion de paquetes; el build corre una sola vez despues.
           retry() { n=1; max=3; delay=10; until "$@"; do if [ "$n" -ge "$max" ]; then echo "::error::Fallo tras $max intentos: $*"; return 1; fi; echo "Intento $n/$max fallo; reintentando en ${delay}s..."; sleep "$delay"; n=$((n+1)); delay=$((delay*2)); done; }
           retry pio pkg install -d "perception-layer/esp32-nodes-ino/${{ matrix.node }}"
-      - name: Compilar el proyecto del nodo (verbose; reutiliza pio_common.ini + CSV; sin flashear)
+      - name: Compilar DIAG=0 y DIAG=1 (verbose; reutiliza pio_common.ini + CSV; sin flashear)
         run: |
           set -o pipefail
-          pio run -v -d "perception-layer/esp32-nodes-ino/${{ matrix.node }}" 2>&1 | tee pio_build.log
+          for d in 0 1; do
+            PLATFORMIO_BUILD_DIR="$PWD/.pio_diag${d}" PLATFORMIO_BUILD_FLAGS="-DDEAUTH_DIAG=${d}" \
+              pio run -v -d "perception-layer/esp32-nodes-ino/${{ matrix.node }}" 2>&1 | tee "pio_build_diag${d}.log"
+          done
+          cp pio_build_diag0.log pio_build.log
+      - name: Verificacion estricta DIAG=0/1 (simbolos, strings y secciones)
+        run: |
+          NM=$(find "$HOME/.platformio/packages" -name "xtensa-esp32-elf-nm" -type f | head -1)
+          SZ=$(find "$HOME/.platformio/packages" -name "xtensa-esp32-elf-size" -type f | head -1)
+          ELF0=$(find ".pio_diag0" -name "firmware.elf" | head -1)
+          ELF1=$(find ".pio_diag1" -name "firmware.elf" | head -1)
+          if [ -z "$NM" ] || [ -z "$SZ" ]; then echo "::error::toolchain nm/size no encontrado"; exit 1; fi
+          for d in 0 1; do
+            eval "elf=\$ELF${d}"
+            # awk (no grep) para contar: con `set -o pipefail` un grep sin coincidencias
+            # retorna 1 y abortaria el paso justo en el caso correcto de DIAG=0.
+            syms=$("$NM" "$elf" | awk "/deauth_diag_/{n++} END{print n+0}")
+            strs=$(strings "$elf" | awk "/\[DIAG\]|diag_v/{n++} END{print n+0}")
+            echo "== DIAG=$d ($elf) simbolos deauth_diag_*=$syms strings [DIAG]/diag_v=$strs =="
+            if ! "$SZ" -A "$elf" | grep -E "^\.(flash\.(text|rodata)|iram0\.text|dram0\.(data|bss)|text|rodata|data|bss)[[:space:]]" > "sec${d}.txt"; then
+              echo "::error::No se capturo ninguna seccion del ELF (DIAG=$d)"; exit 1
+            fi
+            cat "sec${d}.txt"
+            if [ "$d" = "0" ] && { [ "$syms" != "0" ] || [ "$strs" != "0" ]; }; then
+              echo "::error::DIAG=0 conserva diagnostico (simbolos=$syms strings=$strs)"; exit 1
+            fi
+            if [ "$d" = "1" ] && { [ "$syms" = "0" ] || [ "$strs" = "0" ]; }; then
+              echo "::error::DIAG=1 sin diagnostico (simbolos=$syms strings=$strs)"; exit 1
+            fi
+          done
+          echo "== Secciones: DIAG=0 -> DIAG=1 (delta) =="
+          while read -r name v0 _rest; do
+            # Lectura shell pura (sin $1/$2 ni awk): inmune al quoting, tambien dentro de bash -c.
+            v1=""
+            while read -r sec_name sec_size _rest2; do
+              if [ "$sec_name" = "$name" ]; then
+                v1="$sec_size"
+                break
+              fi
+            done < "sec1.txt"
+            if [ -z "$v1" ]; then
+              echo "::error::Seccion ${name} presente en DIAG=0 y AUSENTE en DIAG=1"
+              exit 1
+            fi
+            echo "  ${name}: ${v0} -> ${v1} (delta $((v1 - v0)))"
+          done < "sec0.txt"
+          echo "OK: DIAG=0 limpio y DIAG=1 instrumentado"
       - name: Verificar pioarduino 54.03.20 + Arduino Core 3.2.0 + CSV compartido (desde el log verbose)
         run: |
           grep -F 'PLATFORM: Espressif 32 (54.3.20)' pio_build.log \
