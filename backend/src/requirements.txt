@@ -3,7 +3,7 @@
 # limpia `python:3.11-slim-bookworm` (no `pip freeze` de un entorno personal).
 
 # -------------------- Framework y servidor --------------------
-fastapi==0.139.0            # FastAPI (core). Se quitó `fastapi[all]`: las extras que usa la app se declaran explícitas.
+fastapi==0.139.2            # FastAPI (core). Se quitó `fastapi[all]`: las extras que usa la app se declaran explícitas.
 uvicorn[standard]==0.51.0   # Servidor ASGI + soporte WebSocket (websockets/httptools)
 
 # -------------------- Base de datos --------------------
