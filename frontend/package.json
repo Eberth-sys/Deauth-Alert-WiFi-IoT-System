@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "@melloware/react-logviewer": "^6.5.5",
     "@tailwindcss/vite": "^4.3.3",
     "dayjs": "^1.11.13",
     "react": "^19.2.8",
