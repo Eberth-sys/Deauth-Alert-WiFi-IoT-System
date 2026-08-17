@@ -3,12 +3,12 @@
 # limpia `python:3.11-slim-bookworm` (no `pip freeze` de un entorno personal).
 
 # -------------------- Framework y servidor --------------------
-fastapi==0.139.2            # FastAPI (core). Se quitó `fastapi[all]`: las extras que usa la app se declaran explícitas.
-uvicorn[standard]==0.51.0   # Servidor ASGI + soporte WebSocket (websockets/httptools)
+fastapi==0.141.1            # FastAPI (core). Se quitó `fastapi[all]`: las extras que usa la app se declaran explícitas.
+uvicorn[standard]==0.52.3   # Servidor ASGI + soporte WebSocket (websockets/httptools)
 
 # -------------------- Base de datos --------------------
 psycopg2-binary==2.9.12     # Driver PostgreSQL precompilado (sin build-essential/libpq-dev en la imagen)
-sqlalchemy==2.0.51          # ORM
+sqlalchemy==2.0.52          # ORM
 
 # -------------------- Variables de entorno --------------------
 python-dotenv==1.2.2
