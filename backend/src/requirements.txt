@@ -4,17 +4,17 @@
 
 # -------------------- Framework y servidor --------------------
 fastapi==0.141.1            # FastAPI (core). Se quitó `fastapi[all]`: las extras que usa la app se declaran explícitas.
-uvicorn[standard]==0.52.3   # Servidor ASGI + soporte WebSocket (websockets/httptools)
+uvicorn[standard]==0.52.4   # Servidor ASGI + soporte WebSocket (websockets/httptools)
 
 # -------------------- Base de datos --------------------
 psycopg2-binary==2.9.12     # Driver PostgreSQL precompilado (sin build-essential/libpq-dev en la imagen)
 sqlalchemy==2.0.52          # ORM
 
 # -------------------- Variables de entorno --------------------
-python-dotenv==1.2.2
+python-dotenv==1.2.3
 
 # -------------------- Validación y serialización --------------------
-pydantic==2.13.4
+pydantic==2.13.5
 email-validator==2.3.0      # REQUERIDO por EmailStr (lo traía `fastapi[all]`; ahora explícito)
 
 # -------------------- Seguridad --------------------
